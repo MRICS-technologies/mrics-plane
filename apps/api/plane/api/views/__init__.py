@@ -78,4 +78,5 @@ from .time_tracking import (
     StopTimerAPIEndpoint,
     WorkItemWorklogDetailAPIEndpoint,
     WorkItemWorklogListCreateAPIEndpoint,
+    WorkItemStateDurationAPIEndpoint,
 )

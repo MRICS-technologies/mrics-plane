@@ -12,10 +12,21 @@ from rest_framework.response import Response
 
 from plane.api.serializers import ActiveTimerSerializer, WorkItemWorklogSerializer
 from plane.app.permissions import ProjectLitePermission, WorkspaceViewerPermission
-from plane.db.models import ActiveTimer, Issue, ProjectMember, WorkItemWorklog, WorkspaceMember
+from plane.db.models import ActiveTimer, Issue, ProjectMember, StateGroup, WorkItemWorklog, WorkspaceMember
 from plane.db.models.project import ROLE
+from plane.db.models.time_tracking import active_auto_state_worklog, seconds_to_hours, started_group_entered_at
 
 from .base import BaseAPIView
+
+
+def _duration_seconds(started_at, stopped_at):
+    if started_at is None or stopped_at is None or stopped_at <= started_at:
+        return Decimal("0")
+    return Decimal(str((stopped_at - started_at).total_seconds()))
+
+
+def _duration_hours(seconds):
+    return str(seconds_to_hours(seconds))
 
 
 def _timer_duration(started_at, stopped_at):
@@ -102,13 +113,25 @@ class WorkItemWorklogDetailAPIEndpoint(BaseAPIView):
         )
 
     def patch(self, request, slug, project_id, issue_id, pk):
-        serializer = WorkItemWorklogSerializer(self.get_object(), data=request.data, partial=True)
+        worklog = self.get_object()
+        if worklog.source == WorkItemWorklog.Source.AUTO_STATE:
+            return Response(
+                {"error": "Automatic state worklogs cannot be edited manually."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        serializer = WorkItemWorklogSerializer(worklog, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
 
     def delete(self, request, slug, project_id, issue_id, pk):
-        self.get_object().delete()
+        worklog = self.get_object()
+        if worklog.source == WorkItemWorklog.Source.AUTO_STATE:
+            return Response(
+                {"error": "Automatic state worklogs cannot be deleted manually."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        worklog.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -174,3 +197,83 @@ class StopTimerAPIEndpoint(BaseAPIView):
             )
         worklog = _stop_timer(timer, timezone.now())
         return Response(WorkItemWorklogSerializer(worklog).data, status=status.HTTP_201_CREATED)
+
+
+class WorkItemStateDurationAPIEndpoint(BaseAPIView):
+    permission_classes = [ProjectLitePermission]
+
+    def get(self, request, slug, project_id, issue_id):
+        with transaction.atomic():
+            issue = (
+                Issue.objects.select_for_update()
+                .select_related("state")
+                .get(workspace__slug=slug, project_id=project_id, id=issue_id)
+            )
+
+            auto_logs = list(
+                WorkItemWorklog.objects.select_for_update()
+                .filter(
+                    workspace_id=issue.workspace_id,
+                    project_id=project_id,
+                    issue_id=issue_id,
+                    source=WorkItemWorklog.Source.AUTO_STATE,
+                    stopped_at__isnull=False,
+                )
+                .select_related("logged_by")
+                .order_by("started_at", "created_at")
+            )
+
+            completed_seconds = Decimal("0")
+            sessions = []
+            for worklog in auto_logs:
+                session_seconds = _duration_seconds(worklog.started_at, worklog.stopped_at)
+                completed_seconds += session_seconds
+                sessions.append(
+                    {
+                        "id": str(worklog.id),
+                        "state_group": StateGroup.STARTED.value,
+                        "state_name": "Started/In Progress",
+                        "started_at": worklog.started_at,
+                        "stopped_at": worklog.stopped_at,
+                        "duration_seconds": float(session_seconds),
+                        "duration_hours": _duration_hours(session_seconds),
+                        "logged_by": str(worklog.logged_by_id),
+                        "source": worklog.source,
+                    }
+                )
+
+            active_started_at = None
+            active_seconds = Decimal("0")
+            active_worklog = active_auto_state_worklog(issue.id)
+            if issue.state and issue.state.group == StateGroup.STARTED.value:
+                active_started_at = (
+                    active_worklog.started_at
+                    if active_worklog is not None
+                    else started_group_entered_at(issue.id, fallback_to_issue_created=True)
+                )
+                if active_started_at is not None:
+                    active_seconds = _duration_seconds(active_started_at, timezone.now())
+
+            total_seconds = completed_seconds + active_seconds
+        return Response(
+            {
+                "issue": str(issue.id),
+                "current_state": (
+                    {
+                        "id": str(issue.state_id),
+                        "name": issue.state.name,
+                        "group": issue.state.group,
+                    }
+                    if issue.state
+                    else None
+                ),
+                "completed_started_seconds": float(completed_seconds),
+                "completed_started_hours": _duration_hours(completed_seconds),
+                "active_started_at": active_started_at,
+                "active_started_seconds": float(active_seconds),
+                "active_started_hours": _duration_hours(active_seconds),
+                "total_started_seconds": float(total_seconds),
+                "total_started_hours": _duration_hours(total_seconds),
+                "sessions": sessions,
+            }
+        )

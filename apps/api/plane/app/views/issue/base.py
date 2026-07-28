@@ -10,6 +10,7 @@ import json
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.contrib.postgres.fields import ArrayField
 from django.core.serializers.json import DjangoJSONEncoder
+from django.db import transaction
 from django.db.models import (
     Count,
     Exists,
@@ -61,6 +62,7 @@ from plane.db.models import (
     ProjectMember,
     UserRecentVisit,
 )
+from plane.db.models.time_tracking import lock_issue_for_transition, sync_auto_state_worklog
 from plane.utils.filters import ComplexFilterBackend, IssueFilterSet
 from plane.utils.global_paginator import paginate
 from plane.utils.grouper import (
@@ -415,7 +417,22 @@ class IssueViewSet(BaseViewSet):
         )
 
         if serializer.is_valid():
-            serializer.save()
+            transition_at = timezone.now()
+            with transaction.atomic():
+                serializer.save()
+                issue = Issue.objects.filter(
+                    workspace__slug=slug,
+                    project_id=project_id,
+                    pk=serializer.data["id"],
+                ).first()
+                if issue is not None:
+                    sync_auto_state_worklog(
+                        issue=issue,
+                        user_id=request.user.id,
+                        old_state_id=None,
+                        new_state_id=issue.state_id,
+                        transition_at=transition_at,
+                    )
 
             # Track the issue
             issue_activity.delay(
@@ -679,7 +696,20 @@ class IssueViewSet(BaseViewSet):
         requested_data = json.dumps(self.request.data, cls=DjangoJSONEncoder)
         serializer = IssueCreateSerializer(issue, data=request.data, partial=True, context={"project_id": project_id})
         if serializer.is_valid():
-            serializer.save()
+            with transaction.atomic():
+                issue = lock_issue_for_transition(issue.id)
+                old_state_id = issue.state_id
+                serializer.instance = issue
+                transition_at = timezone.now()
+                serializer.save()
+                issue.refresh_from_db(fields=["state"])
+                sync_auto_state_worklog(
+                    issue=issue,
+                    user_id=request.user.id,
+                    old_state_id=old_state_id,
+                    new_state_id=issue.state_id,
+                    transition_at=transition_at,
+                )
             # Check if the update is a migration description update
             is_migration_description_update = skip_activity and is_description_update
             # Log all the updates

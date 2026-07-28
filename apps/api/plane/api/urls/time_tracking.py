@@ -10,6 +10,7 @@ from plane.api.views import (
     StopTimerAPIEndpoint,
     WorkItemWorklogDetailAPIEndpoint,
     WorkItemWorklogListCreateAPIEndpoint,
+    WorkItemStateDurationAPIEndpoint,
 )
 
 
@@ -28,6 +29,11 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/worklogs/<uuid:pk>/",
         WorkItemWorklogDetailAPIEndpoint.as_view(http_method_names=["patch", "delete"]),
         name="work-item-worklog-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/state-durations/",
+        WorkItemStateDurationAPIEndpoint.as_view(http_method_names=["get"]),
+        name="work-item-state-durations",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/work-items/<uuid:issue_id>/timer/start/",

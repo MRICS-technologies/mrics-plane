@@ -8,6 +8,7 @@ import json
 # Django imports
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import timezone
+from django.db import transaction
 from django.db.models import Q, Value, UUIDField
 from django.db.models.functions import Coalesce
 from django.contrib.postgres.aggregates import ArrayAgg
@@ -28,6 +29,7 @@ from plane.api.serializers import (
 from plane.app.permissions import ProjectLitePermission
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import Intake, IntakeIssue, Issue, Project, ProjectMember, State, StateGroup
+from plane.db.models.time_tracking import lock_issue_for_transition, sync_auto_state_worklog
 from plane.utils.host import base_host
 from plane.utils.content_validator import validate_html_content
 from .base import BaseAPIView
@@ -414,12 +416,40 @@ class IntakeIssueDetailAPIEndpoint(BaseAPIView):
                 epoch=int(timezone.now().timestamp()),
                 intake=str(intake_issue.id),
             )
-            issue_serializer.save()
+            with transaction.atomic():
+                issue = lock_issue_for_transition(issue.id)
+                old_state_id = issue.state_id
+                issue_serializer.instance = issue
+                transition_at = timezone.now()
+                issue_serializer.save()
+                issue.refresh_from_db(fields=["state"])
+                sync_auto_state_worklog(
+                    issue=issue,
+                    user_id=request.user.id,
+                    old_state_id=old_state_id,
+                    new_state_id=issue.state_id,
+                    transition_at=transition_at,
+                )
 
         # Save intake issue (state transition happens in serializer's update method)
         if intake_serializer:
             current_instance = json.dumps(IntakeIssueSerializer(intake_issue).data, cls=DjangoJSONEncoder)
-            intake_serializer.save()
+            with transaction.atomic():
+                locked_issue = lock_issue_for_transition(intake_issue.issue_id)
+                old_intake_issue_state_id = locked_issue.state_id
+                intake_issue.issue = locked_issue
+                intake_serializer.instance = intake_issue
+                transition_at = timezone.now()
+                intake_serializer.save()
+                locked_issue.refresh_from_db(fields=["state"])
+                sync_auto_state_worklog(
+                    issue=locked_issue,
+                    user_id=request.user.id,
+                    old_state_id=old_intake_issue_state_id,
+                    new_state_id=locked_issue.state_id,
+                    transition_at=transition_at,
+                )
+                intake_issue.issue = locked_issue
 
             # create a activity for status change
             issue_activity.delay(
