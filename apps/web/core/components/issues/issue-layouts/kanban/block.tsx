@@ -137,23 +137,20 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
         </div>
       </Tooltip>
 
-      <IssueProperties
-        className="flex flex-wrap items-center gap-2 pt-1.5 whitespace-nowrap text-tertiary"
-        issue={issue}
-        displayProperties={displayProperties}
-        activeLayout="Kanban"
-        updateIssue={updateIssue}
-        isReadOnly={isReadOnly}
-        isEpic={isEpic}
-      />
-      {workspaceSlug && issue.project_id && (
-        <IssueStateDurationBadge
-          workspaceSlug={workspaceSlug}
-          projectId={issue.project_id}
-          issueId={issue.id}
-          className="mt-1"
+      <div className="flex flex-wrap items-center gap-2 pt-1.5 whitespace-nowrap text-tertiary">
+        <IssueProperties
+          className="flex flex-wrap items-center gap-2 whitespace-nowrap text-tertiary"
+          issue={issue}
+          displayProperties={displayProperties}
+          activeLayout="Kanban"
+          updateIssue={updateIssue}
+          isReadOnly={isReadOnly}
+          isEpic={isEpic}
         />
-      )}
+        {workspaceSlug && issue.project_id && (
+          <IssueStateDurationBadge workspaceSlug={workspaceSlug} projectId={issue.project_id} issueId={issue.id} />
+        )}
+      </div>
     </>
   );
 });

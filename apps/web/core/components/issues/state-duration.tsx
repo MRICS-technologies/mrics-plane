@@ -57,11 +57,10 @@ const formatDuration = (seconds?: number) => {
   const totalSeconds = Math.max(0, Math.round(seconds ?? 0));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const remainingSeconds = totalSeconds % 60;
 
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m ${remainingSeconds}s`;
-  return `${remainingSeconds}s`;
+  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
+  if (minutes > 0) return `${minutes}m`;
+  return "<1m";
 };
 
 const formatTimestamp = (value: string | null) => {
@@ -91,96 +90,49 @@ export const IssueStateDurationBadge = (props: TStateDurationProps) => {
   if (!data || data.total_started_seconds <= 0) return null;
 
   const isActive = data.current_state?.group === "started";
-  const label = isActive
-    ? `In progress ${formatDuration(data.active_started_seconds)}`
-    : formatDuration(data.total_started_seconds);
 
   return (
     <div
-      className={cn(
-        "border-custom-border-200 bg-custom-background-80 inline-flex max-w-full items-center gap-1 rounded-full border px-2 py-0.5 text-11 font-medium text-secondary",
-        {
-          "border-green-500/30 bg-green-500/10 text-green-600": isActive,
-        },
-        className
-      )}
+      className={cn("inline-flex items-center gap-1 text-11 text-tertiary", { "text-green-600": isActive }, className)}
       title={`Auto-tracked time in started states: ${formatDuration(data.total_started_seconds)}`}
     >
       <Clock className="size-3 flex-shrink-0" />
-      <span className="truncate">{label}</span>
+      <span>{formatDuration(data.total_started_seconds)}</span>
     </div>
   );
 };
 
 export const IssueStateDurationReport = (props: TStateDurationProps) => {
   const { className } = props;
-  const { data, isLoading, error } = useIssueStateDuration(props);
+  const { data, error } = useIssueStateDuration(props);
 
-  if (isLoading)
-    return (
-      <div className={cn("border-custom-border-200 bg-custom-background-90 rounded-lg border p-3", className)}>
-        <div className="bg-custom-background-80 h-4 w-36 animate-pulse rounded" />
-      </div>
-    );
-
-  if (error || !data) return null;
+  if (error || !data || (data.total_started_seconds <= 0 && data.sessions.length === 0)) return null;
 
   const isActive = data.current_state?.group === "started";
-  const recentSessions = data.sessions.slice(Math.max(data.sessions.length - 5, 0));
   const latestSessions: TStateDurationSession[] = [];
-  for (const session of recentSessions) latestSessions.unshift(session);
+  for (const session of data.sessions.slice(-5)) latestSessions.unshift(session);
 
   return (
-    <section className={cn("border-custom-border-200 bg-custom-background-90 rounded-lg border p-3", className)}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="space-y-1">
-          <div className="text-sm flex items-center gap-2 font-semibold text-primary">
-            <Clock className="size-4 text-secondary" />
-            <span>Time in progress</span>
-          </div>
-          <p className="text-xs text-secondary">Automatically tracked from Started/In Progress state changes.</p>
+    <section className={cn("border-custom-border-200 rounded-md border px-3 py-2", className)}>
+      <div className="text-xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 font-medium text-secondary">
+          <Clock className="size-3.5 flex-shrink-0" />
+          <span>Time in progress</span>
+          {isActive && <span className="text-green-600">{formatDuration(data.active_started_seconds)} running</span>}
         </div>
-        <div className="text-right">
-          <div className="text-lg font-semibold text-primary">{formatDuration(data.total_started_seconds)}</div>
-          <div className="text-11 text-tertiary">total started time</div>
-        </div>
-      </div>
-
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-        <div className="bg-custom-background-100 rounded-md p-2">
-          <div className="text-11 text-tertiary uppercase">Current state</div>
-          <div className="text-xs mt-1 font-medium text-primary">{data.current_state?.name ?? "—"}</div>
-        </div>
-        <div className="bg-custom-background-100 rounded-md p-2">
-          <div className="text-11 text-tertiary uppercase">Active session</div>
-          <div className={cn("text-xs mt-1 font-medium", isActive ? "text-green-600" : "text-primary")}>
-            {isActive ? formatDuration(data.active_started_seconds) : "Not running"}
-          </div>
-        </div>
-        <div className="bg-custom-background-100 rounded-md p-2">
-          <div className="text-11 text-tertiary uppercase">Completed sessions</div>
-          <div className="text-xs mt-1 font-medium text-primary">{data.sessions.length}</div>
-        </div>
+        <span className="font-medium text-primary">{formatDuration(data.total_started_seconds)}</span>
       </div>
 
       {latestSessions.length > 0 && (
-        <div className="border-custom-border-200 mt-3 border-t pt-3">
-          <div className="text-xs mb-2 font-medium text-secondary">Recent auto-tracked sessions</div>
-          <div className="space-y-1.5">
-            {latestSessions.map((session) => (
-              <div
-                key={session.id}
-                className="bg-custom-background-100 text-xs flex flex-wrap items-center justify-between gap-2 rounded-md px-2 py-1.5"
-              >
-                <div className="min-w-0 text-secondary">
-                  <span>{formatTimestamp(session.started_at)}</span>
-                  <span className="px-1 text-tertiary">→</span>
-                  <span>{formatTimestamp(session.stopped_at)}</span>
-                </div>
-                <div className="font-medium text-primary">{formatDuration(session.duration_seconds)}</div>
-              </div>
-            ))}
-          </div>
+        <div className="mt-1.5 space-y-0.5">
+          {latestSessions.map((session) => (
+            <div key={session.id} className="flex items-center justify-between gap-2 text-11 text-tertiary">
+              <span className="truncate">
+                {formatTimestamp(session.started_at)} → {formatTimestamp(session.stopped_at)}
+              </span>
+              <span className="flex-shrink-0">{formatDuration(session.duration_seconds)}</span>
+            </div>
+          ))}
         </div>
       )}
     </section>
