@@ -5,6 +5,7 @@
 from django.urls import path
 
 from plane.api.views.time_tracking import WorkItemStateDurationAPIEndpoint
+from plane.authentication.session import BaseSessionAuthentication
 from plane.app.views import (
     BulkCreateIssueLabelsEndpoint,
     BulkDeleteIssuesEndpoint,
@@ -33,6 +34,11 @@ from plane.app.views import (
     IssueMetaEndpoint,
     IssueDetailIdentifierEndpoint,
 )
+
+
+class WorkItemStateDurationAppEndpoint(WorkItemStateDurationAPIEndpoint):
+    authentication_classes = [BaseSessionAuthentication]
+
 
 urlpatterns = [
     path(
@@ -71,7 +77,7 @@ urlpatterns = [
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/state-durations/",
-        WorkItemStateDurationAPIEndpoint.as_view(),
+        WorkItemStateDurationAppEndpoint.as_view(),
         name="project-issue-state-durations",
     ),
     path(
