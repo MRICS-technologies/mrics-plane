@@ -178,13 +178,14 @@ export class IssueService extends APIService {
     projectId: string,
     issueId: string
   ): Promise<TIssueStateDurationSummary> {
-    return this.get(
-      `/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/state-durations/`
-    )
-      .then((response) => response?.data)
-      .catch((error) => {
-        throw error?.response?.data;
-      });
+    const response = await fetch(
+      `${API_BASE_URL}/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/state-durations/`,
+      { credentials: "include" }
+    );
+
+    if (!response.ok) throw await response.json().catch(() => ({ status: response.status }));
+
+    return response.json();
   }
 
   async addIssueToCycle(
