@@ -4,6 +4,7 @@
 
 from django.urls import path
 
+from plane.api.views.time_tracking import WorkItemStateDurationAPIEndpoint
 from plane.app.views import (
     BulkCreateIssueLabelsEndpoint,
     BulkDeleteIssuesEndpoint,
@@ -67,6 +68,11 @@ urlpatterns = [
             }
         ),
         name="project-issue",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/state-durations/",
+        WorkItemStateDurationAPIEndpoint.as_view(),
+        name="project-issue-state-durations",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issue-labels/",

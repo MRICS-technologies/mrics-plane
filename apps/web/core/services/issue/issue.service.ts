@@ -21,6 +21,35 @@ import type {
 // services
 import { APIService } from "@/services/api.service";
 
+export type TIssueStateDurationSession = {
+  id: string;
+  state_group: string;
+  state_name: string;
+  started_at: string | null;
+  stopped_at: string | null;
+  duration_seconds: number;
+  duration_hours: string;
+  logged_by: string;
+  source: string;
+};
+
+export type TIssueStateDurationSummary = {
+  issue: string;
+  current_state: {
+    id: string;
+    name: string;
+    group: string;
+  } | null;
+  completed_started_seconds: number;
+  completed_started_hours: string;
+  active_started_at: string | null;
+  active_started_seconds: number;
+  active_started_hours: string;
+  total_started_seconds: number;
+  total_started_hours: string;
+  sessions: TIssueStateDurationSession[];
+};
+
 export class IssueService extends APIService {
   private serviceType: TIssueServiceType;
 
@@ -138,6 +167,20 @@ export class IssueService extends APIService {
 
   async getIssueActivities(workspaceSlug: string, projectId: string, issueId: string): Promise<TIssueActivity[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/history/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  async retrieveStateDurations(
+    workspaceSlug: string,
+    projectId: string,
+    issueId: string
+  ): Promise<TIssueStateDurationSummary> {
+    return this.get(
+      `/api/workspaces/${workspaceSlug}/projects/${projectId}/${this.serviceType}/${issueId}/state-durations/`
+    )
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

@@ -25,6 +25,7 @@ import { cn, generateWorkItemLink } from "@plane/utils";
 import RenderIfVisible from "@/components/core/render-if-visible-HOC";
 import { HIGHLIGHT_CLASS, getIssueBlockId } from "@/components/issues/issue-layouts/utils";
 import { IssueIdentifier } from "@/components/issues/issue-detail/issue-identifier";
+import { IssueStateDurationBadge } from "@/components/issues/state-duration";
 // hooks
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useKanbanView } from "@/hooks/store/use-kanban-view";
@@ -54,6 +55,7 @@ interface IssueBlockProps {
 
 interface IssueDetailsBlockProps {
   cardRef: React.RefObject<HTMLElement>;
+  workspaceSlug: string | undefined;
   issue: TIssue;
   displayProperties: IIssueDisplayProperties | undefined;
   updateIssue: ((projectId: string | null, issueId: string, data: Partial<TIssue>) => Promise<void>) | undefined;
@@ -63,7 +65,16 @@ interface IssueDetailsBlockProps {
 }
 
 const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props: IssueDetailsBlockProps) {
-  const { cardRef, issue, updateIssue, quickActions, isReadOnly, displayProperties, isEpic = false } = props;
+  const {
+    cardRef,
+    workspaceSlug,
+    issue,
+    updateIssue,
+    quickActions,
+    isReadOnly,
+    displayProperties,
+    isEpic = false,
+  } = props;
   // refs
   const menuActionRef = useRef<HTMLDivElement | null>(null);
   // states
@@ -95,7 +106,7 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
   return (
     <>
       <div className="relative">
-        {issue.project_id && (
+        {workspaceSlug && issue.project_id && (
           <IssueIdentifier
             issueId={issue.id}
             projectId={issue.project_id}
@@ -135,6 +146,14 @@ const KanbanIssueDetailsBlock = observer(function KanbanIssueDetailsBlock(props:
         isReadOnly={isReadOnly}
         isEpic={isEpic}
       />
+      {workspaceSlug && issue.project_id && (
+        <IssueStateDurationBadge
+          workspaceSlug={workspaceSlug}
+          projectId={issue.project_id}
+          issueId={issue.id}
+          className="mt-1"
+        />
+      )}
     </>
   );
 });
@@ -280,6 +299,7 @@ export const KanbanIssueBlock = observer(function KanbanIssueBlock(props: IssueB
           >
             <KanbanIssueDetailsBlock
               cardRef={cardRef}
+              workspaceSlug={workspaceSlug}
               issue={issue}
               displayProperties={displayProperties}
               updateIssue={updateIssue}

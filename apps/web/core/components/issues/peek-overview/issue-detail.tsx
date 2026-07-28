@@ -21,6 +21,7 @@ import { useUser } from "@/hooks/store/user";
 import useReloadConfirmations from "@/hooks/use-reload-confirmation";
 // plane web components
 import { IssueTypeSwitcher } from "@/components/issues/issue-type-switcher";
+import { IssueStateDurationReport } from "@/components/issues/state-duration";
 // plane web hooks
 // services
 import { WorkItemVersionService } from "@/services/issue";
@@ -126,6 +127,8 @@ export const PeekOverviewIssueDetails = observer(function PeekOverviewIssueDetai
         projectId={issue.project_id}
         workspaceSlug={workspaceSlug}
       />
+
+      <IssueStateDurationReport workspaceSlug={workspaceSlug} projectId={issue.project_id} issueId={issueId} />
 
       <div className="flex items-center justify-between gap-2">
         {currentUser && (
