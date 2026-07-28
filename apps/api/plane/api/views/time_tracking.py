@@ -203,58 +203,56 @@ class WorkItemStateDurationAPIEndpoint(BaseAPIView):
     permission_classes = [ProjectLitePermission]
 
     def get(self, request, slug, project_id, issue_id):
-        with transaction.atomic():
-            issue = (
-                Issue.objects.select_for_update()
-                .select_related("state")
-                .get(workspace__slug=slug, project_id=project_id, id=issue_id)
+        issue = Issue.objects.select_related("state").get(
+            workspace__slug=slug,
+            project_id=project_id,
+            id=issue_id,
+        )
+
+        auto_logs = list(
+            WorkItemWorklog.objects.filter(
+                workspace_id=issue.workspace_id,
+                project_id=project_id,
+                issue_id=issue_id,
+                source=WorkItemWorklog.Source.AUTO_STATE,
+                stopped_at__isnull=False,
+            )
+            .select_related("logged_by")
+            .order_by("started_at", "created_at")
+        )
+
+        completed_seconds = Decimal("0")
+        sessions = []
+        for worklog in auto_logs:
+            session_seconds = _duration_seconds(worklog.started_at, worklog.stopped_at)
+            completed_seconds += session_seconds
+            sessions.append(
+                {
+                    "id": str(worklog.id),
+                    "state_group": StateGroup.STARTED.value,
+                    "state_name": "Started/In Progress",
+                    "started_at": worklog.started_at.isoformat() if worklog.started_at else None,
+                    "stopped_at": worklog.stopped_at.isoformat() if worklog.stopped_at else None,
+                    "duration_seconds": float(session_seconds),
+                    "duration_hours": _duration_hours(session_seconds),
+                    "logged_by": str(worklog.logged_by_id),
+                    "source": worklog.source,
+                }
             )
 
-            auto_logs = list(
-                WorkItemWorklog.objects.select_for_update()
-                .filter(
-                    workspace_id=issue.workspace_id,
-                    project_id=project_id,
-                    issue_id=issue_id,
-                    source=WorkItemWorklog.Source.AUTO_STATE,
-                    stopped_at__isnull=False,
-                )
-                .select_related("logged_by")
-                .order_by("started_at", "created_at")
+        active_started_at = None
+        active_seconds = Decimal("0")
+        active_worklog = active_auto_state_worklog(issue.id)
+        if issue.state and issue.state.group == StateGroup.STARTED.value:
+            active_started_at = (
+                active_worklog.started_at
+                if active_worklog is not None
+                else started_group_entered_at(issue.id, fallback_to_issue_created=True)
             )
+            if active_started_at is not None:
+                active_seconds = _duration_seconds(active_started_at, timezone.now())
 
-            completed_seconds = Decimal("0")
-            sessions = []
-            for worklog in auto_logs:
-                session_seconds = _duration_seconds(worklog.started_at, worklog.stopped_at)
-                completed_seconds += session_seconds
-                sessions.append(
-                    {
-                        "id": str(worklog.id),
-                        "state_group": StateGroup.STARTED.value,
-                        "state_name": "Started/In Progress",
-                        "started_at": worklog.started_at,
-                        "stopped_at": worklog.stopped_at,
-                        "duration_seconds": float(session_seconds),
-                        "duration_hours": _duration_hours(session_seconds),
-                        "logged_by": str(worklog.logged_by_id),
-                        "source": worklog.source,
-                    }
-                )
-
-            active_started_at = None
-            active_seconds = Decimal("0")
-            active_worklog = active_auto_state_worklog(issue.id)
-            if issue.state and issue.state.group == StateGroup.STARTED.value:
-                active_started_at = (
-                    active_worklog.started_at
-                    if active_worklog is not None
-                    else started_group_entered_at(issue.id, fallback_to_issue_created=True)
-                )
-                if active_started_at is not None:
-                    active_seconds = _duration_seconds(active_started_at, timezone.now())
-
-            total_seconds = completed_seconds + active_seconds
+        total_seconds = completed_seconds + active_seconds
         return Response(
             {
                 "issue": str(issue.id),
@@ -269,7 +267,7 @@ class WorkItemStateDurationAPIEndpoint(BaseAPIView):
                 ),
                 "completed_started_seconds": float(completed_seconds),
                 "completed_started_hours": _duration_hours(completed_seconds),
-                "active_started_at": active_started_at,
+                "active_started_at": active_started_at.isoformat() if active_started_at else None,
                 "active_started_seconds": float(active_seconds),
                 "active_started_hours": _duration_hours(active_seconds),
                 "total_started_seconds": float(total_seconds),
