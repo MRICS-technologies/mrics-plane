@@ -292,6 +292,9 @@ def test_stop_recovers_completed_session_when_open_worklog_is_missing(issue, sta
 
 @pytest.mark.django_db
 def test_auto_state_actor_falls_back_to_issue_creator(issue, states, create_user):
+    Issue.objects.filter(pk=issue.id).update(created_by=create_user)
+    issue.refresh_from_db(fields=["created_by"])
+
     sync_auto_state_worklog(
         issue=issue,
         user_id=None,

@@ -7,6 +7,7 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework import status
 
@@ -125,6 +126,7 @@ class TestAutoStateDurationContract:
         )
 
         with (
+            override_settings(APP_BASE_URL="http://testserver"),
             patch("plane.api.views.issue.issue_activity.delay"),
             patch("plane.api.views.issue.model_activity.delay"),
         ):
