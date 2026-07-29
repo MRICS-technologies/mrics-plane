@@ -432,6 +432,9 @@ class TestContributorAnalytics:
             "start_date=2024-01-10&end_date=not-a-date",  # malformed end_date
             "start_date=2024-01-12&end_date=2024-01-10",  # reversed range
             "start_date=2024-1-10&end_date=2024-01-12",  # non-zero-padded start_date
+            "start_date=&end_date=",  # both blank
+            "start_date=&end_date=2024-01-10",  # blank start_date, valid end_date
+            "start_date=2024-01-10&end_date=",  # valid start_date, blank end_date
         ],
     )
     def test_date_range_validation_errors(

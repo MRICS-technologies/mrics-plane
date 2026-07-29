@@ -92,13 +92,12 @@ export class AnalyticsService extends APIService {
   async getContributorAnalytics(
     workspaceSlug: string,
     projectIds?: string,
-    startDate?: string,
-    endDate?: string
+    dateRange?: { startDate: string; endDate: string }
   ): Promise<IContributorAnalyticsResponse> {
     return this.get(`/api/workspaces/${workspaceSlug}/contributor-analytics/`, {
       params: {
         ...(projectIds ? { project_ids: projectIds } : {}),
-        ...(startDate && endDate ? { start_date: startDate, end_date: endDate } : {}),
+        ...(dateRange ? { start_date: dateRange.startDate, end_date: dateRange.endDate } : {}),
       },
     })
       .then((res) => res?.data)

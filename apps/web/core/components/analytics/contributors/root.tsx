@@ -14,6 +14,7 @@ import type { AnalyticsTableDataMap, IContributorAnalyticsResponse, IContributor
 import { Avatar, Button, Input } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 import { useAnalytics } from "@/hooks/store/use-analytics";
+import { useUser } from "@/hooks/store/user";
 import { AnalyticsService } from "@/services/analytics.service";
 import { exportCSV } from "../export";
 import { InsightTable } from "../insight-table";
@@ -32,15 +33,29 @@ const RANGE_PRESETS: { key: TRangePreset; label: string }[] = [
 
 const PRESET_DAYS: Partial<Record<TRangePreset, number>> = { week: 7, month: 30, quarter: 90 };
 
-// local calendar date, no UTC-shift
-const toLocalISODate = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+// calendar-day parts of `date` as seen in `timeZone`, no locale-string parsing
+const getDatePartsInTimeZone = (date: Date, timeZone: string) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return { year: Number(lookup.year), month: Number(lookup.month), day: Number(lookup.day) };
+};
 
-const rollingRange = (days: number) => {
-  const end = new Date();
-  const start = new Date();
-  start.setDate(start.getDate() - (days - 1));
-  return { startDate: toLocalISODate(start), endDate: toLocalISODate(end) };
+const formatUTCDateISO = (date: Date) =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${String(date.getUTCDate()).padStart(2, "0")}`;
+
+// rolling window anchored on "today" in the given IANA timezone, computed via
+// UTC component arithmetic so DST/offset shifts never bleed into the date
+const rollingRange = (days: number, timeZone: string) => {
+  const { year, month, day } = getDatePartsInTimeZone(new Date(), timeZone);
+  const end = new Date(Date.UTC(year, month - 1, day));
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  return { startDate: formatUTCDateISO(start), endDate: formatUTCDateISO(end) };
 };
 
 const formatDuration = (seconds = 0) => {
@@ -64,6 +79,9 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
   const workspaceSlug = params.workspaceSlug.toString();
   const { selectedProjects } = useAnalytics();
   const projectIds = selectedProjects.length > 0 ? selectedProjects.join(",") : undefined;
+  const { data: userData } = useUser();
+  // fall back to the browser timezone only while the Plane user timezone hasn't loaded
+  const effectiveTimezone = userData?.user_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const [rangePreset, setRangePreset] = useState<TRangePreset>("all_time");
   const [customStart, setCustomStart] = useState("");
@@ -72,12 +90,13 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
 
   const isCustomRangeValid = Boolean(customStart && customEnd && customStart <= customEnd);
 
-  const { startDate, endDate } = useMemo(() => {
+  const dateRange = useMemo(() => {
     const presetDays = PRESET_DAYS[rangePreset];
-    if (presetDays) return rollingRange(presetDays);
+    if (presetDays) return rollingRange(presetDays, effectiveTimezone);
     if (rangePreset === "custom" && appliedCustomRange) return appliedCustomRange;
-    return { startDate: undefined, endDate: undefined };
-  }, [rangePreset, appliedCustomRange]);
+    return undefined;
+  }, [rangePreset, appliedCustomRange, effectiveTimezone]);
+  const { startDate, endDate } = dateRange ?? { startDate: undefined, endDate: undefined };
 
   const handleSelectPreset = (preset: TRangePreset) => {
     setRangePreset(preset);
@@ -91,7 +110,7 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
 
   const { data, isLoading } = useSWR<IContributorAnalyticsResponse>(
     `contributor-analytics-${workspaceSlug}-${projectIds ?? "all"}-${startDate ?? "all"}-${endDate ?? "all"}`,
-    () => analyticsService.getContributorAnalytics(workspaceSlug, projectIds, startDate, endDate)
+    () => analyticsService.getContributorAnalytics(workspaceSlug, projectIds, dateRange)
   );
 
   const columns: ColumnDef<AnalyticsTableDataMap["contributors"]>[] = useMemo(
@@ -235,7 +254,7 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
           <h2 className="text-16 font-medium text-primary">Contributor breakdown</h2>
           <p className="mt-1 text-12 text-tertiary">
             {data?.attribution.scope === "date_range"
-              ? `Tasks are current-state items created between ${data.attribution.start_date} and ${data.attribution.end_date}. Time reflects work logged or session overlap in that period. Cancelled tasks are excluded from completion rate.`
+              ? `Tasks are current-state items created between ${data.attribution.start_date} and ${data.attribution.end_date} (${effectiveTimezone}). Time reflects work logged or session overlap in that period. Cancelled tasks are excluded from completion rate.`
               : "Tasks are current-state items across all time. Time reflects total work logged or session overlap. Cancelled tasks are excluded from completion rate."}
           </p>
         </div>

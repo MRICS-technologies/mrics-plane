@@ -198,7 +198,7 @@ def _parse_contributor_date_range(request: HttpRequest):
     """
     start_raw = request.GET.get("start_date")
     end_raw = request.GET.get("end_date")
-    if not start_raw and not end_raw:
+    if start_raw is None and end_raw is None:
         return None, None, None
     if not start_raw or not end_raw:
         return None, None, Response(
