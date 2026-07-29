@@ -201,6 +201,9 @@ def test_repeated_started_entry_keeps_one_open_session(issue, states, create_use
 def test_repeated_started_exit_does_not_create_duplicate_completed_session(issue, states, create_user):
     started_at = timezone.now() - timedelta(minutes=10)
     first_stopped_at = timezone.now() - timedelta(minutes=1)
+    Issue.objects.filter(pk=issue.id).update(created_at=started_at - timedelta(minutes=1))
+    issue.refresh_from_db(fields=["created_at"])
+
     sync_auto_state_worklog(
         issue=issue,
         user_id=create_user.id,
