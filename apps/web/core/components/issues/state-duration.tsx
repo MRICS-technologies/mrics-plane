@@ -65,16 +65,6 @@ const formatDuration = (seconds?: number) => {
   return "<1m";
 };
 
-const formatTimestamp = (value: string | null) => {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-};
-
 const useIssueStateDuration = ({ workspaceSlug, projectId, issueId }: TStateDurationProps) =>
   useSWR<TStateDurationSummary>(
     workspaceSlug && projectId && issueId ? stateDurationKey(workspaceSlug, projectId, issueId) : null,
@@ -96,7 +86,7 @@ export const IssueStateDurationBadge = (props: TStateDurationProps) => {
   return (
     <div
       className={cn("inline-flex items-center gap-1 text-11 text-tertiary", { "text-green-600": isActive }, className)}
-      title={`Auto-tracked time in started states: ${formatDuration(data.total_started_seconds)}`}
+      title={`Auto-tracked time in progress states: ${formatDuration(data.total_started_seconds)}`}
     >
       <Clock className="size-3 flex-shrink-0" />
       <span>{formatDuration(data.total_started_seconds)}</span>
@@ -120,48 +110,11 @@ export const IssueStateDurationProperty = (props: TStateDurationProps) => {
           { "text-green-600": isActive },
           className
         )}
-        title={`Auto-tracked from started states: ${formatDuration(data.total_started_seconds)}`}
+        title={`Auto-tracked from progress states: ${formatDuration(data.total_started_seconds)}`}
       >
         <span>{formatDuration(data.total_started_seconds)}</span>
         {isActive && <span className="text-green-600 text-11">running</span>}
       </div>
     </SidebarPropertyListItem>
-  );
-};
-
-export const IssueStateDurationReport = (props: TStateDurationProps) => {
-  const { className } = props;
-  const { data, error } = useIssueStateDuration(props);
-
-  if (error || !data || (data.total_started_seconds <= 0 && data.sessions.length === 0)) return null;
-
-  const isActive = data.current_state?.group === "started";
-  const latestSessions: TStateDurationSession[] = [];
-  for (const session of data.sessions.slice(-5)) latestSessions.unshift(session);
-
-  return (
-    <section className={cn("border-custom-border-200 rounded-md border px-3 py-2", className)}>
-      <div className="text-xs flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5 font-medium text-secondary">
-          <Clock className="size-3.5 flex-shrink-0" />
-          <span>Time in progress</span>
-          {isActive && <span className="text-green-600">{formatDuration(data.active_started_seconds)} running</span>}
-        </div>
-        <span className="font-medium text-primary">{formatDuration(data.total_started_seconds)}</span>
-      </div>
-
-      {latestSessions.length > 0 && (
-        <div className="mt-1.5 space-y-0.5">
-          {latestSessions.map((session) => (
-            <div key={session.id} className="flex items-center justify-between gap-2 text-11 text-tertiary">
-              <span className="truncate">
-                {formatTimestamp(session.started_at)} → {formatTimestamp(session.stopped_at)}
-              </span>
-              <span className="flex-shrink-0">{formatDuration(session.duration_seconds)}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
   );
 };
