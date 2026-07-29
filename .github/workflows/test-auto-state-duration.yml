@@ -22,6 +22,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       postgres:
         image: postgres:16-alpine
         env:
@@ -38,6 +47,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://plane:plane@127.0.0.1:5432/plane_test
       DJANGO_SETTINGS_MODULE: plane.settings.test
+      REDIS_URL: redis://127.0.0.1:6379/0
       SECRET_KEY: ci-auto-state-duration-test-key
     steps:
       - name: Checkout
