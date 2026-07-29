@@ -12,6 +12,9 @@ on:
       - apps/api/plane/app/urls/issue.py
       - apps/api/plane/tests/unit/models/test_time_tracking_auto_state.py
       - apps/api/plane/tests/contract/api/test_time_tracking_auto_state.py
+      - apps/api/plane/tests/contract/api/test_contributor_analytics.py
+      - apps/api/plane/app/views/analytic/project_analytics.py
+      - apps/api/plane/app/urls/analytic.py
       - .github/workflows/test-auto-state-duration.yml
 
 permissions:

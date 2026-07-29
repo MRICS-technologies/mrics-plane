@@ -197,7 +197,7 @@ class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
     duration accounting explicit rather than guessing from current assignment.
     """
 
-    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
 
