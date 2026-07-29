@@ -116,7 +116,9 @@ export interface IContributorAnalyticsResponse {
   attribution: {
     task_counts: "current_assignees";
     time: "worklog_owner";
-    scope: "all_time";
+    scope: "all_time" | "date_range";
+    start_date: string | null;
+    end_date: string | null;
   };
 }
 

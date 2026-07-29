@@ -4,14 +4,14 @@
  * See the LICENSE file for details.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnDef, Row } from "@tanstack/react-table";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
 import { UserRound } from "lucide-react";
 import type { AnalyticsTableDataMap, IContributorAnalyticsResponse, IContributorAnalyticsRow } from "@plane/types";
-import { Avatar } from "@plane/ui";
+import { Avatar, Button, Input } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 import { useAnalytics } from "@/hooks/store/use-analytics";
 import { AnalyticsService } from "@/services/analytics.service";
@@ -19,6 +19,29 @@ import { exportCSV } from "../export";
 import { InsightTable } from "../insight-table";
 
 const analyticsService = new AnalyticsService();
+
+type TRangePreset = "all_time" | "week" | "month" | "quarter" | "custom";
+
+const RANGE_PRESETS: { key: TRangePreset; label: string }[] = [
+  { key: "all_time", label: "All time" },
+  { key: "week", label: "Week" },
+  { key: "month", label: "Month" },
+  { key: "quarter", label: "Quarter" },
+  { key: "custom", label: "Custom" },
+];
+
+const PRESET_DAYS: Partial<Record<TRangePreset, number>> = { week: 7, month: 30, quarter: 90 };
+
+// local calendar date, no UTC-shift
+const toLocalISODate = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+const rollingRange = (days: number) => {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - (days - 1));
+  return { startDate: toLocalISODate(start), endDate: toLocalISODate(end) };
+};
 
 const formatDuration = (seconds = 0) => {
   if (seconds < 60) return seconds > 0 ? "<1m" : "0m";
@@ -42,9 +65,33 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
   const { selectedProjects } = useAnalytics();
   const projectIds = selectedProjects.length > 0 ? selectedProjects.join(",") : undefined;
 
+  const [rangePreset, setRangePreset] = useState<TRangePreset>("all_time");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [appliedCustomRange, setAppliedCustomRange] = useState<{ startDate: string; endDate: string } | null>(null);
+
+  const isCustomRangeValid = Boolean(customStart && customEnd && customStart <= customEnd);
+
+  const { startDate, endDate } = useMemo(() => {
+    const presetDays = PRESET_DAYS[rangePreset];
+    if (presetDays) return rollingRange(presetDays);
+    if (rangePreset === "custom" && appliedCustomRange) return appliedCustomRange;
+    return { startDate: undefined, endDate: undefined };
+  }, [rangePreset, appliedCustomRange]);
+
+  const handleSelectPreset = (preset: TRangePreset) => {
+    setRangePreset(preset);
+    if (preset !== "custom") setAppliedCustomRange(null);
+  };
+
+  const handleApplyCustomRange = () => {
+    if (!isCustomRangeValid) return;
+    setAppliedCustomRange({ startDate: customStart, endDate: customEnd });
+  };
+
   const { data, isLoading } = useSWR<IContributorAnalyticsResponse>(
-    `contributor-analytics-${workspaceSlug}-${projectIds ?? "all"}`,
-    () => analyticsService.getContributorAnalytics(workspaceSlug, projectIds)
+    `contributor-analytics-${workspaceSlug}-${projectIds ?? "all"}-${startDate ?? "all"}-${endDate ?? "all"}`,
+    () => analyticsService.getContributorAnalytics(workspaceSlug, projectIds, startDate, endDate)
   );
 
   const columns: ColumnDef<AnalyticsTableDataMap["contributors"]>[] = useMemo(
@@ -134,6 +181,44 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
 
   return (
     <div className="flex flex-col gap-8">
+      <div className="flex flex-wrap items-center gap-2">
+        {RANGE_PRESETS.map((preset) => (
+          <Button
+            key={preset.key}
+            variant={rangePreset === preset.key ? "primary" : "neutral-primary"}
+            size="sm"
+            onClick={() => handleSelectPreset(preset.key)}
+          >
+            {preset.label}
+          </Button>
+        ))}
+        {rangePreset === "custom" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="date"
+              inputSize="xs"
+              value={customStart}
+              max={customEnd || undefined}
+              onChange={(e) => setCustomStart(e.target.value)}
+            />
+            <span className="text-12 text-tertiary">to</span>
+            <Input
+              type="date"
+              inputSize="xs"
+              value={customEnd}
+              min={customStart || undefined}
+              onChange={(e) => setCustomEnd(e.target.value)}
+            />
+            <Button variant="primary" size="sm" onClick={handleApplyCustomRange} disabled={!isCustomRangeValid}>
+              Apply
+            </Button>
+            {customStart && customEnd && !isCustomRangeValid && (
+              <span className="text-danger text-12">Start date must be on or before end date.</span>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="overflow-x-auto border-y border-subtle py-4">
         <div className="flex min-w-max gap-6 px-1">
           <Metric label="Contributors" value={data?.summary.member_count ?? 0} />
@@ -149,7 +234,9 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
         <div>
           <h2 className="text-16 font-medium text-primary">Contributor breakdown</h2>
           <p className="mt-1 text-12 text-tertiary">
-            Task counts use current assignees. Progress and logged time use the member recorded on each worklog.
+            {data?.attribution.scope === "date_range"
+              ? `Tasks are current-state items created between ${data.attribution.start_date} and ${data.attribution.end_date}. Time reflects work logged or session overlap in that period. Cancelled tasks are excluded from completion rate.`
+              : "Tasks are current-state items across all time. Time reflects total work logged or session overlap. Cancelled tasks are excluded from completion rate."}
           </p>
         </div>
         <InsightTable<"contributors">

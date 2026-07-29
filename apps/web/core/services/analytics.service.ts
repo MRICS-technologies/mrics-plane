@@ -89,9 +89,17 @@ export class AnalyticsService extends APIService {
       });
   }
 
-  async getContributorAnalytics(workspaceSlug: string, projectIds?: string): Promise<IContributorAnalyticsResponse> {
+  async getContributorAnalytics(
+    workspaceSlug: string,
+    projectIds?: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<IContributorAnalyticsResponse> {
     return this.get(`/api/workspaces/${workspaceSlug}/contributor-analytics/`, {
-      params: projectIds ? { project_ids: projectIds } : undefined,
+      params: {
+        ...(projectIds ? { project_ids: projectIds } : {}),
+        ...(startDate && endDate ? { start_date: startDate, end_date: endDate } : {}),
+      },
     })
       .then((res) => res?.data)
       .catch((err) => {
