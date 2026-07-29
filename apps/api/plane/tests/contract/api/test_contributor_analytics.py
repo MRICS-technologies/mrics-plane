@@ -178,7 +178,7 @@ class TestContributorAnalytics:
         with patch("plane.app.views.analytic.project_analytics.timezone.now", return_value=now):
             response = api_client.get(contributor_analytics_url(workspace, project))
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_200_OK, response.data
         assert response.data["attribution"] == {
             "task_counts": "current_assignees",
             "time": "worklog_owner",
