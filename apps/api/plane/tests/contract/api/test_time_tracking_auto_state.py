@@ -45,7 +45,15 @@ def states(db, workspace, project):
         workspace=workspace,
         group=StateGroup.STARTED.value,
     )
-    return {"todo": todo, "started": started}
+    done = State.objects.create(
+        name="Done",
+        color="#46A758",
+        sequence=30000,
+        project=project,
+        workspace=workspace,
+        group=StateGroup.COMPLETED.value,
+    )
+    return {"todo": todo, "started": started, "done": done}
 
 
 @pytest.fixture
@@ -82,6 +90,57 @@ def worklog_detail_url(workspace, project, issue, worklog):
 
 @pytest.mark.contract
 class TestAutoStateDurationContract:
+    @pytest.mark.django_db
+    def test_todo_issue_has_zero_duration_and_no_sessions(
+        self, api_key_client, workspace, project, issue, states
+    ):
+        issue.state = states["todo"]
+        issue.save(update_fields=["state"])
+
+        response = api_key_client.get(state_duration_url(workspace, project, issue))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["completed_started_seconds"] == 0.0
+        assert response.data["active_started_seconds"] == 0.0
+        assert response.data["total_started_seconds"] == 0.0
+        assert response.data["sessions"] == []
+
+    @pytest.mark.django_db
+    def test_app_route_rejects_unauthenticated_request(
+        self, api_client, workspace, project, issue
+    ):
+        response = api_client.get(app_state_duration_url(workspace, project, issue))
+
+        assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
+
+    @pytest.mark.django_db
+    def test_issue_view_reopens_tracking_for_a_second_progress_cycle(
+        self, api_key_client, workspace, project, issue, states
+    ):
+        issue.state = states["todo"]
+        issue.save(update_fields=["state"])
+        issue_url = (
+            f"/api/v1/workspaces/{workspace.slug}/projects/{project.id}/"
+            f"work-items/{issue.id}/"
+        )
+
+        with (
+            patch("plane.api.views.issue.issue_activity.delay"),
+            patch("plane.api.views.issue.model_activity.delay"),
+        ):
+            for state_name in ("started", "done", "started"):
+                response = api_key_client.patch(
+                    issue_url, {"state": str(states[state_name].id)}, format="json"
+                )
+                assert response.status_code == status.HTTP_200_OK
+
+        worklogs = WorkItemWorklog.objects.filter(
+            issue=issue, source=WorkItemWorklog.Source.AUTO_STATE
+        ).order_by("started_at")
+        assert worklogs.count() == 2
+        assert worklogs[0].stopped_at is not None
+        assert worklogs[1].stopped_at is None
+
     @pytest.mark.django_db
     def test_summary_separates_completed_and_active_time(
         self, api_key_client, workspace, project, issue, create_user
