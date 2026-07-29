@@ -239,3 +239,10 @@ from .notification.base import MarkAllReadNotificationViewSet
 from .user.base import AccountEndpoint, ProfileEndpoint, UserSessionEndpoint
 
 from .timezone.base import TimezoneEndpoint
+
+from .github_sync import (
+    RepoProjectMappingViewSet,
+    IssueGitLinkViewSet,
+    IssueCreateBranchEndpoint,
+    GitHubWebhookView,
+)

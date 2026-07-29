@@ -10,3 +10,4 @@ from .github import (
     GithubCommentSync,
 )
 from .slack import SlackProjectSync
+from .github_sync import RepoProjectMapping, IssueGitLink
