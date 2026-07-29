@@ -37,7 +37,7 @@ export enum ChartYAxisMetric {
   EPIC_WORK_ITEM_COUNT = "EPIC_WORK_ITEM_COUNT",
 }
 
-export type TAnalyticsTabsBase = "overview" | "work-items";
+export type TAnalyticsTabsBase = "overview" | "work-items" | "contributors";
 export type TAnalyticsGraphsBase = "projects" | "work-items" | "custom-work-items";
 export interface AnalyticsTab {
   key: TAnalyticsTabsBase;
@@ -85,8 +85,44 @@ export interface WorkItemInsightColumns {
   assignee_id?: string;
 }
 
+export interface IContributorAnalyticsRow {
+  member_id: string;
+  display_name: string;
+  email: string;
+  avatar_url?: string | null;
+  assigned_work_items: number;
+  completed_work_items: number;
+  started_work_items: number;
+  completion_rate: number;
+  auto_tracked_seconds: number;
+  logged_work_seconds: number;
+  total_tracked_seconds: number;
+  auto_sessions: number;
+  logged_worklogs: number;
+}
+
+export interface IContributorAnalyticsResponse {
+  summary: {
+    project_count: number;
+    member_count: number;
+    total_work_items: number;
+    completed_work_items: number;
+    started_work_items: number;
+    auto_tracked_seconds: number;
+    logged_work_seconds: number;
+    total_tracked_seconds: number;
+  };
+  contributors: IContributorAnalyticsRow[];
+  attribution: {
+    task_counts: "current_assignees";
+    time: "worklog_owner";
+    scope: "all_time";
+  };
+}
+
 export type AnalyticsTableDataMap = {
   "work-items": WorkItemInsightColumns;
+  contributors: IContributorAnalyticsRow;
 };
 
 export interface IAnalyticsParams {

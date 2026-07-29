@@ -8,6 +8,7 @@
 import { API_BASE_URL } from "@plane/constants";
 import type {
   IAnalyticsResponse,
+  IContributorAnalyticsResponse,
   TAnalyticsTabsBase,
   TAnalyticsGraphsBase,
   TAnalyticsFilterParams,
@@ -81,6 +82,16 @@ export class AnalyticsService extends APIService {
         type: tab,
         ...params,
       },
+    })
+      .then((res) => res?.data)
+      .catch((err) => {
+        throw err?.response?.data;
+      });
+  }
+
+  async getContributorAnalytics(workspaceSlug: string, projectIds?: string): Promise<IContributorAnalyticsResponse> {
+    return this.get(`/api/workspaces/${workspaceSlug}/contributor-analytics/`, {
+      params: projectIds ? { project_ids: projectIds } : undefined,
     })
       .then((res) => res?.data)
       .catch((err) => {
