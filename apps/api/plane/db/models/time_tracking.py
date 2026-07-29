@@ -224,8 +224,30 @@ def stop_auto_state_worklog(*, issue, user_id, stopped_at):
         )
         if not open_worklogs:
             recovered_started_at = started_group_entered_at(issue.id, fallback_to_issue_created=True)
+            if recovered_started_at is None or stopped_at <= recovered_started_at:
+                return None
+
+            # A retried exit transition must be idempotent. If a completed auto
+            # session already covers the recovered start, return it instead of
+            # synthesizing a duplicate from issue/activity history.
+            latest_completed_worklog = (
+                WorkItemWorklog.objects.select_for_update()
+                .filter(
+                    issue_id=issue.id,
+                    source=WorkItemWorklog.Source.AUTO_STATE,
+                    stopped_at__isnull=False,
+                )
+                .order_by("-stopped_at", "-created_at")
+                .first()
+            )
+            if (
+                latest_completed_worklog is not None
+                and latest_completed_worklog.stopped_at > recovered_started_at
+            ):
+                return latest_completed_worklog
+
             fallback_user_id = auto_state_actor_id(issue, user_id)
-            if fallback_user_id is None or recovered_started_at is None or stopped_at <= recovered_started_at:
+            if fallback_user_id is None:
                 return None
             return WorkItemWorklog.objects.create(
                 workspace_id=issue.workspace_id,
