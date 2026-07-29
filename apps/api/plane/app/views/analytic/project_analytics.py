@@ -4,10 +4,11 @@
 
 from rest_framework.response import Response
 from rest_framework import status
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Dict, Any
-from django.db.models import QuerySet, Q, Count
+from django.db.models import QuerySet, Q, Count, DecimalField, Sum
 from django.http import HttpRequest
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 from plane.app.views.base import BaseAPIView
@@ -19,6 +20,9 @@ from plane.db.models import (
     Module,
     CycleIssue,
     ModuleIssue,
+    IssueAssignee,
+    ProjectMember,
+    WorkItemWorklog,
 )
 from django.db import models
 from django.db.models import F, Case, When, Value
@@ -177,6 +181,202 @@ class ProjectAdvanceAnalyticsStatsEndpoint(ProjectAdvanceAnalyticsBaseView):
             )
 
         return Response({"message": "Invalid type"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _hours_to_seconds(hours: Decimal | None) -> int:
+    if hours is None:
+        return 0
+    return int((hours * Decimal("3600")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
+    """Project/workspace contributor output and time totals.
+
+    Task counts are attributed to current issue assignees. Time is attributed to
+    the worklog owner (`logged_by`), which keeps manual/timer and automatic state
+    duration accounting explicit rather than guessing from current assignment.
+    """
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def get(self, request: HttpRequest, slug: str) -> Response:
+        self.initialize_workspace(slug, type="chart")
+
+        project_ids = list(
+            Project.objects.filter(**self.filters["project_filters"]).values_list("id", flat=True)
+        )
+        project_members = (
+            ProjectMember.objects.filter(
+                project_id__in=project_ids,
+                is_active=True,
+                member__is_active=True,
+            )
+            .select_related("member", "member__avatar_asset")
+            .order_by("member__display_name", "member__email")
+        )
+
+        contributors = {}
+        for project_member in project_members:
+            member = project_member.member
+            if member is None or member.id in contributors:
+                continue
+            contributors[member.id] = {
+                "member_id": str(member.id),
+                "display_name": member.display_name or member.email or "Unknown member",
+                "email": member.email or "",
+                "avatar_url": member.avatar_url,
+                "assigned_work_items": 0,
+                "completed_work_items": 0,
+                "started_work_items": 0,
+                "completion_rate": 0.0,
+                "auto_tracked_seconds": 0,
+                "logged_work_seconds": 0,
+                "total_tracked_seconds": 0,
+                "auto_sessions": 0,
+                "logged_worklogs": 0,
+            }
+
+        member_ids = list(contributors.keys())
+        if member_ids:
+            assignment_stats = (
+                IssueAssignee.objects.filter(
+                    project_id__in=project_ids,
+                    assignee_id__in=member_ids,
+                    issue__deleted_at__isnull=True,
+                )
+                .values("assignee_id")
+                .annotate(
+                    assigned_work_items=Count("issue_id", distinct=True),
+                    completed_work_items=Count(
+                        "issue_id",
+                        filter=Q(issue__state__group="completed"),
+                        distinct=True,
+                    ),
+                    started_work_items=Count(
+                        "issue_id",
+                        filter=Q(issue__state__group="started"),
+                        distinct=True,
+                    ),
+                )
+            )
+            for stat in assignment_stats:
+                contributor = contributors.get(stat["assignee_id"])
+                if contributor is None:
+                    continue
+                contributor.update(
+                    assigned_work_items=stat["assigned_work_items"],
+                    completed_work_items=stat["completed_work_items"],
+                    started_work_items=stat["started_work_items"],
+                )
+
+            duration_field = DecimalField(max_digits=16, decimal_places=4)
+            completed_auto_stats = (
+                WorkItemWorklog.objects.filter(
+                    project_id__in=project_ids,
+                    logged_by_id__in=member_ids,
+                    source=WorkItemWorklog.Source.AUTO_STATE,
+                    stopped_at__isnull=False,
+                )
+                .values("logged_by_id")
+                .annotate(
+                    duration_hours=Coalesce(
+                        Sum("duration"),
+                        Value(Decimal("0")),
+                        output_field=duration_field,
+                    ),
+                    session_count=Count("id"),
+                )
+            )
+            for stat in completed_auto_stats:
+                contributor = contributors.get(stat["logged_by_id"])
+                if contributor is None:
+                    continue
+                contributor["auto_tracked_seconds"] += _hours_to_seconds(stat["duration_hours"])
+                contributor["auto_sessions"] += stat["session_count"]
+
+            now = timezone.now()
+            open_auto_worklogs = WorkItemWorklog.objects.filter(
+                project_id__in=project_ids,
+                logged_by_id__in=member_ids,
+                source=WorkItemWorklog.Source.AUTO_STATE,
+                stopped_at__isnull=True,
+                started_at__isnull=False,
+            ).values("logged_by_id", "started_at")
+            for worklog in open_auto_worklogs:
+                contributor = contributors.get(worklog["logged_by_id"])
+                if contributor is None:
+                    continue
+                contributor["auto_tracked_seconds"] += max(
+                    int((now - worklog["started_at"]).total_seconds()), 0
+                )
+                contributor["auto_sessions"] += 1
+
+            logged_work_stats = (
+                WorkItemWorklog.objects.filter(
+                    project_id__in=project_ids,
+                    logged_by_id__in=member_ids,
+                    source__in=[
+                        WorkItemWorklog.Source.MANUAL,
+                        WorkItemWorklog.Source.TIMER,
+                        WorkItemWorklog.Source.IMPORT,
+                    ],
+                )
+                .values("logged_by_id")
+                .annotate(
+                    duration_hours=Coalesce(
+                        Sum("duration"),
+                        Value(Decimal("0")),
+                        output_field=duration_field,
+                    ),
+                    worklog_count=Count("id"),
+                )
+            )
+            for stat in logged_work_stats:
+                contributor = contributors.get(stat["logged_by_id"])
+                if contributor is None:
+                    continue
+                contributor["logged_work_seconds"] = _hours_to_seconds(stat["duration_hours"])
+                contributor["logged_worklogs"] = stat["worklog_count"]
+
+        contributor_rows = []
+        for contributor in contributors.values():
+            assigned = contributor["assigned_work_items"]
+            completed = contributor["completed_work_items"]
+            contributor["completion_rate"] = round((completed / assigned) * 100, 1) if assigned else 0.0
+            contributor["total_tracked_seconds"] = (
+                contributor["auto_tracked_seconds"] + contributor["logged_work_seconds"]
+            )
+            contributor_rows.append(contributor)
+
+        contributor_rows.sort(key=lambda item: item["display_name"].lower())
+        issues = Issue.issue_objects.filter(**self.filters["base_filters"]).distinct()
+
+        return Response(
+            {
+                "summary": {
+                    "project_count": len(project_ids),
+                    "member_count": len(contributor_rows),
+                    "total_work_items": issues.count(),
+                    "completed_work_items": issues.filter(state__group="completed").count(),
+                    "started_work_items": issues.filter(state__group="started").count(),
+                    "auto_tracked_seconds": sum(
+                        item["auto_tracked_seconds"] for item in contributor_rows
+                    ),
+                    "logged_work_seconds": sum(
+                        item["logged_work_seconds"] for item in contributor_rows
+                    ),
+                    "total_tracked_seconds": sum(
+                        item["total_tracked_seconds"] for item in contributor_rows
+                    ),
+                },
+                "contributors": contributor_rows,
+                "attribution": {
+                    "task_counts": "current_assignees",
+                    "time": "worklog_owner",
+                    "scope": "all_time",
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ProjectAdvanceAnalyticsChartEndpoint(ProjectAdvanceAnalyticsBaseView):
