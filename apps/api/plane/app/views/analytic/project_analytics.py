@@ -10,7 +10,7 @@ from django.db.models import QuerySet, Q, Count, DecimalField, Sum
 from django.http import HttpRequest
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 from plane.app.views.base import BaseAPIView
 from plane.app.permissions import ROLE, allow_permission
 from plane.db.models import (
@@ -189,6 +189,37 @@ def _hours_to_seconds(hours: Decimal | None) -> int:
     return int((hours * Decimal("3600")).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
+def _parse_contributor_date_range(request: HttpRequest):
+    """Parse optional start_date/end_date query params (inclusive ISO YYYY-MM-DD).
+
+    Returns (start_date, end_date, error_response). Both dates are None for
+    all-time scope; error_response is a 400 Response when validation fails.
+    """
+    start_raw = request.GET.get("start_date")
+    end_raw = request.GET.get("end_date")
+    if not start_raw and not end_raw:
+        return None, None, None
+    if not start_raw or not end_raw:
+        return None, None, Response(
+            {"error": "start_date and end_date must both be provided together."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    try:
+        start_date = datetime.strptime(start_raw, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_raw, "%Y-%m-%d").date()
+    except ValueError:
+        return None, None, Response(
+            {"error": "start_date and end_date must be valid ISO dates (YYYY-MM-DD)."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if start_date > end_date:
+        return None, None, Response(
+            {"error": "start_date must not be after end_date."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return start_date, end_date, None
+
+
 class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
     """Project/workspace contributor output and time totals.
 
@@ -200,6 +231,18 @@ class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER], level="WORKSPACE")
     def get(self, request: HttpRequest, slug: str) -> Response:
         self.initialize_workspace(slug, type="chart")
+
+        start_date, end_date, error_response = _parse_contributor_date_range(request)
+        if error_response is not None:
+            return error_response
+
+        range_window = None
+        if start_date is not None:
+            local_tz = timezone.get_current_timezone()
+            range_window = (
+                timezone.make_aware(datetime.combine(start_date, time.min), local_tz),
+                timezone.make_aware(datetime.combine(end_date + timedelta(days=1), time.min), local_tz),
+            )
 
         project_ids = list(
             Project.objects.filter(**self.filters["project_filters"]).values_list("id", flat=True)
@@ -235,14 +278,21 @@ class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
                 "logged_worklogs": 0,
             }
 
+        completion_denominators = {}
         member_ids = list(contributors.keys())
         if member_ids:
+            assignee_filters = {
+                "project_id__in": project_ids,
+                "assignee_id__in": member_ids,
+                "issue__deleted_at__isnull": True,
+            }
+            if start_date is not None:
+                assignee_filters["issue__created_at__date__gte"] = start_date
+                assignee_filters["issue__created_at__date__lte"] = end_date
+
             assignment_stats = (
-                IssueAssignee.objects.filter(
-                    project_id__in=project_ids,
-                    assignee_id__in=member_ids,
-                    issue__deleted_at__isnull=True,
-                )
+                IssueAssignee.objects.filter(**assignee_filters)
+                .exclude(issue__state__group="cancelled")
                 .values("assignee_id")
                 .annotate(
                     assigned_work_items=Count("issue_id", distinct=True),
@@ -256,6 +306,16 @@ class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
                         filter=Q(issue__state__group="started"),
                         distinct=True,
                     ),
+                    unstarted_work_items=Count(
+                        "issue_id",
+                        filter=Q(issue__state__group="unstarted"),
+                        distinct=True,
+                    ),
+                    backlog_work_items=Count(
+                        "issue_id",
+                        filter=Q(issue__state__group="backlog"),
+                        distinct=True,
+                    ),
                 )
             )
             for stat in assignment_stats:
@@ -267,59 +327,111 @@ class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
                     completed_work_items=stat["completed_work_items"],
                     started_work_items=stat["started_work_items"],
                 )
+                completion_denominators[stat["assignee_id"]] = (
+                    stat["completed_work_items"]
+                    + stat["started_work_items"]
+                    + stat["unstarted_work_items"]
+                    + stat["backlog_work_items"]
+                )
 
             duration_field = DecimalField(max_digits=16, decimal_places=4)
-            completed_auto_stats = (
-                WorkItemWorklog.objects.filter(
+            if range_window is not None:
+                window_start, window_end = range_window
+                completed_auto_rows = WorkItemWorklog.objects.filter(
                     project_id__in=project_ids,
                     logged_by_id__in=member_ids,
                     source=WorkItemWorklog.Source.AUTO_STATE,
                     stopped_at__isnull=False,
+                    started_at__lt=window_end,
+                    stopped_at__gt=window_start,
+                ).values("logged_by_id", "started_at", "stopped_at")
+                for row in completed_auto_rows:
+                    contributor = contributors.get(row["logged_by_id"])
+                    if contributor is None:
+                        continue
+                    overlap_start = max(row["started_at"], window_start)
+                    overlap_end = min(row["stopped_at"], window_end)
+                    contributor["auto_tracked_seconds"] += int((overlap_end - overlap_start).total_seconds())
+                    contributor["auto_sessions"] += 1
+            else:
+                completed_auto_stats = (
+                    WorkItemWorklog.objects.filter(
+                        project_id__in=project_ids,
+                        logged_by_id__in=member_ids,
+                        source=WorkItemWorklog.Source.AUTO_STATE,
+                        stopped_at__isnull=False,
+                    )
+                    .values("logged_by_id")
+                    .annotate(
+                        duration_hours=Coalesce(
+                            Sum("duration"),
+                            Value(Decimal("0")),
+                            output_field=duration_field,
+                        ),
+                        session_count=Count("id"),
+                    )
                 )
-                .values("logged_by_id")
-                .annotate(
-                    duration_hours=Coalesce(
-                        Sum("duration"),
-                        Value(Decimal("0")),
-                        output_field=duration_field,
-                    ),
-                    session_count=Count("id"),
-                )
-            )
-            for stat in completed_auto_stats:
-                contributor = contributors.get(stat["logged_by_id"])
-                if contributor is None:
-                    continue
-                contributor["auto_tracked_seconds"] += _hours_to_seconds(stat["duration_hours"])
-                contributor["auto_sessions"] += stat["session_count"]
+                for stat in completed_auto_stats:
+                    contributor = contributors.get(stat["logged_by_id"])
+                    if contributor is None:
+                        continue
+                    contributor["auto_tracked_seconds"] += _hours_to_seconds(stat["duration_hours"])
+                    contributor["auto_sessions"] += stat["session_count"]
 
             now = timezone.now()
-            open_auto_worklogs = WorkItemWorklog.objects.filter(
-                project_id__in=project_ids,
-                logged_by_id__in=member_ids,
-                source=WorkItemWorklog.Source.AUTO_STATE,
-                stopped_at__isnull=True,
-                started_at__isnull=False,
-            ).values("logged_by_id", "started_at")
-            for worklog in open_auto_worklogs:
-                contributor = contributors.get(worklog["logged_by_id"])
-                if contributor is None:
-                    continue
-                contributor["auto_tracked_seconds"] += max(
-                    int((now - worklog["started_at"]).total_seconds()), 0
-                )
-                contributor["auto_sessions"] += 1
-
-            logged_work_stats = (
-                WorkItemWorklog.objects.filter(
+            if range_window is not None:
+                window_start, window_end = range_window
+                open_effective_end = min(now, window_end)
+                open_auto_worklogs = WorkItemWorklog.objects.filter(
                     project_id__in=project_ids,
                     logged_by_id__in=member_ids,
-                    source__in=[
-                        WorkItemWorklog.Source.MANUAL,
-                        WorkItemWorklog.Source.TIMER,
-                        WorkItemWorklog.Source.IMPORT,
-                    ],
-                )
+                    source=WorkItemWorklog.Source.AUTO_STATE,
+                    stopped_at__isnull=True,
+                    started_at__isnull=False,
+                    started_at__lt=open_effective_end,
+                ).values("logged_by_id", "started_at")
+                for worklog in open_auto_worklogs:
+                    contributor = contributors.get(worklog["logged_by_id"])
+                    if contributor is None:
+                        continue
+                    overlap_start = max(worklog["started_at"], window_start)
+                    overlap_seconds = (open_effective_end - overlap_start).total_seconds()
+                    if overlap_seconds <= 0:
+                        continue
+                    contributor["auto_tracked_seconds"] += int(overlap_seconds)
+                    contributor["auto_sessions"] += 1
+            else:
+                open_auto_worklogs = WorkItemWorklog.objects.filter(
+                    project_id__in=project_ids,
+                    logged_by_id__in=member_ids,
+                    source=WorkItemWorklog.Source.AUTO_STATE,
+                    stopped_at__isnull=True,
+                    started_at__isnull=False,
+                ).values("logged_by_id", "started_at")
+                for worklog in open_auto_worklogs:
+                    contributor = contributors.get(worklog["logged_by_id"])
+                    if contributor is None:
+                        continue
+                    contributor["auto_tracked_seconds"] += max(
+                        int((now - worklog["started_at"]).total_seconds()), 0
+                    )
+                    contributor["auto_sessions"] += 1
+
+            logged_work_filters = {
+                "project_id__in": project_ids,
+                "logged_by_id__in": member_ids,
+                "source__in": [
+                    WorkItemWorklog.Source.MANUAL,
+                    WorkItemWorklog.Source.TIMER,
+                    WorkItemWorklog.Source.IMPORT,
+                ],
+            }
+            if range_window is not None:
+                logged_work_filters["date__gte"] = start_date
+                logged_work_filters["date__lte"] = end_date
+
+            logged_work_stats = (
+                WorkItemWorklog.objects.filter(**logged_work_filters)
                 .values("logged_by_id")
                 .annotate(
                     duration_hours=Coalesce(
@@ -338,17 +450,21 @@ class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
                 contributor["logged_worklogs"] = stat["worklog_count"]
 
         contributor_rows = []
-        for contributor in contributors.values():
-            assigned = contributor["assigned_work_items"]
+        for member_id, contributor in contributors.items():
             completed = contributor["completed_work_items"]
-            contributor["completion_rate"] = round((completed / assigned) * 100, 1) if assigned else 0.0
+            denominator = completion_denominators.get(member_id, 0)
+            contributor["completion_rate"] = round((completed / denominator) * 100, 1) if denominator else 0.0
             contributor["total_tracked_seconds"] = (
                 contributor["auto_tracked_seconds"] + contributor["logged_work_seconds"]
             )
             contributor_rows.append(contributor)
 
         contributor_rows.sort(key=lambda item: item["display_name"].lower())
-        issues = Issue.issue_objects.filter(**self.filters["base_filters"]).distinct()
+
+        issues = Issue.issue_objects.filter(**self.filters["base_filters"]).exclude(state__group="cancelled")
+        if start_date is not None:
+            issues = issues.filter(created_at__date__gte=start_date, created_at__date__lte=end_date)
+        issues = issues.distinct()
 
         return Response(
             {
@@ -372,7 +488,11 @@ class ProjectContributorAnalyticsEndpoint(ProjectAdvanceAnalyticsBaseView):
                 "attribution": {
                     "task_counts": "current_assignees",
                     "time": "worklog_owner",
-                    "scope": "all_time",
+                    "scope": "date_range" if range_window is not None else "all_time",
+                    "start_date": start_date.isoformat() if start_date is not None else None,
+                    "end_date": end_date.isoformat() if end_date is not None else None,
+                    "task_basis": "issue_created_at",
+                    "time_basis": "worklog_date_or_session_overlap",
                 },
             },
             status=status.HTTP_200_OK,
