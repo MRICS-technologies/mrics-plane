@@ -50,9 +50,9 @@ jobs:
         with:
           context: .
           file: apps/web/Dockerfile.web
-          platforms: linux/amd64,linux/arm64
+          # Dev Coolify server pulls the ARM64 image; single-platform build avoids long/stuck multi-arch exports.
+          platforms: linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
