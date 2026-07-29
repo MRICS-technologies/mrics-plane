@@ -154,3 +154,77 @@ def test_todo_to_done_does_not_create_auto_state_worklog(issue, states, create_u
     )
 
     assert not WorkItemWorklog.objects.filter(issue=issue, source=WorkItemWorklog.Source.AUTO_STATE).exists()
+
+@pytest.mark.django_db
+def test_issue_created_in_started_opens_auto_state_session(issue, states, create_user):
+    transition_at = timezone.now()
+
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=create_user.id,
+        old_state_id=None,
+        new_state_id=states["started"].id,
+        transition_at=transition_at,
+    )
+
+    worklog = WorkItemWorklog.objects.get(issue=issue, source=WorkItemWorklog.Source.AUTO_STATE)
+    assert worklog.started_at == transition_at
+    assert worklog.stopped_at is None
+
+
+@pytest.mark.django_db
+def test_repeated_started_entry_keeps_one_open_session(issue, states, create_user):
+    first_started_at = timezone.now() - timedelta(minutes=5)
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=create_user.id,
+        old_state_id=states["todo"].id,
+        new_state_id=states["started"].id,
+        transition_at=first_started_at,
+    )
+
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=create_user.id,
+        old_state_id=states["todo"].id,
+        new_state_id=states["started"].id,
+        transition_at=timezone.now(),
+    )
+
+    worklogs = WorkItemWorklog.objects.filter(issue=issue, source=WorkItemWorklog.Source.AUTO_STATE)
+    assert worklogs.count() == 1
+    assert worklogs.get().started_at == first_started_at
+    assert worklogs.get().stopped_at is None
+
+
+@pytest.mark.django_db
+def test_repeated_started_exit_does_not_create_duplicate_completed_session(issue, states, create_user):
+    started_at = timezone.now() - timedelta(minutes=10)
+    first_stopped_at = timezone.now() - timedelta(minutes=1)
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=create_user.id,
+        old_state_id=states["todo"].id,
+        new_state_id=states["started"].id,
+        transition_at=started_at,
+    )
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=create_user.id,
+        old_state_id=states["started"].id,
+        new_state_id=states["done"].id,
+        transition_at=first_stopped_at,
+    )
+
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=create_user.id,
+        old_state_id=states["started"].id,
+        new_state_id=states["done"].id,
+        transition_at=timezone.now(),
+    )
+
+    worklogs = WorkItemWorklog.objects.filter(issue=issue, source=WorkItemWorklog.Source.AUTO_STATE)
+    assert worklogs.count() == 1
+    assert worklogs.get().started_at == started_at
+    assert worklogs.get().stopped_at == first_stopped_at
