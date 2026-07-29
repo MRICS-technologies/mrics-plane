@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+import re
 from rest_framework.response import Response
 from rest_framework import status
 from decimal import Decimal, ROUND_HALF_UP
@@ -202,6 +203,12 @@ def _parse_contributor_date_range(request: HttpRequest):
     if not start_raw or not end_raw:
         return None, None, Response(
             {"error": "start_date and end_date must both be provided together."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    iso_date_re = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+    if not iso_date_re.match(start_raw) or not iso_date_re.match(end_raw):
+        return None, None, Response(
+            {"error": "start_date and end_date must be valid ISO dates (YYYY-MM-DD)."},
             status=status.HTTP_400_BAD_REQUEST,
         )
     try:
