@@ -21,7 +21,9 @@ permissions:
 
 jobs:
   build-frontend:
-    runs-on: ubuntu-latest
+    # Native ARM runner avoids slow/stuck QEMU arm64 Docker builds for the dev Coolify server.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,4 +57,4 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
+          provenance: false
