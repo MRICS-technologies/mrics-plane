@@ -9,6 +9,8 @@ import useSWR from "swr";
 import { Clock } from "lucide-react";
 // ui
 import { cn } from "@plane/utils";
+// components
+import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 // services
 import { IssueService } from "@/services/issue";
 
@@ -99,6 +101,31 @@ export const IssueStateDurationBadge = (props: TStateDurationProps) => {
       <Clock className="size-3 flex-shrink-0" />
       <span>{formatDuration(data.total_started_seconds)}</span>
     </div>
+  );
+};
+
+export const IssueStateDurationProperty = (props: TStateDurationProps) => {
+  const { className } = props;
+  const { data, error } = useIssueStateDuration(props);
+
+  if (error || !data || data.total_started_seconds <= 0) return null;
+
+  const isActive = data.current_state?.group === "started";
+
+  return (
+    <SidebarPropertyListItem icon={Clock} label="Time in Progress">
+      <div
+        className={cn(
+          "flex h-7.5 w-full items-center gap-1.5 rounded-sm px-2 text-body-xs-medium text-secondary",
+          { "text-green-600": isActive },
+          className
+        )}
+        title={`Auto-tracked from started states: ${formatDuration(data.total_started_seconds)}`}
+      >
+        <span>{formatDuration(data.total_started_seconds)}</span>
+        {isActive && <span className="text-green-600 text-11">running</span>}
+      </div>
+    </SidebarPropertyListItem>
   );
 };
 
