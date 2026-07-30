@@ -62,7 +62,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://plane:***@127.0.0.1:5432/plane_test
+      POSTGRES_DB: plane_test
+      POSTGRES_USER: plane
+      POSTGRES_PASSWORD: plane
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
       DJANGO_SETTINGS_MODULE: plane.settings.test
       REDIS_URL: redis://127.0.0.1:6379/0
       SECRET_KEY: ci-github-app-configuration-test-key
