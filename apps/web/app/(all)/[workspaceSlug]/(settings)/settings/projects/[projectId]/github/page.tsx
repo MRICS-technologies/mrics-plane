@@ -10,6 +10,7 @@ import { EUserPermissions, EUserPermissionsLevel } from "@plane/constants";
 // components
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
+import { MappingPanel } from "@/components/github/project-mappings/mapping-panel";
 import { SettingsContentWrapper } from "@/components/settings/content-wrapper";
 // hooks
 import { useProject } from "@/hooks/store/use-project";
@@ -17,12 +18,19 @@ import { useUserPermissions } from "@/hooks/store/user";
 // local imports
 import type { Route } from "./+types/page";
 
-function ProjectGithubSettingsPage(_props: Route.ComponentProps) {
+function ProjectGithubSettingsPage({ params }: Route.ComponentProps) {
+  // router
+  const { workspaceSlug, projectId } = params;
   // store hooks
   const { workspaceUserInfo, allowPermissions } = useUserPermissions();
   const { currentProjectDetails: projectDetails } = useProject();
   // derived values
-  const canPerformProjectAdminActions = allowPermissions([EUserPermissions.ADMIN], EUserPermissionsLevel.PROJECT);
+  const canPerformProjectAdminActions = allowPermissions(
+    [EUserPermissions.ADMIN],
+    EUserPermissionsLevel.PROJECT,
+    workspaceSlug,
+    projectId
+  );
   const pageTitle = projectDetails?.name ? `${projectDetails.name} - GitHub` : undefined;
 
   if (workspaceUserInfo && !canPerformProjectAdminActions) {
@@ -32,6 +40,7 @@ function ProjectGithubSettingsPage(_props: Route.ComponentProps) {
   return (
     <SettingsContentWrapper hugging>
       <PageHead title={pageTitle} />
+      <MappingPanel workspaceSlug={workspaceSlug} projectId={projectId} />
     </SettingsContentWrapper>
   );
 }
