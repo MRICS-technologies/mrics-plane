@@ -9,6 +9,10 @@ DELETE     /api/workspaces/<slug>/projects/<project_id>/github/mappings/<pk>/
 GET        /api/workspaces/<slug>/projects/<project_id>/issues/<issue_id>/git-links/
 POST       /api/workspaces/<slug>/projects/<project_id>/issues/<issue_id>/github/create-branch/
 POST       /api/github/webhook/
+
+The webhook secret and app credentials used below are sourced from the P1
+instance `InstanceConfiguration` (`GITHUB_APP_*` keys), not environment
+variables -- see `plane.services.github.credentials`.
 """
 
 import hashlib
@@ -20,6 +24,8 @@ from rest_framework import status
 
 from plane.db.models import Issue, Project, ProjectMember
 from plane.db.models.integration.github_sync import RepoProjectMapping
+from plane.license.models import InstanceConfiguration
+from plane.license.utils.encryption import encrypt_data
 
 
 @pytest.fixture
@@ -95,17 +101,35 @@ class TestIssueCreateBranchAPI:
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
+    @pytest.mark.django_db
+    def test_create_branch_without_github_app_configured_returns_422(
+        self, session_client, workspace, project, issue, mapping
+    ):
+        # Mapping exists, but no GITHUB_APP_* InstanceConfiguration has been
+        # written -- the credentials bridge must report unconfigured rather
+        # than falling back to any environment variable.
+        url = _create_branch_url(workspace.slug, project.id, issue.id)
+
+        response = session_client.post(url, {"branch_name": "feature/TP-1-add-login"}, format="json")
+
+        assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert response.data["error"] == "GitHub App is not configured"
+
+
+def _set_github_app_webhook_secret(secret):
+    InstanceConfiguration.objects.update_or_create(
+        key="GITHUB_APP_WEBHOOK_SECRET",
+        defaults={"value": encrypt_data(secret), "category": "GITHUB_APP", "is_encrypted": True},
+    )
+
 
 @pytest.mark.contract
 class TestGitHubWebhookAPI:
     WEBHOOK_URL = "/api/github/webhook/"
 
     @pytest.mark.django_db
-    def test_webhook_invalid_signature_returns_401(self, api_client, settings):
-        settings_secret = "test-webhook-secret"
-        import os
-
-        os.environ["GITHUB_WEBHOOK_SECRET"] = settings_secret
+    def test_webhook_invalid_signature_returns_401(self, api_client):
+        _set_github_app_webhook_secret("test-webhook-secret")
 
         response = api_client.post(
             self.WEBHOOK_URL,
@@ -119,10 +143,8 @@ class TestGitHubWebhookAPI:
 
     @pytest.mark.django_db
     def test_webhook_valid_signature_returns_200(self, api_client):
-        import os
-
         secret = "test-webhook-secret"
-        os.environ["GITHUB_WEBHOOK_SECRET"] = secret
+        _set_github_app_webhook_secret(secret)
 
         body = json.dumps({"action": "opened"}).encode()
         signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
@@ -136,3 +158,39 @@ class TestGitHubWebhookAPI:
         )
 
         assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_webhook_without_github_app_configured_returns_401(self, api_client):
+        # No GITHUB_APP_WEBHOOK_SECRET row at all -- must fail closed.
+        body = json.dumps({"action": "opened"}).encode()
+        signature = "sha256=" + hmac.new(b"any-secret", body, hashlib.sha256).hexdigest()
+
+        response = api_client.post(
+            self.WEBHOOK_URL,
+            data=body,
+            content_type="application/json",
+            HTTP_X_HUB_SIGNATURE_256=signature,
+            HTTP_X_GITHUB_EVENT="pull_request",
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_webhook_with_partial_app_configuration_returns_401(self, api_client):
+        # A webhook secret with no app id/private key is not a usable GitHub
+        # App -- must still fail closed rather than accept the signature.
+        secret = "test-webhook-secret"
+        _set_github_app_webhook_secret(secret)
+
+        body = json.dumps({"action": "opened"}).encode()
+        signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+
+        response = api_client.post(
+            self.WEBHOOK_URL,
+            data=body,
+            content_type="application/json",
+            HTTP_X_HUB_SIGNATURE_256=signature,
+            HTTP_X_GITHUB_EVENT="pull_request",
+        )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED

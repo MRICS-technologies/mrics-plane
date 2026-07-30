@@ -6,7 +6,6 @@
 import hashlib
 import hmac
 import logging
-import os
 
 # Third party imports
 from rest_framework import status
@@ -23,6 +22,7 @@ from plane.app.serializers.github_sync import (
 from plane.db.models import Project
 from plane.db.models.integration.github_sync import IssueGitLink, RepoProjectMapping
 from plane.services.github.client import GitHubClient
+from plane.services.github.credentials import get_github_app_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -101,15 +101,20 @@ class IssueCreateBranchEndpoint(BaseAPIView):
         ).exists():
             return Response({"error": "Branch already exists"}, status=status.HTTP_409_CONFLICT)
 
-        app_id = os.environ.get("GITHUB_APP_ID")
-        private_key = os.environ.get("GITHUB_APP_PRIVATE_KEY")
-        if not app_id or not private_key:
+        credentials = get_github_app_credentials()
+        if not credentials:
             return Response(
                 {"error": "GitHub App is not configured"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY
             )
 
         owner, _, name = mapping.github_repo.partition("/")
-        client = GitHubClient(app_id, private_key, mapping.github_installation_id)
+        client = GitHubClient(
+            credentials.app_id,
+            credentials.private_key,
+            mapping.github_installation_id,
+            credentials.github_base_url,
+            credentials.html_base_url,
+        )
         try:
             if client.get_branch_sha(owner, name, branch_name):
                 return Response({"error": "Branch already exists"}, status=status.HTTP_409_CONFLICT)
@@ -142,9 +147,19 @@ class GitHubWebhookView(BaseAPIView):
     permission_classes = [AllowAny]
 
     def _verify_signature(self, request):
-        secret = os.environ.get("GITHUB_WEBHOOK_SECRET")
+        try:
+            credentials = get_github_app_credentials()
+        except Exception:
+            # ponytail: fail closed -- an unconfigured/undecryptable P1 app
+            # configuration must reject the webhook, never 500 it.
+            return False
+
+        if not credentials or not credentials.webhook_secret:
+            return False
+
+        secret = credentials.webhook_secret
         signature = request.headers.get("X-Hub-Signature-256", "")
-        if not secret or not signature.startswith("sha256="):
+        if not signature.startswith("sha256="):
             return False
 
         expected = "sha256=" + hmac.new(secret.encode(), request.body, hashlib.sha256).hexdigest()
