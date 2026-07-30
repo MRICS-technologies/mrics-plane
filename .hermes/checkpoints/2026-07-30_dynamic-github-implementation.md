@@ -100,3 +100,23 @@ The P1 security blockers have now been remediated in the backend worktree, still
 
 - **Passed:** an isolated Python 3.11 test environment (outside the repo) ran `plane/tests/unit/middleware/test_logger.py` with `REDIS_URL=redis://127.0.0.1:6379/0`: **15 passed**.
 - **Still blocked:** the six GitHub App contract tests need PostgreSQL. Docker is installed but its daemon is unavailable; the SQLite fallback fails during Plane schema creation because Plane uses PostgreSQL-specific types (not because of the GitHub App implementation). No source changes, commit, push, or deploy occurred.
+
+## Current verified state — 2026-07-30
+
+This section supersedes the stale status statements above.
+
+- P1 is accepted and tracked remotely. Secure GitHub App configuration was committed as `f870105` on `feat/github-integration-native`; the PostgreSQL/Redis contract CI workflow was committed as `379b161` and pushed. The backend checkpoint branch remains at `c371201`.
+- GitHub Actions run `30534960866` for commit `c371201` completed successfully: https://github.com/MRICS-technologies/mrics-plane/actions/runs/30534960866. This is the first real PostgreSQL-backed execution of `plane/tests/contract/api/test_github_app_configuration.py`.
+- Local focused logger regression remains green: `plane/tests/unit/middleware/test_logger.py` — **15 passed**. No deployment occurred.
+- Docker diagnosis: the Hermes runtime is a container with Docker client tooling but neither `dockerd` nor `/var/run/docker.sock`. The host daemon was not changed. The chosen safe remediation is GitHub Actions PostgreSQL/Redis runners rather than granting this agent host-Docker control.
+
+## Noninteractive Claude / Opus execution rule — verified 2026-07-30
+
+- The Opus planner was not a dead CLI process: it was performing work while `claude --print` buffered final output, making its durable log appear empty. A full repeat completed and produced the Phase 2 design contract.
+- Required Herdr-pane invocation shape: pass the prompt explicitly with `-p`, add `--verbose --output-format stream-json --include-partial-messages`, write to a durable log, set an explicit `--max-turns`, and print a separate exit marker. This exposes progress and makes genuine stalls distinguishable from buffered output.
+- Do not recreate the retired capture wrapper.
+- Codex read-only sandbox cannot run in this container because unprivileged bubblewrap namespaces are denied. Use direct noninteractive Claude in a Herdr pane for local read-only review unless the host sandbox policy is changed.
+
+## Current next slice
+
+- Phase 2 S1 is isolated in `/tmp/plane-wt-github-s1` on `feat/github-integration-native-s1`: native workspace installation/repository schema, a non-destructive mapping bridge, and P1 credential consumption. It is not integrated until independent review and PostgreSQL CI acceptance.
