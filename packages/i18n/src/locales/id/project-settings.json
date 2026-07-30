@@ -197,6 +197,9 @@
         "duration": "Kirim pengingat sebelum"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Belum ada label",

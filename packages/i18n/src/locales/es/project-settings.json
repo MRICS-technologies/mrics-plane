@@ -197,6 +197,9 @@
         "duration": "Enviar recordatorio antes"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Aún no hay etiquetas",

@@ -197,6 +197,9 @@
         "duration": "Odeslat upozornění před"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Zatím žádné štítky",

@@ -197,6 +197,9 @@
         "duration": "Wyślij przypomnienie przed"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Brak etykiet",
