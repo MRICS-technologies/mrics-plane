@@ -11,7 +11,10 @@ import type {
   IInstance,
   IInstanceAdmin,
   IInstanceConfiguration,
+  IInstanceGitHubAppConfiguration,
   IInstanceInfo,
+  TInstanceGitHubAppPatchPayload,
+  TInstanceGitHubAppTestResult,
   TPage,
 } from "@plane/types";
 // api service
@@ -136,6 +139,59 @@ export class InstanceService extends APIService {
    */
   async disableEmail(): Promise<void> {
     return this.delete("/api/instances/configurations/disable-email-feature/")
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Fetches the instance-admin GitHub App configuration
+   * @returns {Promise<IInstanceGitHubAppConfiguration>} Promise resolving to the GitHub App configuration
+   * @throws {Error} If the API request fails
+   */
+  async getGitHubAppConfiguration(): Promise<IInstanceGitHubAppConfiguration> {
+    return this.get("/api/instances/github-app/")
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Partially updates the instance-admin GitHub App configuration
+   * @param {TInstanceGitHubAppPatchPayload} data Changed configuration keys only
+   * @returns {Promise<IInstanceGitHubAppConfiguration>} Promise resolving to the updated GitHub App configuration
+   * @throws {Error} If the API request fails
+   */
+  async updateGitHubAppConfiguration(data: TInstanceGitHubAppPatchPayload): Promise<IInstanceGitHubAppConfiguration> {
+    return this.patch("/api/instances/github-app/", data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Deletes the instance-admin GitHub App configuration
+   * @returns {Promise<IInstanceGitHubAppConfiguration>} Promise resolving to the cleared GitHub App configuration
+   * @throws {Error} If the API request fails
+   */
+  async deleteGitHubAppConfiguration(): Promise<IInstanceGitHubAppConfiguration> {
+    return this.delete("/api/instances/github-app/")
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Tests the stored GitHub App configuration by locally signing a JWT
+   * @returns {Promise<TInstanceGitHubAppTestResult>} Promise resolving to the test result
+   * @throws {Error} If the API request fails
+   */
+  async testGitHubAppConfiguration(): Promise<TInstanceGitHubAppTestResult> {
+    return this.post("/api/instances/github-app/test/")
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

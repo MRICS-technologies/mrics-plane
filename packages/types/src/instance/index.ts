@@ -9,5 +9,6 @@ export * from "./auth";
 export * from "./auth-ee";
 export * from "./base";
 export * from "./email";
+export * from "./github-app";
 export * from "./image";
 export * from "./workspace";
