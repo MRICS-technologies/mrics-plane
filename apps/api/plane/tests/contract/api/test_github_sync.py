@@ -24,6 +24,7 @@ from rest_framework import status
 
 from plane.db.models import Issue, Project, ProjectMember
 from plane.db.models.integration.github_sync import RepoProjectMapping
+from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import encrypt_data
 
@@ -77,14 +78,27 @@ def _create_branch_url(slug, project_id, issue_id):
 class TestRepoProjectMappingAPI:
     @pytest.mark.django_db
     def test_list_and_create_mapping(self, session_client, workspace, project):
+        # S2: must create native installation + enabled repository first.
+        installation = GithubAppInstallation.objects.create(
+            workspace=workspace,
+            installation_id=42,
+            account_login="acme",
+        )
+        enabled_repo = GithubEnabledRepository.objects.create(
+            installation=installation,
+            github_repository_id=1001,
+            full_name="acme/widgets",
+            is_enabled=True,
+        )
+
         url = _mappings_url(workspace.slug, project.id)
 
         response = session_client.post(
             url,
-            {"github_installation_id": 42, "github_repo": "acme/widgets"},
+            {"repository_id": str(enabled_repo.pk)},
             format="json",
         )
-        assert response.status_code == status.HTTP_201_CREATED
+        assert response.status_code == status.HTTP_201_CREATED, response.data
 
         response = session_client.get(url)
         assert response.status_code == status.HTTP_200_OK

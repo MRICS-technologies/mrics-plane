@@ -123,6 +123,7 @@ def second_workspace_user(db):
     """A user who is only in the second workspace, not the primary."""
     user = User.objects.create(
         email="second@plane.so",
+        username="second-workspace-user",
         first_name="Second",
         last_name="User",
     )
@@ -164,7 +165,7 @@ class TestInstallationGet:
 
     @pytest.mark.django_db
     def test_non_member_gets_403(self, api_client, workspace):
-        user = User.objects.create(email="outsider@plane.so", first_name="Out", last_name="Sider")
+        user = User.objects.create(email="outsider@plane.so", username="outsider", first_name="Out", last_name="Sider")
         user.set_password("test")
         user.save()
         api_client.force_authenticate(user=user)
@@ -505,7 +506,7 @@ class TestMappingCreate:
         assert "github_installation_id" not in resp.data
         # repository_detail is populated.
         assert resp.data["repository_detail"] is not None
-        assert resp.data["repository_detail"]["id"] == str(enabled_repo.pk)
+        assert str(resp.data["repository_detail"]["id"]) == str(enabled_repo.pk)
         assert resp.data["repository_detail"]["full_name"] == enabled_repo.full_name
         # DB check: the FK is set, legacy fields are populated.
         mapping = RepoProjectMapping.objects.get(project=project)
@@ -530,15 +531,15 @@ class TestMappingCreate:
 
     @pytest.mark.django_db
     def test_create_cross_workspace_repo_rejected(
-        self, session_client, workspace, project, installation, enabled_repo, second_workspace
+        self, session_client, workspace, project, installation, enabled_repo, second_workspace, create_user
     ):
         # Create a project in second_workspace and try to use a repo from
-        # the primary workspace.
-        p2 = Project.objects.create(
-            name="P2", identifier="P2", workspace=second_workspace, created_by=project.created_by
-        )
+        # the primary workspace.  The session user must be authorised in both
+        # workspaces so the test exercises cross-workspace repository isolation
+        # rather than failing on membership/permission checks.
+        p2 = Project.objects.create(name="P2", identifier="P2", workspace=second_workspace, created_by=create_user)
         ProjectMember.objects.create(
-            workspace=second_workspace, project=p2, member=project.created_by, role=20, is_active=True
+            workspace=second_workspace, project=p2, member=create_user, role=20, is_active=True
         )
         resp = session_client.post(
             _mappings_url(second_workspace.slug, p2.id),
@@ -631,7 +632,7 @@ class TestMappingList:
         assert resp.status_code == status.HTTP_200_OK
         assert len(resp.data) == 1
         assert resp.data[0]["repository_detail"] is not None
-        assert resp.data[0]["repository_detail"]["id"] == str(enabled_repo.pk)
+        assert str(resp.data[0]["repository_detail"]["id"]) == str(enabled_repo.pk)
         assert resp.data[0]["repository_detail"]["full_name"] == enabled_repo.full_name
 
     @pytest.mark.django_db
@@ -717,7 +718,7 @@ class TestCrossWorkspaceIsolation:
         # so they CAN see it. Let's test properly: create a standalone client.
         from rest_framework.test import APIClient
 
-        ext_user = User.objects.create(email="ext@plane.so", first_name="Ext", last_name="User")
+        ext_user = User.objects.create(email="ext@plane.so", username="ext-user", first_name="Ext", last_name="User")
         ext_user.set_password("test")
         ext_user.save()
         ext_client = APIClient()

@@ -20,6 +20,8 @@ from plane.db.models.integration.github_app import GithubAppInstallation, Github
 
 
 class GithubAppInstallationSerializer(BaseSerializer):
+    installation_id = serializers.IntegerField()
+
     class Meta:
         model = GithubAppInstallation
         fields = [
@@ -33,6 +35,11 @@ class GithubAppInstallationSerializer(BaseSerializer):
         ]
         read_only_fields = ["id", "is_active", "created_at", "updated_at"]
 
+    def validate_installation_id(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("installation_id must be a positive integer.")
+        return value
+
     def validate(self, attrs):
         workspace = self.context.get("workspace")
         if self.instance is None and workspace is not None:
@@ -43,11 +50,6 @@ class GithubAppInstallationSerializer(BaseSerializer):
                     code="conflict",
                 )
         return attrs
-
-    def validate_installation_id(self, value):
-        if value <= 0:
-            raise serializers.ValidationError("installation_id must be a positive integer.")
-        return value
 
 
 _FULL_NAME_RE = re.compile(r"^[^\s/]+/[^\s/]+$")
