@@ -9,5 +9,6 @@ from .github import (
     GithubIssueSync,
     GithubCommentSync,
 )
+from .github_app import GithubAppInstallation, GithubEnabledRepository
 from .slack import SlackProjectSync
 from .github_sync import RepoProjectMapping, IssueGitLink

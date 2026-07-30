@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - feat/github-integration-native-backend
+      - feat/github-integration-native-s1
+      - feat/github-integration-native
     paths:
       - apps/api/plane/license/api/serializers/github_app.py
       - apps/api/plane/license/api/views/github_app.py
@@ -13,6 +15,15 @@ on:
       - apps/api/plane/license/urls.py
       - apps/api/plane/middleware/logger.py
       - apps/api/plane/tests/contract/api/test_github_app_configuration.py
+      - apps/api/plane/app/views/github_sync.py
+      - apps/api/plane/db/models/integration/__init__.py
+      - apps/api/plane/db/models/integration/github_sync.py
+      - apps/api/plane/db/models/integration/github_app.py
+      - apps/api/plane/db/migrations/0125_github_workspace_installation_models.py
+      - apps/api/plane/services/github/client.py
+      - apps/api/plane/services/github/credentials.py
+      - apps/api/plane/tests/contract/api/test_github_sync.py
+      - apps/api/plane/tests/contract/api/test_github_workspace_installation_models.py
       - .github/workflows/test-github-app-configuration.yml
 
 permissions:
@@ -72,5 +83,7 @@ jobs:
         run: >-
           pytest
           plane/tests/contract/api/test_github_app_configuration.py
+          plane/tests/contract/api/test_github_sync.py
+          plane/tests/contract/api/test_github_workspace_installation_models.py
           --create-db
           -q
