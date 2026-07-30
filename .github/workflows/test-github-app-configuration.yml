@@ -7,6 +7,7 @@ on:
       - feat/github-integration-native-backend
       - feat/github-integration-native-s1
       - feat/github-integration-native
+      - feat/github-integration-native-s2-mapping-api
     paths:
       - apps/api/plane/license/api/serializers/github_app.py
       - apps/api/plane/license/api/views/github_app.py
@@ -16,6 +17,9 @@ on:
       - apps/api/plane/middleware/logger.py
       - apps/api/plane/tests/contract/api/test_github_app_configuration.py
       - apps/api/plane/app/views/github_sync.py
+      - apps/api/plane/app/serializers/github_sync.py
+      - apps/api/plane/app/urls/github_sync.py
+      - apps/api/plane/app/views/__init__.py
       - apps/api/plane/db/models/integration/__init__.py
       - apps/api/plane/db/models/integration/github_sync.py
       - apps/api/plane/db/models/integration/github_app.py
@@ -24,6 +28,7 @@ on:
       - apps/api/plane/services/github/credentials.py
       - apps/api/plane/tests/contract/api/test_github_sync.py
       - apps/api/plane/tests/contract/api/test_github_workspace_installation_models.py
+      - apps/api/plane/tests/contract/api/test_github_s2_mapping_api.py
       - .github/workflows/test-github-app-configuration.yml
 
 permissions:
@@ -57,7 +62,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://plane:plane@127.0.0.1:5432/plane_test
+      DATABASE_URL: postgresql://plane:***@127.0.0.1:5432/plane_test
       DJANGO_SETTINGS_MODULE: plane.settings.test
       REDIS_URL: redis://127.0.0.1:6379/0
       SECRET_KEY: ci-github-app-configuration-test-key
@@ -85,5 +90,6 @@ jobs:
           plane/tests/contract/api/test_github_app_configuration.py
           plane/tests/contract/api/test_github_sync.py
           plane/tests/contract/api/test_github_workspace_installation_models.py
+          plane/tests/contract/api/test_github_s2_mapping_api.py
           --create-db
           -q

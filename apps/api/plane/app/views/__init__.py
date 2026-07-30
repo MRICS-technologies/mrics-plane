@@ -241,6 +241,9 @@ from .user.base import AccountEndpoint, ProfileEndpoint, UserSessionEndpoint
 from .timezone.base import TimezoneEndpoint
 
 from .github_sync import (
+    WorkspaceInstallationEndpoint,
+    WorkspaceRepositoriesEndpoint,
+    WorkspaceRepositoryDetailEndpoint,
     RepoProjectMappingViewSet,
     IssueGitLinkViewSet,
     IssueCreateBranchEndpoint,
