@@ -145,6 +145,18 @@ class TestGitHubWebhookAPI:
     def test_webhook_valid_signature_returns_200(self, api_client):
         secret = "test-webhook-secret"
         _set_github_app_webhook_secret(secret)
+        InstanceConfiguration.objects.update_or_create(
+            key="GITHUB_APP_ID",
+            defaults={"value": "123456", "category": "GITHUB_APP", "is_encrypted": False},
+        )
+        InstanceConfiguration.objects.update_or_create(
+            key="GITHUB_APP_PRIVATE_KEY",
+            defaults={
+                "value": encrypt_data("fake-pem-private-key"),
+                "category": "GITHUB_APP",
+                "is_encrypted": True,
+            },
+        )
 
         body = json.dumps({"action": "opened"}).encode()
         signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()

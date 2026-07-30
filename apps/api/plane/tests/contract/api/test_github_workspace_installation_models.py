@@ -15,6 +15,7 @@ None of these tests contact GitHub.
 """
 
 import pytest
+from unittest.mock import patch
 from django.db import IntegrityError, transaction
 
 from plane.db.models import Project
@@ -57,7 +58,8 @@ class TestGithubAppInstallationConstraints:
 
     @pytest.mark.django_db
     def test_soft_deleted_installation_frees_installation_id_for_reuse(self, workspace, installation):
-        installation.delete()  # soft delete: sets deleted_at, does not remove the row
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            installation.delete()  # soft delete: sets deleted_at, does not remove the row
 
         recreated = GithubAppInstallation.objects.create(
             workspace=workspace, installation_id=installation.installation_id, account_login="acme-reconnected"
@@ -116,7 +118,8 @@ class TestRepoProjectMappingDefaultConstraint:
         # Retiring the old default (soft delete) preserves history and frees
         # up the "one live default" slot for a new mapping -- it does not
         # collapse/overwrite the retired row.
-        first.delete()
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            first.delete()
 
         second = RepoProjectMapping.objects.create(
             project=project, github_installation_id=2, github_repo="acme/gadgets", is_default=True
@@ -257,10 +260,9 @@ class TestDedupeLiveDefaultMappingsMigration:
         # directly: temporarily drop the partial-unique index it runs ahead
         # of (both live in the same migration -- see 0125's operations list),
         # seed two live defaults on one project, run the function, and check
-        # exactly one deterministic default survives. Everything here runs
-        # inside the test's own rolled-back transaction, so the dropped index
-        # is restored automatically even if the re-create step below is
-        # skipped by a failure.
+        # exactly one deterministic default survives. The DROP INDEX is never
+        # re-created here -- Django's transactional test rollback restores the
+        # original index automatically.
         import importlib
         from datetime import timedelta
 
@@ -289,10 +291,3 @@ class TestDedupeLiveDefaultMappingsMigration:
         assert newer.is_default is True
         # Both rows are retained -- deduping never deletes or rewrites a mapping.
         assert RepoProjectMapping.all_objects.filter(project=project).count() == 2
-
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "CREATE UNIQUE INDEX repoprojectmapping_one_live_default_per_project "
-                "ON github_repo_mappings (project_id) "
-                "WHERE (is_default = true AND deleted_at IS NULL)"
-            )
