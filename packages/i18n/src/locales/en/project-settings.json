@@ -197,6 +197,9 @@
         "duration": "Send reminder before"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "No labels yet",

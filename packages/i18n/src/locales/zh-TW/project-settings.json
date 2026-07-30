@@ -197,6 +197,9 @@
         "duration": "提前提醒"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "尚無標籤",

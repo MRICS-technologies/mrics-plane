@@ -150,6 +150,9 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub"
+      },
       "api_tokens": {
         "heading": "Jetons API",
         "description": "Générez des jetons API sécurisés pour intégrer vos données avec des systèmes et applications externes.",

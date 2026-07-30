@@ -197,6 +197,9 @@
         "duration": "Invia promemoria prima di"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Nessuna etichetta ancora",
