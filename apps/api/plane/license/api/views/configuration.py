@@ -34,14 +34,19 @@ class InstanceConfigurationEndpoint(BaseAPIView):
 
     @cache_response(60 * 60 * 2, user=False)
     def get(self, request):
-        instance_configurations = InstanceConfiguration.objects.all()
+        # GitHub App records use a dedicated write-only endpoint. The generic
+        # serializer decrypts encrypted values, so these records must never be
+        # included here.
+        instance_configurations = InstanceConfiguration.objects.exclude(key__startswith="GITHUB_APP_")
         serializer = InstanceConfigurationSerializer(instance_configurations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @invalidate_cache(path="/api/instances/configurations/", user=False)
     @invalidate_cache(path="/api/instances/", user=False)
     def patch(self, request):
-        configurations = InstanceConfiguration.objects.filter(key__in=request.data.keys())
+        configurations = InstanceConfiguration.objects.filter(key__in=request.data.keys()).exclude(
+            key__startswith="GITHUB_APP_"
+        )
 
         bulk_configurations = []
         for configuration in configurations:

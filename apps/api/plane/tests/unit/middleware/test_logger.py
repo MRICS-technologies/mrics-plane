@@ -77,3 +77,87 @@ class TestAPITokenLogMiddleware:
         with patch("plane.middleware.logger.process_logs") as process_logs:
             middleware.process_request(request, HttpResponse(b"{}"), request_body=b"")
             assert not process_logs.delay.called
+
+
+@pytest.mark.unit
+class TestAPITokenLogMiddlewareGitHubAppBodyExclusion:
+    """
+    GitHub App configuration requests/responses can carry a private key,
+    webhook secret, or client secret in the body. That body must never reach
+    process_logs.delay, regardless of the outcome of the request.
+    """
+
+    API_KEY = "plane_api_supersecretvalue"
+    SENTINEL = "sentinel-private-key-webhook-client-secret-value"
+
+    def _call(self, middleware, request_factory, path, method="patch", status_code=200):
+        request = getattr(request_factory, method)(path, HTTP_X_API_KEY=self.API_KEY)
+        request.user = AnonymousUser()
+        response = HttpResponse(self.SENTINEL.encode(), status=status_code)
+        with patch("plane.middleware.logger.process_logs") as process_logs:
+            # request_body is read once by __call__ and handed to process_request;
+            # simulate that here rather than round-tripping through RequestFactory.
+            middleware.process_request(request, response, request_body=self.SENTINEL.encode())
+            assert process_logs.delay.called
+            return process_logs.delay.call_args.kwargs["log_data"]
+
+    @pytest.mark.parametrize(
+        ("path", "method", "status_code"),
+        [
+            ("/api/instances/github-app/", "patch", 200),  # success
+            ("/api/instances/github-app/", "patch", 400),  # failed validation
+            ("/api/instances/github-app/", "get", 403),  # forbidden
+            ("/api/instances/github-app/", "delete", 401),  # unauthorized
+            ("/api/instances/github-app/test/", "post", 422),  # subroute / test endpoint
+            ("/api/instances/github-app", "patch", 200),  # slashless base path, success
+            ("/api/instances/github-app", "patch", 400),  # slashless base path, failed validation
+            ("/api/instances/github-app", "get", 403),  # slashless base path, forbidden
+            ("/api/instances/github-app", "delete", 401),  # slashless base path, unauthorized
+        ],
+    )
+    def test_github_app_body_never_queued(self, middleware, request_factory, path, method, status_code):
+        log_data = self._call(middleware, request_factory, path, method=method, status_code=status_code)
+
+        assert log_data["body"] is None
+        assert log_data["response_body"] is None
+        assert self.SENTINEL not in str(log_data)
+
+    def test_github_app_body_excluded_via_full_middleware_call(self, request_factory):
+        """
+        Exercises __call__ (not just the process_request helper) so the
+        exclusion is proven against the same code path Django actually runs,
+        including the slashless request that CommonMiddleware would otherwise
+        redirect/reject before this middleware finishes.
+        """
+        get_response = Mock(return_value=HttpResponse(self.SENTINEL.encode(), status=400))
+        middleware = APITokenLogMiddleware(get_response)
+        request = request_factory.patch(
+            "/api/instances/github-app", HTTP_X_API_KEY=self.API_KEY, data=self.SENTINEL, content_type="text/plain"
+        )
+        request.user = AnonymousUser()
+        with patch("plane.middleware.logger.process_logs") as process_logs:
+            middleware(request)
+            assert process_logs.delay.called
+            log_data = process_logs.delay.call_args.kwargs["log_data"]
+
+        assert log_data["body"] is None
+        assert log_data["response_body"] is None
+        assert self.SENTINEL not in str(log_data)
+
+    def test_sibling_route_is_not_overmatched(self, middleware, request_factory):
+        """
+        A route that merely starts with the same characters (but is a
+        different resource) must not be swept into the exclusion.
+        """
+        log_data = self._call(
+            middleware, request_factory, "/api/instances/github-app-foo/", method="patch", status_code=200
+        )
+
+        assert log_data["body"] == self.SENTINEL
+        assert log_data["response_body"] == self.SENTINEL
+
+    def test_non_github_app_route_body_logging_is_unaffected(self, middleware, request_factory):
+        log_data = self._call(middleware, request_factory, "/api/v1/workspaces/", method="patch", status_code=200)
+
+        assert log_data["body"] == self.SENTINEL
+        assert log_data["response_body"] == self.SENTINEL
