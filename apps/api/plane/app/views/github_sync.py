@@ -268,7 +268,10 @@ class GitHubWebhookView(BaseAPIView):
         if not mappings:
             return
 
-        head_ref = (pr_payload.get("head") or {}).get("ref", "")
+        # GitHub sends an object here. Treat a malformed signed payload as an
+        # uncorrelatable event rather than allowing it to raise a 500.
+        head_payload = pr_payload.get("head") or {}
+        head_ref = head_payload.get("ref", "") if isinstance(head_payload, dict) else ""
         state = self._resolve_state(payload.get("action"), pr_payload.get("merged", False))
         updated_at = self._parse_datetime(pr_payload.get("updated_at"))
 

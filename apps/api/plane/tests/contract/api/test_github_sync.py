@@ -409,7 +409,9 @@ class TestGitHubPullRequestWebhookContract:
     def test_issue_key_no_match_and_cross_workspace_mapping_are_safe(self, api_client, webhook_context, create_user):
         installation, repository = webhook_context
         secret = _configure_webhook_app()
-        payload = _pull_request_payload(installation, repository, title="TP-999 only outside issue", number=19)
+        payload = _pull_request_payload(
+            installation, repository, title="TP-999 only outside issue", head="release/no-key", number=19
+        )
         assert _post_signed_webhook(api_client, payload, secret, "delivery-no-match").status_code == status.HTTP_200_OK
         assert not IssueGitLink.objects.filter(kind="pr").exists()
 
@@ -440,7 +442,7 @@ class TestGitHubPullRequestWebhookContract:
         assert _post_signed_webhook(api_client, payload, secret, "delivery-existing-open").status_code == status.HTTP_200_OK
         payload.update(action="closed")
         payload["pull_request"].update(
-            title="release housekeeping", head="release/no-key", merged=False, updated_at="2026-07-31T03:00:00Z"
+            title="release housekeeping", head={"ref": "release/no-key"}, merged=False, updated_at="2026-07-31T03:00:00Z"
         )
         assert _post_signed_webhook(api_client, payload, secret, "delivery-existing-close").status_code == status.HTTP_200_OK
         link = IssueGitLink.objects.get(kind="pr", github_repo=repository.full_name, pr_number=20)
