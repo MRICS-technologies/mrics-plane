@@ -120,3 +120,27 @@ This section supersedes the stale status statements above.
 ## Current next slice
 
 - Phase 2 S1 is isolated in `/tmp/plane-wt-github-s1` on `feat/github-integration-native-s1`: native workspace installation/repository schema, a non-destructive mapping bridge, and P1 credential consumption. It is not integrated until independent review and PostgreSQL CI acceptance.
+
+## Delivered and deployed update — 2026-07-31
+
+This section supersedes the historical “unintegrated” and “next slice” status statements above.
+
+### Delivered scope
+
+- Dynamic, write-only instance GitHub App configuration, workspace installations, repository registration, and project/repository mappings are integrated on `mrics/dev`.
+- Signed GitHub `pull_request` webhook handling now links and updates Plane issues. It handles `opened`, `reopened`, `closed`, `merged`, and `synchronize` link lifecycle events; this slice does **not** move issue workflow states.
+- The webhook implementation verifies the raw request body HMAC before parsing, fails closed on invalid signatures, suppresses webhook payload/signature logging, limits payload size, requires `X-GitHub-Delivery` for side-effecting work, and applies transactional delivery deduplication.
+- PR identity is tenant-scoped, link updates protect against stale events, and historical soft-deleted links can be restored without silently losing data.
+
+### Integration and validation evidence
+
+- Pull request: [#3](https://github.com/MRICS-technologies/mrics-plane/pull/3), merged to `mrics/dev` on 2026-07-31.
+- Merge commit: `67803a8d069bdaac269f098b76846d25367e54ac`.
+- Feature-branch PostgreSQL/Redis acceptance: 84 tests passed after the final review corrections.
+- The same PostgreSQL/Redis contract workflow passed again on the merged `mrics/dev` SHA: [GitHub Actions run 30616470428](https://github.com/MRICS-technologies/mrics-plane/actions/runs/30616470428).
+- Backend and frontend images for `67803a8` were built successfully, then the Coolify service `MRICS Plane Dev Fork` (`s3huh6v0kn54nhiz646wnb4j`) was restarted with a forced latest-image pull.
+- Live dev probes succeeded: `/` returned `200`; `/api/v1/users/me/` returned the expected `401` authentication response.
+
+### Remaining acceptance gate
+
+No production environment was changed. The only outstanding validation is a real GitHub App delivery against dev: configure the dev GitHub App’s webhook URL and secret in GitHub, enable Pull request events, create a mapped-repository PR containing an issue key, and confirm the expected link/lifecycle updates in Plane. Do not place the webhook secret in source, documentation, logs, or chat.
