@@ -1795,3 +1795,29 @@ Use this decision matrix:
 | Development/test environment                          | Manual entry acceptable for P1 smoke                   |
 
 This preserves Coolify/Dokploy’s proven product UX while still allowing a low-risk incremental implementation path.
+
+---
+
+## 23. Implementation and Dev Acceptance Record — 2026-07-31
+
+The dynamic GitHub integration implementation described by this PRD is now merged into `mrics/dev` through [PR #3](https://github.com/MRICS-technologies/mrics-plane/pull/3), merge commit `67803a8d069bdaac269f098b76846d25367e54ac`.
+
+### Delivered in this rollout
+
+- Instance-level, write-only GitHub App configuration and workspace-scoped installations/repositories/mappings.
+- Signed GitHub `pull_request` webhook handling that resolves a mapped Plane issue and creates or updates its PR link for `opened`, `reopened`, `closed`, `merged`, and `synchronize` events.
+- Raw-body HMAC verification, fail-closed invalid-signature behavior, request-payload/signature log exclusion, payload limiting, required delivery IDs, transactional replay/delivery deduplication, tenant-scoped PR identity, stale-event protection, and soft-delete-safe restoration.
+- Focused contract coverage, including malformed/no-match payload safety and logger protections.
+
+### Verified evidence
+
+- PostgreSQL/Redis contract tests passed on the feature branch after independent review corrections (84 tests).
+- The exact merged `mrics/dev` SHA passed the same hosted PostgreSQL/Redis contract workflow: [run 30616470428](https://github.com/MRICS-technologies/mrics-plane/actions/runs/30616470428).
+- Matching backend and frontend images were built successfully for the merge SHA and pulled by the Coolify dev service.
+- Dev availability was verified: the frontend returned `200` and the protected Plane API returned the expected `401` without credentials.
+
+### Explicit non-scope / remaining gate
+
+- This rollout links and updates PR records; it does not yet automate Plane issue workflow-state transitions from PR actions.
+- No production deployment occurred.
+- Final dev acceptance still requires one real GitHub App Pull request webhook delivery against a configured, mapped repository. The GitHub webhook secret must be entered directly in the relevant admin UI and never stored in Git, this PRD, logs, or chat.
