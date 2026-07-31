@@ -150,6 +150,9 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub"
+      },
       "api_tokens": {
         "heading": "API 令牌",
         "description": "生成安全的 API 令牌，将您的数据与外部系统和应用程序集成。",

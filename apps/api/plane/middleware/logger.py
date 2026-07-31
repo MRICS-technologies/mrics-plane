@@ -114,7 +114,29 @@ class APITokenLogMiddleware:
             return "[Could not decode content]"
 
     # Headers whose values must never be persisted in plaintext logs
-    SENSITIVE_HEADERS = frozenset({"x-api-key", "authorization", "cookie"})
+    SENSITIVE_HEADERS = frozenset({"x-api-key", "authorization", "cookie", "x-hub-signature-256"})
+
+    # Routes whose request/response bodies carry GitHub App secrets (private key,
+    # webhook secret, client secret) and must never be queued for logging, no
+    # matter the outcome (success, validation failure, auth failure, etc).
+    # The slashless base path is matched exactly (not just as a prefix) so that
+    # sibling routes like "/api/instances/github-app-foo/" are not caught by a
+    # bare startswith check, while a request hitting the base path without a
+    # trailing slash (which CommonMiddleware may redirect/reject before this
+    # middleware's response phase runs) is still excluded.
+    BODY_EXCLUDED_PATH_BASE = "/api/instances/github-app"
+    BODY_EXCLUDED_PATH_PREFIXES = (f"{BODY_EXCLUDED_PATH_BASE}/",)
+    # GitHub sends this public webhook unauthenticated, but callers may still
+    # attach an API key. Its signed payload and signature must never enter the
+    # API-token audit queue on either success or failure paths.
+    BODY_EXCLUDED_EXACT_PATHS = frozenset({"/api/github/webhook", "/api/github/webhook/"})
+
+    def _body_excluded(self, request):
+        return (
+            request.path in self.BODY_EXCLUDED_EXACT_PATHS
+            or request.path == self.BODY_EXCLUDED_PATH_BASE
+            or request.path.startswith(self.BODY_EXCLUDED_PATH_PREFIXES)
+        )
 
     def _redacted_headers(self, request):
         """
@@ -135,6 +157,8 @@ class APITokenLogMiddleware:
         if not api_key:
             return
 
+        body_excluded = self._body_excluded(request)
+
         try:
             log_data = {
                 # Tokenize the (high-entropy) API key into a stable, non-reversible
@@ -148,8 +172,12 @@ class APITokenLogMiddleware:
                 "method": request.method,
                 "query_params": request.META.get("QUERY_STRING", ""),
                 "headers": self._redacted_headers(request),
-                "body": self._safe_decode_body(request_body) if request_body else None,
-                "response_body": self._safe_decode_body(response.content) if response.content else None,
+                "body": None
+                if body_excluded
+                else (self._safe_decode_body(request_body) if request_body else None),
+                "response_body": None
+                if body_excluded
+                else (self._safe_decode_body(response.content) if response.content else None),
                 "response_code": response.status_code,
                 "ip_address": get_client_ip(request=request),
                 "user_agent": request.META.get("HTTP_USER_AGENT", None),

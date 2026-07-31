@@ -150,6 +150,9 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub"
+      },
       "api_tokens": {
         "heading": "APIトークン",
         "description": "セキュアなAPIトークンを生成して、データを外部システムやアプリケーションと統合します。",

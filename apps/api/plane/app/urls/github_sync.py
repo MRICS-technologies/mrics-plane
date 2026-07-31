@@ -9,6 +9,9 @@ from plane.app.views import (
     IssueGitLinkViewSet,
     IssueCreateBranchEndpoint,
     GitHubWebhookView,
+    WorkspaceInstallationEndpoint,
+    WorkspaceRepositoriesEndpoint,
+    WorkspaceRepositoryDetailEndpoint,
 )
 
 urlpatterns = [
@@ -20,7 +23,7 @@ urlpatterns = [
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/github/mappings/<uuid:pk>/",
         RepoProjectMappingViewSet.as_view({"delete": "destroy"}),
-        name="github-repo-project-mappings",
+        name="github-repo-project-mapping-detail",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/git-links/",
@@ -36,5 +39,22 @@ urlpatterns = [
         "github/webhook/",
         GitHubWebhookView.as_view(),
         name="github-webhook",
+    ),
+    # S2: Workspace installation
+    path(
+        "workspaces/<str:slug>/github/installation/",
+        WorkspaceInstallationEndpoint.as_view(),
+        name="github-workspace-installation",
+    ),
+    # S2: Workspace repositories
+    path(
+        "workspaces/<str:slug>/github/repositories/",
+        WorkspaceRepositoriesEndpoint.as_view(),
+        name="github-workspace-repositories",
+    ),
+    path(
+        "workspaces/<str:slug>/github/repositories/<uuid:repo_id>/",
+        WorkspaceRepositoryDetailEndpoint.as_view(),
+        name="github-workspace-repository-detail",
     ),
 ]

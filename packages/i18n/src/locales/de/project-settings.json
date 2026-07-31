@@ -197,6 +197,9 @@
         "duration": "Erinnerung vor"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Keine Labels",

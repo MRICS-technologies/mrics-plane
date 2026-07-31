@@ -9,16 +9,42 @@ import time
 import jwt
 import requests
 
-GITHUB_API_BASE = "https://api.github.com"
+from plane.services.github.credentials import (
+    DEFAULT_GITHUB_API_BASE_URL,
+    DEFAULT_GITHUB_HTML_BASE_URL,
+    get_github_app_credentials,
+)
 
 
 class GitHubClient:
     """Thin wrapper around the GitHub App / REST API used for branch automation."""
 
-    def __init__(self, app_id, private_key, installation_id):
+    def __init__(
+        self,
+        app_id,
+        private_key,
+        installation_id,
+        github_base_url=DEFAULT_GITHUB_API_BASE_URL,
+        html_base_url=DEFAULT_GITHUB_HTML_BASE_URL,
+    ):
         self.app_id = app_id
         self.private_key = private_key
         self.installation_id = installation_id
+        self.github_base_url = github_base_url or DEFAULT_GITHUB_API_BASE_URL
+        self.html_base_url = html_base_url or DEFAULT_GITHUB_HTML_BASE_URL
+
+    @classmethod
+    def for_installation(cls, installation_id):
+        """Build a client from the P1 instance GitHub App configuration
+        (the source of truth), for a given GitHub App installation id."""
+        credentials = get_github_app_credentials()
+        return cls(
+            credentials.app_id,
+            credentials.private_key,
+            installation_id,
+            credentials.github_base_url,
+            credentials.html_base_url,
+        )
 
     def _app_jwt(self):
         if not self.app_id or not self.private_key:
@@ -34,7 +60,7 @@ class GitHubClient:
             raise NotImplementedError("GitHub App installation is not configured")
 
         response = requests.post(
-            f"{GITHUB_API_BASE}/app/installations/{self.installation_id}/access_tokens",
+            f"{self.github_base_url}/app/installations/{self.installation_id}/access_tokens",
             headers={
                 "Authorization": f"Bearer {self._app_jwt()}",
                 "Accept": "application/vnd.github+json",
@@ -52,7 +78,7 @@ class GitHubClient:
 
     def get_branch_sha(self, owner, repo, branch):
         response = requests.get(
-            f"{GITHUB_API_BASE}/repos/{owner}/{repo}/git/ref/heads/{branch}",
+            f"{self.github_base_url}/repos/{owner}/{repo}/git/ref/heads/{branch}",
             headers=self._headers(),
             timeout=10,
         )
@@ -67,7 +93,7 @@ class GitHubClient:
             raise ValueError(f"Base branch '{base_branch}' not found in {owner}/{repo}")
 
         response = requests.post(
-            f"{GITHUB_API_BASE}/repos/{owner}/{repo}/git/refs",
+            f"{self.github_base_url}/repos/{owner}/{repo}/git/refs",
             headers=self._headers(),
             json={"ref": f"refs/heads/{branch_name}", "sha": base_sha},
             timeout=10,
@@ -76,6 +102,6 @@ class GitHubClient:
         data = response.json()
         return {
             "branch_name": branch_name,
-            "url": f"https://github.com/{owner}/{repo}/tree/{branch_name}",
+            "url": f"{self.html_base_url}/{owner}/{repo}/tree/{branch_name}",
             "sha": data["object"]["sha"],
         }

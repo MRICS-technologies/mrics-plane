@@ -197,6 +197,9 @@
         "duration": "Trimite avertizare înainte"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Nicio etichetă încă",
