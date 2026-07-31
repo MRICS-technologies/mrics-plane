@@ -69,6 +69,10 @@ Getting started with Plane is simple. Choose the setup that works best for you:
 
 See [CONTRIBUTING](./CONTRIBUTING.md)
 
+## 📚 MRICS fork documentation
+
+- [GitHub App Pull Request Webhook Linking](./docs/github-app-pr-webhook-linking.md) — operator setup, security boundaries, dev acceptance, and rollback for the MRICS GitHub integration.
+
 ## ⚙️ Built with
 
 [![React Router](https://img.shields.io/badge/-React%20Router-CA4245?logo=react-router&style=for-the-badge&logoColor=white)](https://reactrouter.com/)
