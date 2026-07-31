@@ -85,15 +85,20 @@ class IssueGitLink(ProjectBaseModel):
         return f"{self.issue_id}-{self.github_repo}-{self.kind}-{self.ref}"
 
     class Meta:
-        unique_together = ["issue", "github_repo", "kind", "ref"]
         constraints = [
-            # A GitHub PR number is unique per repository on GitHub itself,
-            # so this is the idempotency key webhook processing upserts on.
+            # Preserve the legacy live-row branch/link identity while allowing
+            # a soft-deleted link to be recreated.
+            models.UniqueConstraint(
+                fields=["issue", "github_repo", "kind", "ref"],
+                condition=Q(deleted_at__isnull=True),
+                name="issuegitlink_unique_live_issue_repo_kind_ref",
+            ),
+            # A GitHub PR number is unique only inside a Plane workspace.
             models.UniqueConstraint(
                 fields=["workspace", "github_repo", "pr_number"],
                 condition=Q(kind="pr", deleted_at__isnull=True),
                 name="issuegitlink_unique_repo_pr_number_when_pr_and_deleted_at_null",
-            )
+            ),
         ]
         verbose_name = "Issue Git Link"
         verbose_name_plural = "Issue Git Links"

@@ -399,6 +399,12 @@ class TestGitHubPullRequestWebhookContract:
         link.refresh_from_db()
         assert link.state == "merged"
 
+        payload.update(action="reopened")
+        payload["pull_request"].update(merged=False, updated_at="2026-07-31T03:00:00Z")
+        assert _post_signed_webhook(api_client, payload, secret, "delivery-reopened").status_code == status.HTTP_200_OK
+        link.refresh_from_db()
+        assert link.state == "open"
+
     @pytest.mark.django_db
     def test_issue_key_no_match_and_cross_workspace_mapping_are_safe(self, api_client, webhook_context, create_user):
         installation, repository = webhook_context
@@ -440,6 +446,12 @@ class TestGitHubPullRequestWebhookContract:
         link = IssueGitLink.objects.get(kind="pr", github_repo=repository.full_name, pr_number=20)
         assert link.state == "closed"
         assert link.ref == "release/no-key"
+
+        synchronize = _pull_request_payload(
+            installation, repository, number=22, title="TP-1 synchronize", action="synchronize"
+        )
+        assert _post_signed_webhook(api_client, synchronize, secret, "delivery-sync-initial").status_code == status.HTTP_200_OK
+        assert IssueGitLink.objects.get(kind="pr", github_repo=repository.full_name, pr_number=22).state == "open"
 
     @pytest.mark.django_db
     def test_pr_identity_is_scoped_to_workspace(self, api_client, webhook_context, create_user):

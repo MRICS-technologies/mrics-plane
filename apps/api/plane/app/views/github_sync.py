@@ -345,6 +345,8 @@ class GitHubWebhookView(BaseAPIView):
             return "open"
         if action in _CLOSE_ACTIONS:
             return "merged" if merged else "closed"
+        if action in _SYNC_ACTIONS:
+            return "open"
         return None
 
     @staticmethod

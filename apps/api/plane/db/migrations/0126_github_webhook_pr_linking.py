@@ -83,6 +83,18 @@ class Migration(migrations.Migration):
                 name="github_webhook_delivery_unique_delivery_id_when_deleted_at_null",
             ),
         ),
+        migrations.AlterUniqueTogether(
+            name="issuegitlink",
+            unique_together=set(),
+        ),
+        migrations.AddConstraint(
+            model_name="issuegitlink",
+            constraint=models.UniqueConstraint(
+                condition=models.Q(("deleted_at__isnull", True)),
+                fields=("issue", "github_repo", "kind", "ref"),
+                name="issuegitlink_unique_live_issue_repo_kind_ref",
+            ),
+        ),
         migrations.AddConstraint(
             model_name="issuegitlink",
             constraint=models.UniqueConstraint(
