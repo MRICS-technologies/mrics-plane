@@ -161,3 +161,23 @@ class TestAPITokenLogMiddlewareGitHubAppBodyExclusion:
 
         assert log_data["body"] == self.SENTINEL
         assert log_data["response_body"] == self.SENTINEL
+
+
+    @pytest.mark.parametrize("path", ["/api/github/webhook", "/api/github/webhook/"])
+    def test_public_github_webhook_body_and_signature_never_queued(self, middleware, request_factory, path):
+        request = request_factory.post(
+            path,
+            data=self.SENTINEL,
+            content_type="application/json",
+            HTTP_X_API_KEY=self.API_KEY,
+            HTTP_X_HUB_SIGNATURE_256="sha256=signature-must-not-be-persisted",
+        )
+        request.user = AnonymousUser()
+        with patch("plane.middleware.logger.process_logs") as process_logs:
+            middleware.process_request(request, HttpResponse(self.SENTINEL.encode()), request_body=self.SENTINEL.encode())
+            log_data = process_logs.delay.call_args.kwargs["log_data"]
+
+        assert log_data["body"] is None
+        assert log_data["response_body"] is None
+        assert self.SENTINEL not in str(log_data)
+        assert "signature-must-not-be-persisted" not in log_data["headers"]

@@ -11,4 +11,4 @@ from .github import (
 )
 from .github_app import GithubAppInstallation, GithubEnabledRepository
 from .slack import SlackProjectSync
-from .github_sync import RepoProjectMapping, IssueGitLink
+from .github_sync import RepoProjectMapping, IssueGitLink, GithubWebhookDelivery

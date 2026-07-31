@@ -114,7 +114,7 @@ class APITokenLogMiddleware:
             return "[Could not decode content]"
 
     # Headers whose values must never be persisted in plaintext logs
-    SENSITIVE_HEADERS = frozenset({"x-api-key", "authorization", "cookie"})
+    SENSITIVE_HEADERS = frozenset({"x-api-key", "authorization", "cookie", "x-hub-signature-256"})
 
     # Routes whose request/response bodies carry GitHub App secrets (private key,
     # webhook secret, client secret) and must never be queued for logging, no
@@ -126,10 +126,16 @@ class APITokenLogMiddleware:
     # middleware's response phase runs) is still excluded.
     BODY_EXCLUDED_PATH_BASE = "/api/instances/github-app"
     BODY_EXCLUDED_PATH_PREFIXES = (f"{BODY_EXCLUDED_PATH_BASE}/",)
+    # GitHub sends this public webhook unauthenticated, but callers may still
+    # attach an API key. Its signed payload and signature must never enter the
+    # API-token audit queue on either success or failure paths.
+    BODY_EXCLUDED_EXACT_PATHS = frozenset({"/api/github/webhook", "/api/github/webhook/"})
 
     def _body_excluded(self, request):
-        return request.path == self.BODY_EXCLUDED_PATH_BASE or request.path.startswith(
-            self.BODY_EXCLUDED_PATH_PREFIXES
+        return (
+            request.path in self.BODY_EXCLUDED_EXACT_PATHS
+            or request.path == self.BODY_EXCLUDED_PATH_BASE
+            or request.path.startswith(self.BODY_EXCLUDED_PATH_PREFIXES)
         )
 
     def _redacted_headers(self, request):

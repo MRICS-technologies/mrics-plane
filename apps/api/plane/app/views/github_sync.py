@@ -6,9 +6,11 @@
 import hashlib
 import hmac
 import logging
+import re
 
 # Third party imports
 from django.db import IntegrityError, transaction
+from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -22,13 +24,24 @@ from plane.app.serializers.github_sync import (
     IssueGitLinkSerializer,
     RepoProjectMappingSerializer,
 )
-from plane.db.models import Project, Workspace
-from plane.db.models.integration.github_sync import IssueGitLink, RepoProjectMapping
+from plane.db.models import Issue, Project, Workspace
+from plane.db.models.integration.github_sync import GithubWebhookDelivery, IssueGitLink, RepoProjectMapping
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import get_github_app_credentials
 
 logger = logging.getLogger(__name__)
+
+# GitHub caps a delivery at ~25MB, but this endpoint only ever needs a
+# `pull_request` event payload -- reject anything past 1 MiB before HMAC or
+# JSON work touches it.
+MAX_WEBHOOK_BODY_BYTES = 1024 * 1024
+
+# pull_request.action values this slice understands; anything else (edited,
+# labeled, assigned, ...) is acknowledged with no state change.
+_OPEN_ACTIONS = {"opened", "reopened"}
+_CLOSE_ACTIONS = {"closed"}
+_SYNC_ACTIONS = {"synchronize"}
 
 # ---------------------------------------------------------------------------
 # S1: RepoProjectMappingViewSet (hardened for S2)
@@ -175,7 +188,7 @@ class IssueCreateBranchEndpoint(BaseAPIView):
 
 
 # ---------------------------------------------------------------------------
-# S1: GitHubWebhookView (unchanged)
+# P4: GitHubWebhookView -- signed `pull_request` webhook -> IssueGitLink
 # ---------------------------------------------------------------------------
 
 
@@ -203,14 +216,206 @@ class GitHubWebhookView(BaseAPIView):
         return hmac.compare_digest(expected, signature)
 
     def post(self, request):
+        # Body size is checked first in this view; the route is also excluded
+        # from API-token body logging so raw webhook data cannot be persisted.
+        if len(request.body) > MAX_WEBHOOK_BODY_BYTES:
+            return Response(status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         if not self._verify_signature(request):
             return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
 
         event = request.headers.get("X-GitHub-Event", "")
-        # ponytail: MVP just logs + acknowledges; full PR-state automation lands once
-        # branch<->issue matching rules are decided
-        logger.info("Received GitHub webhook event: %s", event)
+        delivery_id = request.headers.get("X-GitHub-Delivery", "")
+        if not delivery_id:
+            return Response(status=status.HTTP_200_OK)
+
+        # Parse signed pull-request data before recording the delivery. A bad
+        # JSON body must not poison GitHub's retry/dedup path.
+        payload = request.data if event == "pull_request" else None
+        try:
+            with transaction.atomic():
+                GithubWebhookDelivery.objects.create(delivery_id=delivery_id, event=event)
+                if payload is not None:
+                    self._process_pull_request(payload or {})
+        except IntegrityError:
+            # A live delivery id can be created only once. GitHub retries are
+            # intentionally acknowledged without duplicating side effects.
+            return Response(status=status.HTTP_200_OK)
         return Response(status=status.HTTP_200_OK)
+
+    def _process_pull_request(self, payload):
+        installation_id = (payload.get("installation") or {}).get("id")
+        repo_payload = payload.get("repository") or {}
+        repo_github_id = repo_payload.get("id")
+        repo_full_name = repo_payload.get("full_name")
+        pr_payload = payload.get("pull_request") or {}
+        pr_number = pr_payload.get("number")
+        if not (installation_id and repo_github_id and repo_full_name and pr_number):
+            return
+
+        installation = GithubAppInstallation.objects.filter(installation_id=installation_id, is_active=True).first()
+        if not installation:
+            return
+        enabled_repo = GithubEnabledRepository.objects.filter(
+            installation=installation, github_repository_id=repo_github_id, is_enabled=True
+        ).first()
+        if not enabled_repo:
+            return
+        mappings = list(
+            RepoProjectMapping.objects.filter(repository=enabled_repo, workspace=installation.workspace)
+            .select_related("project")
+            .order_by("project_id")
+        )
+        if not mappings:
+            return
+
+        head_ref = (pr_payload.get("head") or {}).get("ref", "")
+        state = self._resolve_state(payload.get("action"), pr_payload.get("merged", False))
+        updated_at = self._parse_datetime(pr_payload.get("updated_at"))
+
+        # State updates must continue to work even if the title/head no longer
+        # contains a key. The existing link is accepted only when it belongs to
+        # this installation workspace and one of its current project mappings.
+        mapped_project_ids = {mapping.project_id for mapping in mappings}
+        existing = IssueGitLink.objects.filter(
+            workspace=installation.workspace, kind="pr", github_repo=repo_full_name, pr_number=pr_number
+        ).first()
+        if existing:
+            if existing.project_id not in mapped_project_ids:
+                return
+            self._upsert_pr_link(
+                project=existing.project,
+                issue=existing.issue,
+                repo_full_name=repo_full_name,
+                pr_number=pr_number,
+                ref=head_ref,
+                url=pr_payload.get("html_url", ""),
+                state=state,
+                updated_at=updated_at,
+                detected_via=existing.detected_via,
+            )
+            return
+
+        project, issue, detected_via = self._resolve_issue(
+            mappings, repo_full_name, head_ref, pr_payload.get("title") or ""
+        )
+        if not issue:
+            return
+        self._upsert_pr_link(
+            project=project,
+            issue=issue,
+            repo_full_name=repo_full_name,
+            pr_number=pr_number,
+            ref=head_ref,
+            url=pr_payload.get("html_url", ""),
+            state=state,
+            updated_at=updated_at,
+            detected_via=detected_via,
+        )
+
+    @staticmethod
+    def _resolve_issue(mappings, repo_full_name, head_ref, title):
+        branch_matches = []
+        if head_ref:
+            for mapping in mappings:
+                branch_link = IssueGitLink.objects.filter(
+                    project=mapping.project, github_repo=repo_full_name, kind="branch", ref=head_ref
+                ).first()
+                if branch_link:
+                    branch_matches.append((mapping.project, branch_link.issue, "branch"))
+        if len(branch_matches) == 1:
+            return branch_matches[0]
+        if len(branch_matches) > 1:
+            return None, None, None
+
+        issue_matches = []
+        for mapping in mappings:
+            pattern = re.compile(rf"\b{re.escape(mapping.project.identifier)}-(\d+)\b", re.IGNORECASE)
+            for value in (title, head_ref):
+                match = pattern.search(value or "")
+                if match:
+                    issue = Issue.objects.filter(project=mapping.project, sequence_id=int(match.group(1))).first()
+                    if issue:
+                        issue_matches.append((mapping.project, issue, "title"))
+                        break
+        return issue_matches[0] if len(issue_matches) == 1 else (None, None, None)
+
+    @staticmethod
+    def _resolve_state(action, merged):
+        if action in _OPEN_ACTIONS:
+            return "open"
+        if action in _CLOSE_ACTIONS:
+            return "merged" if merged else "closed"
+        return None
+
+    @staticmethod
+    def _parse_datetime(value):
+        return parse_datetime(value) if value else None
+
+    @staticmethod
+    def _upsert_pr_link(project, issue, repo_full_name, pr_number, ref, url, state, updated_at, detected_via):
+        filters = {"workspace": project.workspace, "kind": "pr", "github_repo": repo_full_name, "pr_number": pr_number}
+        existing = IssueGitLink.objects.select_for_update().filter(**filters).first()
+        if existing:
+            # Do not let an equal, absent, or older timestamp regress a known
+            # state. GitHub timestamps are authoritative only when newer.
+            if existing.github_updated_at and (not updated_at or updated_at <= existing.github_updated_at):
+                return
+            existing.ref = ref or existing.ref
+            existing.url = url or existing.url
+            if state:
+                existing.state = state
+            if updated_at:
+                existing.github_updated_at = updated_at
+            existing.save(update_fields=["ref", "url", "state", "github_updated_at", "updated_at"])
+            return
+
+        # Restore a soft-deleted matching PR instead of creating a duplicate
+        # that the historic unique_together constraint would reject.
+        deleted = (
+            IssueGitLink.all_objects.select_for_update()
+            .filter(**filters)
+            .order_by("-updated_at")
+            .first()
+        )
+        if deleted:
+            deleted.deleted_at = None
+            deleted.issue = issue
+            deleted.project = project
+            deleted.ref = ref
+            deleted.url = url
+            deleted.state = state or "unknown"
+            deleted.github_updated_at = updated_at
+            deleted.detected_via = detected_via
+            deleted.save(update_fields=["deleted_at", "issue", "project", "ref", "url", "state", "github_updated_at", "detected_via", "updated_at"])
+            return
+
+        try:
+            with transaction.atomic():
+                IssueGitLink.objects.create(
+                    workspace=project.workspace,
+                    project=project,
+                    issue=issue,
+                    github_repo=repo_full_name,
+                    kind="pr",
+                    ref=ref,
+                    url=url,
+                    state=state or "unknown",
+                    pr_number=pr_number,
+                    github_updated_at=updated_at,
+                    detected_via=detected_via,
+                )
+        except IntegrityError:
+            # A concurrent delivery created it first. Lock and apply this event
+            # only if its timestamp is newer, instead of losing that update.
+            existing = IssueGitLink.objects.select_for_update().filter(**filters).first()
+            if existing and (not existing.github_updated_at or (updated_at and updated_at > existing.github_updated_at)):
+                existing.ref = ref or existing.ref
+                existing.url = url or existing.url
+                if state:
+                    existing.state = state
+                if updated_at:
+                    existing.github_updated_at = updated_at
+                existing.save(update_fields=["ref", "url", "state", "github_updated_at", "updated_at"])
 
 
 # ---------------------------------------------------------------------------
