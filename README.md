@@ -71,7 +71,7 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 
 ## 📚 MRICS fork documentation
 
-- [GitHub App Pull Request Webhook Linking](./docs/github-app-pr-webhook-linking.md) — operator setup, security boundaries, dev acceptance, and rollback for the MRICS GitHub integration.
+- [GitHub integration documentation](./docs/github-integration/README.md) — operator setup, security boundaries, dev acceptance, and rollback for the MRICS GitHub integration.
 
 ## ⚙️ Built with
 
