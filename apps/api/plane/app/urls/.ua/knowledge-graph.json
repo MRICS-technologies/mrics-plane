@@ -1,0 +1,582 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "urls",
+    "languages": [
+      "python"
+    ],
+    "frameworks": [
+      "Django"
+    ],
+    "description": "Plane Django URL-routing modules that register API endpoint paths for application domains.",
+    "analyzedAt": "2026-08-01T23:56:31.501Z",
+    "gitCommitHash": "1c431971b89674c53c16e30df9e0e435cf1b503e"
+  },
+  "nodes": [
+    {
+      "id": "file:__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "__init__.py",
+      "summary": "Aggregates each domain-specific URL pattern list into the Plane application routing table.",
+      "tags": [
+        "django",
+        "routing",
+        "entry-point",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:analytic.py",
+      "type": "file",
+      "name": "analytic.py",
+      "filePath": "analytic.py",
+      "summary": "Registers workspace and project analytics endpoints, including saved views, exports, charts, and contributor statistics.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:api.py",
+      "type": "file",
+      "name": "api.py",
+      "filePath": "api.py",
+      "summary": "Registers API token collection and detail endpoints for authenticated users.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:asset.py",
+      "type": "file",
+      "name": "asset.py",
+      "filePath": "asset.py",
+      "summary": "Registers legacy and v2 asset upload, restore, validation, duplicate, and download endpoints across users, workspaces, and projects.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:cycle.py",
+      "type": "file",
+      "name": "cycle.py",
+      "filePath": "cycle.py",
+      "summary": "Registers project cycle CRUD, issue assignment, favorites, lifecycle, progress, and analytics endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:estimate.py",
+      "type": "file",
+      "name": "estimate.py",
+      "filePath": "estimate.py",
+      "summary": "Registers project estimate configuration, bulk estimate, and estimate-point mutation endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:exporter.py",
+      "type": "file",
+      "name": "exporter.py",
+      "filePath": "exporter.py",
+      "summary": "Registers the workspace issue-export endpoint.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:external.py",
+      "type": "file",
+      "name": "external.py",
+      "filePath": "external.py",
+      "summary": "Registers Unsplash and AI-assistant integration endpoints for project and workspace contexts.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:github_sync.py",
+      "type": "file",
+      "name": "github_sync.py",
+      "filePath": "github_sync.py",
+      "summary": "Registers GitHub integration routes for repository mappings, issue links, branch creation, webhooks, installations, and repositories.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:intake.py",
+      "type": "file",
+      "name": "intake.py",
+      "filePath": "intake.py",
+      "summary": "Registers project intake, inbox, intake issue, and work-item description version endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:issue.py",
+      "type": "file",
+      "name": "issue.py",
+      "filePath": "issue.py",
+      "summary": "Registers the core project issue, label, relation, attachment, activity, subscription, archive, version, and state-duration routes.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "issues"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "file:module.py",
+      "type": "file",
+      "name": "module.py",
+      "filePath": "module.py",
+      "summary": "Registers project module CRUD, issue association, archive, favorite, link, and analytics routes.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:notification.py",
+      "type": "file",
+      "name": "notification.py",
+      "filePath": "notification.py",
+      "summary": "Registers notification and notification-preference endpoints for users and workspaces.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:page.py",
+      "type": "file",
+      "name": "page.py",
+      "filePath": "page.py",
+      "summary": "Registers page CRUD, access, favorite, and block synchronization endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:project.py",
+      "type": "file",
+      "name": "project.py",
+      "filePath": "project.py",
+      "summary": "Registers project CRUD, invitations, membership, roles, favorites, deployment boards, archiving, and preferences endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:search.py",
+      "type": "file",
+      "name": "search.py",
+      "filePath": "search.py",
+      "summary": "Registers global, project issue, and entity search endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:state.py",
+      "type": "file",
+      "name": "state.py",
+      "filePath": "state.py",
+      "summary": "Registers project workflow state CRUD, default-state, and intake-state endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:timezone.py",
+      "type": "file",
+      "name": "timezone.py",
+      "filePath": "timezone.py",
+      "summary": "Registers the timezone listing endpoint.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:user.py",
+      "type": "file",
+      "name": "user.py",
+      "filePath": "user.py",
+      "summary": "Registers current-user profile, account, session, onboarding, activity, workspace, and dashboard endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:views.py",
+      "type": "file",
+      "name": "views.py",
+      "filePath": "views.py",
+      "summary": "Registers project and workspace saved-view CRUD, issue listing, and view-favorite endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "file:webhook.py",
+      "type": "file",
+      "name": "webhook.py",
+      "filePath": "webhook.py",
+      "summary": "Registers workspace webhook CRUD, secret regeneration, and webhook log endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:workspace.py",
+      "type": "file",
+      "name": "workspace.py",
+      "filePath": "workspace.py",
+      "summary": "Registers workspace CRUD, invitations, membership, themes, activity, labels, preferences, modules, cycles, favorites, quick links, and home customization endpoints.",
+      "tags": [
+        "django",
+        "routing",
+        "api-endpoints",
+        "url-patterns"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "class:issue.py:WorkItemStateDurationAppEndpoint",
+      "type": "class",
+      "name": "WorkItemStateDurationAppEndpoint",
+      "filePath": "issue.py",
+      "lineRange": [
+        39,
+        40
+      ],
+      "summary": "Adapts the time-tracking state-duration endpoint for the Plane application by applying session authentication.",
+      "tags": [
+        "django",
+        "api-endpoint",
+        "authentication",
+        "issue-tracking"
+      ],
+      "complexity": "simple"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:__init__.py",
+      "target": "file:analytic.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:api.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:asset.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:cycle.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:estimate.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:exporter.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:external.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:github_sync.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:intake.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:issue.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:module.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:notification.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:page.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:project.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:search.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:state.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:timezone.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:user.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:views.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:webhook.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:__init__.py",
+      "target": "file:workspace.py",
+      "type": "imports",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "file:issue.py",
+      "target": "class:issue.py:WorkItemStateDurationAppEndpoint",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "file:issue.py",
+      "target": "class:issue.py:WorkItemStateDurationAppEndpoint",
+      "type": "exports",
+      "direction": "forward",
+      "weight": 0.8
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:routing-composition",
+      "name": "Routing Composition",
+      "description": "The package initializer composes every domain route list into the application-level Django URL configuration.",
+      "nodeIds": [
+        "file:__init__.py"
+      ]
+    },
+    {
+      "id": "layer:domain-route-definitions",
+      "name": "Domain Route Definitions",
+      "description": "Domain-specific Django URL modules bind HTTP paths to Plane application views and view sets.",
+      "nodeIds": [
+        "file:analytic.py",
+        "file:api.py",
+        "file:asset.py",
+        "file:cycle.py",
+        "file:estimate.py",
+        "file:exporter.py",
+        "file:external.py",
+        "file:github_sync.py",
+        "file:intake.py",
+        "file:issue.py",
+        "file:module.py",
+        "file:notification.py",
+        "file:page.py",
+        "file:project.py",
+        "file:search.py",
+        "file:state.py",
+        "file:timezone.py",
+        "file:user.py",
+        "file:views.py",
+        "file:webhook.py",
+        "file:workspace.py"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Start at the URL aggregator",
+      "description": "Begin with the package initializer, which imports each domain route list and expands them into the application URL patterns.",
+      "nodeIds": [
+        "file:__init__.py"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Follow core work-management routes",
+      "description": "Inspect issue, project, workspace, cycle, module, and state modules to see the primary workspace and project-scoped API surface.",
+      "nodeIds": [
+        "file:issue.py",
+        "file:project.py",
+        "file:workspace.py",
+        "file:cycle.py",
+        "file:module.py",
+        "file:state.py"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Explore supporting integration routes",
+      "description": "Continue with assets, analytics, search, users, notifications, webhooks, and external integrations to understand the surrounding API domains.",
+      "nodeIds": [
+        "file:asset.py",
+        "file:analytic.py",
+        "file:search.py",
+        "file:user.py",
+        "file:notification.py",
+        "file:webhook.py",
+        "file:github_sync.py",
+        "file:external.py"
+      ]
+    }
+  ]
+}
