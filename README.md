@@ -71,6 +71,7 @@ See [CONTRIBUTING](./CONTRIBUTING.md)
 
 ## 📚 MRICS fork documentation
 
+- [Codebase understanding documentation](./docs/codebase/README.md) — architecture, applications, backend/frontend boundaries, packages, domains, operations, testing, and graph maintenance.
 - [GitHub integration documentation](./docs/github-integration/README.md) — operator setup, security boundaries, dev acceptance, and rollback for the MRICS GitHub integration.
 
 ## ⚙️ Built with

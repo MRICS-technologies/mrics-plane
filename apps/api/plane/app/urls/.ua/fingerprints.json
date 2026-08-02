@@ -1,0 +1,794 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "1c431971b89674c53c16e30df9e0e435cf1b503e",
+  "generatedAt": "2026-08-01T23:57:05.270Z",
+  "files": {
+    "__init__.py": {
+      "filePath": "__init__.py",
+      "contentHash": "29ddb6e256dd086727d9adc571ac1fffdeabbb58710fce1c6809972bda0d2da1",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": ".analytic",
+          "specifiers": [
+            "analytic_urls"
+          ]
+        },
+        {
+          "source": ".api",
+          "specifiers": [
+            "api_urls"
+          ]
+        },
+        {
+          "source": ".asset",
+          "specifiers": [
+            "asset_urls"
+          ]
+        },
+        {
+          "source": ".cycle",
+          "specifiers": [
+            "cycle_urls"
+          ]
+        },
+        {
+          "source": ".estimate",
+          "specifiers": [
+            "estimate_urls"
+          ]
+        },
+        {
+          "source": ".external",
+          "specifiers": [
+            "external_urls"
+          ]
+        },
+        {
+          "source": ".github_sync",
+          "specifiers": [
+            "github_sync_urls"
+          ]
+        },
+        {
+          "source": ".intake",
+          "specifiers": [
+            "intake_urls"
+          ]
+        },
+        {
+          "source": ".issue",
+          "specifiers": [
+            "issue_urls"
+          ]
+        },
+        {
+          "source": ".module",
+          "specifiers": [
+            "module_urls"
+          ]
+        },
+        {
+          "source": ".notification",
+          "specifiers": [
+            "notification_urls"
+          ]
+        },
+        {
+          "source": ".page",
+          "specifiers": [
+            "page_urls"
+          ]
+        },
+        {
+          "source": ".project",
+          "specifiers": [
+            "project_urls"
+          ]
+        },
+        {
+          "source": ".search",
+          "specifiers": [
+            "search_urls"
+          ]
+        },
+        {
+          "source": ".state",
+          "specifiers": [
+            "state_urls"
+          ]
+        },
+        {
+          "source": ".user",
+          "specifiers": [
+            "user_urls"
+          ]
+        },
+        {
+          "source": ".views",
+          "specifiers": [
+            "view_urls"
+          ]
+        },
+        {
+          "source": ".webhook",
+          "specifiers": [
+            "webhook_urls"
+          ]
+        },
+        {
+          "source": ".workspace",
+          "specifiers": [
+            "workspace_urls"
+          ]
+        },
+        {
+          "source": ".timezone",
+          "specifiers": [
+            "timezone_urls"
+          ]
+        },
+        {
+          "source": ".exporter",
+          "specifiers": [
+            "exporter_urls"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 50,
+      "hasStructuralAnalysis": true
+    },
+    "analytic.py": {
+      "filePath": "analytic.py",
+      "contentHash": "7c9c61e74955234e7479425471af4fe3a68cf94d14d48dbed4b40d17cc246d13",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "AnalyticsEndpoint",
+            "AnalyticViewViewset",
+            "SavedAnalyticEndpoint",
+            "ExportAnalyticsEndpoint",
+            "AdvanceAnalyticsEndpoint",
+            "AdvanceAnalyticsStatsEndpoint",
+            "AdvanceAnalyticsChartEndpoint",
+            "DefaultAnalyticsEndpoint",
+            "ProjectStatsEndpoint",
+            "ProjectAdvanceAnalyticsEndpoint",
+            "ProjectAdvanceAnalyticsStatsEndpoint",
+            "ProjectAdvanceAnalyticsChartEndpoint",
+            "ProjectContributorAnalyticsEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 97,
+      "hasStructuralAnalysis": true
+    },
+    "api.py": {
+      "filePath": "api.py",
+      "contentHash": "a6cefd1dee721ae0cd32941386aade5509f7a126969666f5287f94c73c2fdbf2",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "ApiTokenEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 22,
+      "hasStructuralAnalysis": true
+    },
+    "asset.py": {
+      "filePath": "asset.py",
+      "contentHash": "656597eb1de14485c138e7074b0120f0ef5e4a0b4341ff159b0c20fab45e2671",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "FileAssetEndpoint",
+            "UserAssetsEndpoint",
+            "FileAssetViewSet",
+            "WorkspaceFileAssetEndpoint",
+            "UserAssetsV2Endpoint",
+            "StaticFileAssetEndpoint",
+            "AssetRestoreEndpoint",
+            "ProjectAssetEndpoint",
+            "ProjectBulkAssetEndpoint",
+            "AssetCheckEndpoint",
+            "DuplicateAssetEndpoint",
+            "WorkspaceAssetDownloadEndpoint",
+            "ProjectAssetDownloadEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 115,
+      "hasStructuralAnalysis": true
+    },
+    "cycle.py": {
+      "filePath": "cycle.py",
+      "contentHash": "1947f5abbe7f22a4eabe2cdc0d81dc5899fc1c1e2ee0edb21c5159faf85e1566",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "CycleViewSet",
+            "CycleIssueViewSet",
+            "CycleDateCheckEndpoint",
+            "CycleFavoriteViewSet",
+            "CycleProgressEndpoint",
+            "CycleAnalyticsEndpoint",
+            "TransferCycleIssueEndpoint",
+            "CycleUserPropertiesEndpoint",
+            "CycleArchiveUnarchiveEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 107,
+      "hasStructuralAnalysis": true
+    },
+    "estimate.py": {
+      "filePath": "estimate.py",
+      "contentHash": "c462db99b6f304ac029d6a3de3e56fea3090e31d4ececfe1bc57f029878282d4",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "ProjectEstimatePointEndpoint",
+            "BulkEstimatePointEndpoint",
+            "EstimatePointEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 42,
+      "hasStructuralAnalysis": true
+    },
+    "exporter.py": {
+      "filePath": "exporter.py",
+      "contentHash": "a9b0a7c74a9fe4ba6ef3f27bbf78504cc05bf6deb1a6b9c591522593fc6bb18d",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "ExportIssuesEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 17,
+      "hasStructuralAnalysis": true
+    },
+    "external.py": {
+      "filePath": "external.py",
+      "contentHash": "45ff7a1c8f21a605cb3ed13283b52ef0d21dad4009613deed0a4045653254c23",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "UnsplashEndpoint"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "GPTIntegrationEndpoint",
+            "WorkspaceGPTIntegrationEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 25,
+      "hasStructuralAnalysis": true
+    },
+    "github_sync.py": {
+      "filePath": "github_sync.py",
+      "contentHash": "0e9818da4c87c2ca9bcde5ed28d37f831c82f06372013e512dba8ff6a8f68f9f",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "RepoProjectMappingViewSet",
+            "IssueGitLinkViewSet",
+            "IssueCreateBranchEndpoint",
+            "GitHubWebhookView",
+            "WorkspaceInstallationEndpoint",
+            "WorkspaceRepositoriesEndpoint",
+            "WorkspaceRepositoryDetailEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 61,
+      "hasStructuralAnalysis": true
+    },
+    "intake.py": {
+      "filePath": "intake.py",
+      "contentHash": "51e45ca5d006209da956e8ea2c52425f8401a08e0cf4a3494d9075c324b96f53",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "IntakeViewSet",
+            "IntakeIssueViewSet",
+            "IntakeWorkItemDescriptionVersionEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "issue.py": {
+      "filePath": "issue.py",
+      "contentHash": "4ee13f07a4439da9eb157d509547fbbbf944c0106f0b482769f56ec7160ec0d8",
+      "functions": [],
+      "classes": [
+        {
+          "name": "WorkItemStateDurationAppEndpoint",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 2
+        }
+      ],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.api.views.time_tracking",
+          "specifiers": [
+            "WorkItemStateDurationAPIEndpoint"
+          ]
+        },
+        {
+          "source": "plane.authentication.session",
+          "specifiers": [
+            "BaseSessionAuthentication"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "BulkCreateIssueLabelsEndpoint",
+            "BulkDeleteIssuesEndpoint",
+            "SubIssuesEndpoint",
+            "IssueLinkViewSet",
+            "IssueAttachmentEndpoint",
+            "CommentReactionViewSet",
+            "IssueActivityEndpoint",
+            "IssueArchiveViewSet",
+            "IssueCommentViewSet",
+            "IssueListEndpoint",
+            "IssueReactionViewSet",
+            "IssueRelationViewSet",
+            "IssueSubscriberViewSet",
+            "ProjectUserDisplayPropertyEndpoint",
+            "IssueViewSet",
+            "LabelViewSet",
+            "BulkArchiveIssuesEndpoint",
+            "DeletedIssuesListViewSet",
+            "IssuePaginatedViewSet",
+            "IssueDetailEndpoint",
+            "IssueAttachmentV2Endpoint",
+            "IssueBulkUpdateDateEndpoint",
+            "IssueVersionEndpoint",
+            "WorkItemDescriptionVersionEndpoint",
+            "IssueMetaEndpoint",
+            "IssueDetailIdentifierEndpoint"
+          ]
+        }
+      ],
+      "exports": [
+        "WorkItemStateDurationAppEndpoint"
+      ],
+      "totalLines": 299,
+      "hasStructuralAnalysis": true
+    },
+    "module.py": {
+      "filePath": "module.py",
+      "contentHash": "3e267763c70fe6e7855d4818c8b584367bf2a96d14a32ea684e7901485dc84d8",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "ModuleViewSet",
+            "ModuleIssueViewSet",
+            "ModuleLinkViewSet",
+            "ModuleFavoriteViewSet",
+            "ModuleUserPropertiesEndpoint",
+            "ModuleArchiveUnarchiveEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 106,
+      "hasStructuralAnalysis": true
+    },
+    "notification.py": {
+      "filePath": "notification.py",
+      "contentHash": "11cecfc2a6eb4a7bbb02d5196b162b76139ae71ce3d47bb890d56dc24158632b",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "NotificationViewSet",
+            "UnreadNotificationEndpoint",
+            "MarkAllReadNotificationViewSet",
+            "UserNotificationPreferenceEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 53,
+      "hasStructuralAnalysis": true
+    },
+    "page.py": {
+      "filePath": "page.py",
+      "contentHash": "75056a899eb0e2a4d70df45c984abd492a9e3f083c80083cad4b74c3da44d58b",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "PageViewSet",
+            "PageFavoriteViewSet",
+            "PagesDescriptionViewSet",
+            "PageVersionEndpoint",
+            "PageDuplicateEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 77,
+      "hasStructuralAnalysis": true
+    },
+    "project.py": {
+      "filePath": "project.py",
+      "contentHash": "5964e882df9b977383b8e20c3685b1332be3227850f1dd86334a465e21ab4ea8",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "ProjectViewSet",
+            "DeployBoardViewSet",
+            "ProjectInvitationsViewset",
+            "ProjectMemberViewSet",
+            "ProjectMemberUserEndpoint",
+            "ProjectJoinEndpoint",
+            "ProjectUserViewsEndpoint",
+            "ProjectIdentifierEndpoint",
+            "ProjectFavoritesViewSet",
+            "UserProjectInvitationsViewset",
+            "UserProjectRolesEndpoint",
+            "ProjectArchiveUnarchiveEndpoint",
+            "ProjectMemberPreferenceEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 133,
+      "hasStructuralAnalysis": true
+    },
+    "search.py": {
+      "filePath": "search.py",
+      "contentHash": "407a496766fce64a5964af77446c89ffa0cf721f902541c8c77914a3e978ef00",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "GlobalSearchEndpoint",
+            "IssueSearchEndpoint",
+            "SearchEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 28,
+      "hasStructuralAnalysis": true
+    },
+    "state.py": {
+      "filePath": "state.py",
+      "contentHash": "d37d6a71d26dcf12a30982d4f3274bcf1a1bf46da19e55611dab9158839f7036",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "StateViewSet",
+            "IntakeStateEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 33,
+      "hasStructuralAnalysis": true
+    },
+    "timezone.py": {
+      "filePath": "timezone.py",
+      "contentHash": "079048a71ae35ce8ac65a402d8521caa3b346a9e00f9e7a0265b9f305d27b86f",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "TimezoneEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 13,
+      "hasStructuralAnalysis": true
+    },
+    "user.py": {
+      "filePath": "user.py",
+      "contentHash": "151306601d9a2b4e76983c708233ef4526012942d8dadbaed7221f49d432b84c",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "AccountEndpoint",
+            "ProfileEndpoint",
+            "UpdateUserOnBoardedEndpoint",
+            "UpdateUserTourCompletedEndpoint",
+            "UserActivityEndpoint",
+            "UserActivityGraphEndpoint",
+            "UserEndpoint",
+            "UserIssueCompletedGraphEndpoint",
+            "UserWorkspaceDashboardEndpoint",
+            "UserSessionEndpoint",
+            "UserWorkSpacesEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 86,
+      "hasStructuralAnalysis": true
+    },
+    "views.py": {
+      "filePath": "views.py",
+      "contentHash": "0196b3453fd20847ce996e9c6b94ee03ac8594c70aa8a2721d4951ec707fd35e",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "IssueViewViewSet",
+            "WorkspaceViewViewSet",
+            "WorkspaceViewIssuesViewSet",
+            "IssueViewFavoriteViewSet"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "webhook.py": {
+      "filePath": "webhook.py",
+      "contentHash": "868ee339ac235704c0265505f40af3bdd900db2003cf6b4742d4f42d6364ada3",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "WebhookEndpoint",
+            "WebhookLogsEndpoint",
+            "WebhookSecretRegenerateEndpoint"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 32,
+      "hasStructuralAnalysis": true
+    },
+    "workspace.py": {
+      "filePath": "workspace.py",
+      "contentHash": "1b434bda093082db131fe896c5b527307625bedaa2e3cfae3fcbabb5ac93076a",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "django.urls",
+          "specifiers": [
+            "path"
+          ]
+        },
+        {
+          "source": "plane.app.views",
+          "specifiers": [
+            "UserWorkspaceInvitationsViewSet",
+            "WorkSpaceViewSet",
+            "WorkspaceJoinEndpoint",
+            "WorkSpaceMemberViewSet",
+            "WorkspaceInvitationsViewset",
+            "WorkspaceMemberUserEndpoint",
+            "WorkspaceMemberUserViewsEndpoint",
+            "WorkSpaceAvailabilityCheckEndpoint",
+            "UserLastProjectWithWorkspaceEndpoint",
+            "WorkspaceThemeViewSet",
+            "WorkspaceUserProfileStatsEndpoint",
+            "WorkspaceUserActivityEndpoint",
+            "WorkspaceUserProfileEndpoint",
+            "WorkspaceUserProfileIssuesEndpoint",
+            "WorkspaceLabelsEndpoint",
+            "WorkspaceProjectMemberEndpoint",
+            "WorkspaceUserPropertiesEndpoint",
+            "WorkspaceStatesEndpoint",
+            "WorkspaceEstimatesEndpoint",
+            "ExportWorkspaceUserActivityEndpoint",
+            "WorkspaceModulesEndpoint",
+            "WorkspaceCyclesEndpoint",
+            "WorkspaceFavoriteEndpoint",
+            "WorkspaceFavoriteGroupEndpoint",
+            "WorkspaceDraftIssueViewSet",
+            "QuickLinkViewSet",
+            "UserRecentVisitViewSet",
+            "WorkspaceHomePreferenceViewSet",
+            "WorkspaceStickyViewSet",
+            "WorkspaceUserPreferenceViewSet"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 261,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "lastAnalyzedAt": "2026-08-02T00:30:31.000Z",
+  "gitCommitHash": "664f60559535223906f7fe5f4685913cc639d029",
+  "version": "1.0.0",
+  "analyzedFiles": 28,
+  "scope": "top-level repository architecture landscape",
+  "description": "This graph is a top-level architecture landscape of the Plane monorepo: workspace/application boundaries, the five applications, the nine principal shared packages, and infrastructure/coordination boundaries. It does NOT replace scoped application/domain graphs such as apps/api/plane/app/urls/.ua, which remain the authoritative source for component-level detail."
+}

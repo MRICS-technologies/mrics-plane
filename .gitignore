@@ -117,3 +117,8 @@ packages/i18n/src/types/keys.generated.ts
 
 # Local security notes (not for version control)
 /security/
+
+# Understand Anything: keep durable graph artifacts, ignore transient analysis scratch files.
+**/.ua/intermediate/
+**/.ua/tmp/
+**/.ua/.trash-*/

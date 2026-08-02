@@ -1,0 +1,1035 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "plane",
+    "languages": [
+      "typescript",
+      "python",
+      "yaml",
+      "dockerfile",
+      "shell",
+      "markdown"
+    ],
+    "frameworks": [
+      "Django",
+      "React Router",
+      "Node.js"
+    ],
+    "description": "Open-source project management monorepo coordinating five applications, nine shared packages, and infrastructure boundaries via a pnpm workspace, Turbo task orchestration, Docker Compose, and GitHub Actions.",
+    "analyzedAt": "2026-08-02T00:30:31.000Z",
+    "gitCommitHash": "664f60559535223906f7fe5f4685913cc639d029"
+  },
+  "nodes": [
+    {
+      "id": "module:plane-repository",
+      "type": "module",
+      "name": "plane (monorepo)",
+      "filePath": ".",
+      "summary": "Open-source project management monorepo that declares five applications, nine shared packages, and infrastructure boundaries through the root workspace manifests, Turbo pipeline, Docker Compose, and GitHub Actions workflows.",
+      "tags": [
+        "monorepo",
+        "workspace",
+        "plane",
+        "architecture-landscape"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "module:app:api",
+      "type": "module",
+      "name": "plane-api",
+      "filePath": "apps/api",
+      "summary": "Django/Python API server powering Plane's backend. Built from apps/api via Dockerfile.api, excluded from the pnpm workspace, and depended on at runtime by web, admin, and space.",
+      "tags": [
+        "application",
+        "backend",
+        "django",
+        "python",
+        "api"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "module:app:web",
+      "type": "module",
+      "name": "web",
+      "filePath": "apps/web",
+      "summary": "React Router web application (port 3000) for the main Plane interface. Declares every principal @plane package as a workspace dependency and depends on the API at runtime.",
+      "tags": [
+        "application",
+        "frontend",
+        "react-router",
+        "web"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "module:app:admin",
+      "type": "module",
+      "name": "admin",
+      "filePath": "apps/admin",
+      "summary": "React Router admin UI (port 3001) for Plane administration. Consumes shared packages and depends on the API and web apps at runtime.",
+      "tags": [
+        "application",
+        "frontend",
+        "react-router",
+        "admin"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:app:space",
+      "type": "module",
+      "name": "space",
+      "filePath": "apps/space",
+      "summary": "React Router public project-space application (port 3002) that publishes project pages. Consumes shared packages and depends on the API and web apps at runtime.",
+      "tags": [
+        "application",
+        "frontend",
+        "react-router",
+        "space"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:app:live",
+      "type": "module",
+      "name": "live",
+      "filePath": "apps/live",
+      "summary": "Realtime collaborative server powering Plane's rich text editor via Hocuspocus/Express. Depends on the editor, types, and utils packages.",
+      "tags": [
+        "application",
+        "realtime",
+        "collaboration",
+        "editor"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:package:i18n",
+      "type": "module",
+      "name": "@plane/i18n",
+      "filePath": "packages/i18n",
+      "summary": "i18next-based internationalization package shared across web and space apps; declares no internal workspace dependencies.",
+      "tags": [
+        "package",
+        "i18n",
+        "shared"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:package:propel",
+      "type": "module",
+      "name": "@plane/propel",
+      "filePath": "packages/propel",
+      "summary": "Headless UI component library (Base UI, charts, avatar, menus) shared across apps; depends on constants, types, and utils.",
+      "tags": [
+        "package",
+        "ui",
+        "components",
+        "shared"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "module:package:editor",
+      "type": "module",
+      "name": "@plane/editor",
+      "filePath": "packages/editor",
+      "summary": "Core rich-text editor (Tiptap/ProseMirror) powering Plane; used by web, space, and live. Depends on constants, propel, types, ui, and utils.",
+      "tags": [
+        "package",
+        "editor",
+        "tiptap",
+        "shared"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "module:package:ui",
+      "type": "module",
+      "name": "@plane/ui",
+      "filePath": "packages/ui",
+      "summary": "Shared UI components package used by web, admin, space, and the editor; depends on constants, propel, types, and utils.",
+      "tags": [
+        "package",
+        "ui",
+        "components",
+        "shared"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "module:package:types",
+      "type": "module",
+      "name": "@plane/types",
+      "filePath": "packages/types",
+      "summary": "Shared TypeScript types and interfaces; a foundational leaf package with no internal workspace dependencies.",
+      "tags": [
+        "package",
+        "types",
+        "shared"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:package:utils",
+      "type": "module",
+      "name": "@plane/utils",
+      "filePath": "packages/utils",
+      "summary": "Shared helper functions used across apps and packages; depends on constants and types.",
+      "tags": [
+        "package",
+        "utils",
+        "helpers",
+        "shared"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:package:constants",
+      "type": "module",
+      "name": "@plane/constants",
+      "filePath": "packages/constants",
+      "summary": "Shared constants package used by most apps and packages; depends only on types.",
+      "tags": [
+        "package",
+        "constants",
+        "shared"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:package:services",
+      "type": "module",
+      "name": "@plane/services",
+      "filePath": "packages/services",
+      "summary": "Shared axios-based API service layer used by web, admin, and space; depends on constants and types.",
+      "tags": [
+        "package",
+        "services",
+        "api",
+        "shared"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:package:shared-state",
+      "type": "module",
+      "name": "@plane/shared-state",
+      "filePath": "packages/shared-state",
+      "summary": "Shared MobX-based state management used by web; depends on constants, types, and utils.",
+      "tags": [
+        "package",
+        "state",
+        "mobx",
+        "shared"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "Root package.json",
+      "filePath": "package.json",
+      "summary": "Root workspace manifest declaring the 'plane' project, Turbo-driven scripts (build, dev, check, fix), and the pnpm packageManager.",
+      "tags": [
+        "config",
+        "workspace",
+        "manifest",
+        "turbo"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:pnpm-workspace.yaml",
+      "type": "config",
+      "name": "pnpm-workspace.yaml",
+      "filePath": "pnpm-workspace.yaml",
+      "summary": "pnpm workspace definition listing apps/* and packages/* as members while explicitly excluding apps/api and apps/proxy, and centralizing external dependencies via the catalog.",
+      "tags": [
+        "config",
+        "workspace",
+        "pnpm"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:turbo.json",
+      "type": "config",
+      "name": "turbo.json",
+      "filePath": "turbo.json",
+      "summary": "Turbo task pipeline configuration defining build, dev, check, and test task graphs plus global env vars shared across workspace packages.",
+      "tags": [
+        "config",
+        "turbo",
+        "build",
+        "pipeline"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "config:docker-compose.yml",
+      "type": "config",
+      "name": "docker-compose.yml",
+      "filePath": "docker-compose.yml",
+      "summary": "Docker Compose service definitions for web, admin, space, api, and live applications (plus worker, beat-worker, migrator, proxy, and datastores) with explicit runtime dependencies.",
+      "tags": [
+        "config",
+        "docker",
+        "compose",
+        "deployment"
+      ],
+      "complexity": "complex"
+    },
+    {
+      "id": "module:deployments",
+      "type": "module",
+      "name": "deployments",
+      "filePath": "deployments",
+      "summary": "Self-hosting deployment recipes: Docker Compose CLI setup (deployments/cli), Docker Swarm stack, Kubernetes Helm chart, and the all-in-one community image.",
+      "tags": [
+        "deployment",
+        "self-hosting",
+        "docker",
+        "kubernetes"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "pipeline:.github/workflows",
+      "type": "pipeline",
+      "name": ".github/workflows",
+      "filePath": ".github/workflows",
+      "summary": "GitHub Actions CI/CD pipelines that build and push Docker images for web, admin, space, live, and api, run lint/type checks, CodeQL analysis, and feature-preview deployments.",
+      "tags": [
+        "ci",
+        "cd",
+        "github-actions",
+        "pipelines"
+      ],
+      "complexity": "complex"
+    }
+  ],
+  "edges": [
+    {
+      "source": "module:plane-repository",
+      "target": "module:app:api",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:app:web",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:app:admin",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:app:space",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:app:live",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:i18n",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:propel",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:editor",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:ui",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:types",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:utils",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:constants",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:services",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:package:shared-state",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "config:package.json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "config:pnpm-workspace.yaml",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "config:turbo.json",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "config:docker-compose.yml",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "module:deployments",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:plane-repository",
+      "target": "pipeline:.github/workflows",
+      "type": "contains",
+      "direction": "forward",
+      "weight": 1
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:editor",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:i18n",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:propel",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:services",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:shared-state",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:ui",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:package:propel",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:package:services",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:package:ui",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:editor",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:i18n",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:propel",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:services",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:ui",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:live",
+      "target": "module:package:editor",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:live",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:live",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:propel",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:propel",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:propel",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:editor",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:editor",
+      "target": "module:package:propel",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:editor",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:editor",
+      "target": "module:package:ui",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:editor",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:ui",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:ui",
+      "target": "module:package:propel",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:ui",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:ui",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:utils",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:utils",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:constants",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:services",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:services",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:shared-state",
+      "target": "module:package:constants",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:shared-state",
+      "target": "module:package:types",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:package:shared-state",
+      "target": "module:package:utils",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:web",
+      "target": "module:app:api",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:app:api",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:admin",
+      "target": "module:app:web",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:app:api",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "module:app:space",
+      "target": "module:app:web",
+      "type": "depends_on",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "module:app:web",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "module:app:admin",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "module:app:space",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "module:app:api",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:docker-compose.yml",
+      "target": "module:app:live",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "pipeline:.github/workflows",
+      "target": "module:app:web",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "pipeline:.github/workflows",
+      "target": "module:app:admin",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "pipeline:.github/workflows",
+      "target": "module:app:space",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "pipeline:.github/workflows",
+      "target": "module:app:live",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "pipeline:.github/workflows",
+      "target": "module:app:api",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "module:deployments",
+      "target": "module:app:web",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "module:deployments",
+      "target": "module:app:space",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "module:deployments",
+      "target": "module:app:admin",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "module:deployments",
+      "target": "module:app:api",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "module:deployments",
+      "target": "module:app:live",
+      "type": "deploys",
+      "direction": "forward",
+      "weight": 0.7
+    },
+    {
+      "source": "config:package.json",
+      "target": "module:plane-repository",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:pnpm-workspace.yaml",
+      "target": "module:plane-repository",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    },
+    {
+      "source": "config:turbo.json",
+      "target": "module:plane-repository",
+      "type": "configures",
+      "direction": "forward",
+      "weight": 0.6
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:workspace-applications",
+      "name": "Workspace & Applications",
+      "description": "The monorepo root, its workspace coordination manifests (package.json, pnpm-workspace.yaml, turbo.json), and the five deployable applications: api, web, admin, space, and live.",
+      "nodeIds": [
+        "module:plane-repository",
+        "config:package.json",
+        "config:pnpm-workspace.yaml",
+        "config:turbo.json",
+        "module:app:api",
+        "module:app:web",
+        "module:app:admin",
+        "module:app:space",
+        "module:app:live"
+      ]
+    },
+    {
+      "id": "layer:shared-packages",
+      "name": "Shared Packages",
+      "description": "The nine principal @plane packages shared across applications, forming the dependency backbone of the workspace from leaf packages (types) up to UI and editor layers.",
+      "nodeIds": [
+        "module:package:i18n",
+        "module:package:propel",
+        "module:package:editor",
+        "module:package:ui",
+        "module:package:types",
+        "module:package:utils",
+        "module:package:constants",
+        "module:package:services",
+        "module:package:shared-state"
+      ]
+    },
+    {
+      "id": "layer:infrastructure-boundaries",
+      "name": "Infrastructure & Coordination Boundaries",
+      "description": "Container orchestration, self-hosting deployment recipes, and CI/CD pipelines that build, package, and deploy the applications.",
+      "nodeIds": [
+        "config:docker-compose.yml",
+        "module:deployments",
+        "pipeline:.github/workflows"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Repository & workspace root",
+      "description": "Start at the monorepo root node and its workspace manifests (package.json, pnpm-workspace.yaml, turbo.json) to see how the repository declares its applications, packages, and shared task pipeline.",
+      "nodeIds": [
+        "module:plane-repository",
+        "config:package.json",
+        "config:pnpm-workspace.yaml",
+        "config:turbo.json"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Navigate into the applications",
+      "description": "Explore the five applications. The Django API powers the backend and is excluded from the pnpm workspace, while web, admin, and space are React Router frontends; live is the realtime collaboration server.",
+      "nodeIds": [
+        "module:app:api",
+        "module:app:web",
+        "module:app:admin",
+        "module:app:space",
+        "module:app:live"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Follow dependencies into the shared packages",
+      "description": "The nine principal packages form the shared dependency backbone. Follow depends_on edges from leaf packages (types) through constants, utils, ui, propel, editor, services, shared-state, and i18n.",
+      "nodeIds": [
+        "module:package:types",
+        "module:package:constants",
+        "module:package:utils",
+        "module:package:ui",
+        "module:package:propel",
+        "module:package:editor",
+        "module:package:services",
+        "module:package:shared-state",
+        "module:package:i18n"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Infrastructure & deployment boundaries",
+      "description": "Finish with the infrastructure layer: Docker Compose service definitions, self-hosting deployment recipes, and GitHub Actions workflows that build and deploy the applications.",
+      "nodeIds": [
+        "config:docker-compose.yml",
+        "module:deployments",
+        "pipeline:.github/workflows"
+      ]
+    }
+  ]
+}
