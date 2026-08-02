@@ -1,0 +1,287 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "664f60559535223906f7fe5f4685913cc639d029",
+  "generatedAt": "2026-08-02T00:30:31.000Z",
+  "files": {
+    "README.md": {
+      "filePath": "README.md",
+      "contentHash": "04c1cb0200ed54e54dac924d5fb06f4842eba2db78849ed7b98b155ccc89beec",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 169,
+      "hasStructuralAnalysis": true
+    },
+    "package.json": {
+      "filePath": "package.json",
+      "contentHash": "b9487b3ee3bd3b9808e0e610dbaf1fc8dbd193c69cb91bf775a78cab308d81d2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 43,
+      "hasStructuralAnalysis": true
+    },
+    "pnpm-workspace.yaml": {
+      "filePath": "pnpm-workspace.yaml",
+      "contentHash": "442540a6cf87c19e706f0e107878990896712f53c5e1c17876922b1f01041ec2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 257,
+      "hasStructuralAnalysis": true
+    },
+    "turbo.json": {
+      "filePath": "turbo.json",
+      "contentHash": "4fba73753eeb14e1e3ae16369da04c2c28c0c838176bd5a7ec6a15a7bff4bca0",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 93,
+      "hasStructuralAnalysis": true
+    },
+    "docker-compose.yml": {
+      "filePath": "docker-compose.yml",
+      "contentHash": "4546a40963f59c0fd70ac76a6b6c898c783921a6dda4377a022795a3c6d09fbd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 177,
+      "hasStructuralAnalysis": true
+    },
+    "apps/api/package.json": {
+      "filePath": "apps/api/package.json",
+      "contentHash": "d0316997334d29448b1d08276bcb3b9ba14a0d5d751466746a6c5b018efebff7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 7,
+      "hasStructuralAnalysis": true
+    },
+    "apps/web/package.json": {
+      "filePath": "apps/web/package.json",
+      "contentHash": "3563feb3270f951ff157a5ec5169df4459606b2270ad2c5b48300df8b4e7cc5b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 91,
+      "hasStructuralAnalysis": true
+    },
+    "apps/admin/package.json": {
+      "filePath": "apps/admin/package.json",
+      "contentHash": "c9a58f055b73c3300266bf5f84b6d4e221dca6ece2505912e636b040909585fb",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 62,
+      "hasStructuralAnalysis": true
+    },
+    "apps/space/package.json": {
+      "filePath": "apps/space/package.json",
+      "contentHash": "7cbdf921a73f13f1315ae7141c91caac9de6089dd31645e61b4360a0502ca8dd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 70,
+      "hasStructuralAnalysis": true
+    },
+    "apps/live/package.json": {
+      "filePath": "apps/live/package.json",
+      "contentHash": "e0cdc9863e770c171e4264f1b86c3c31a5ca3de7a7df4f2f4b7861b329562f76",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 81,
+      "hasStructuralAnalysis": true
+    },
+    "packages/i18n/package.json": {
+      "filePath": "packages/i18n/package.json",
+      "contentHash": "cd88999e248666b0aca23bc560b1d89b0ca64f0f7a6c40a3109a2eaa401c54d4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 43,
+      "hasStructuralAnalysis": true
+    },
+    "packages/propel/package.json": {
+      "filePath": "packages/propel/package.json",
+      "contentHash": "b550abfa9b6a084f79f2d755e6e4ee2796e97f8e565b97d790356c5a6ad02ec1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 96,
+      "hasStructuralAnalysis": true
+    },
+    "packages/editor/package.json": {
+      "filePath": "packages/editor/package.json",
+      "contentHash": "f62a763a0794212a1a5140e8f79f10b77b6b676c090e88958ee1a6196d5401c4",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 101,
+      "hasStructuralAnalysis": true
+    },
+    "packages/ui/package.json": {
+      "filePath": "packages/ui/package.json",
+      "contentHash": "0e1c4dd65ac305818b3a2bd7806fdc9450e24c0da4ae9b40835b835c71d8bdf7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 78,
+      "hasStructuralAnalysis": true
+    },
+    "packages/types/package.json": {
+      "filePath": "packages/types/package.json",
+      "contentHash": "846daf973400b4d54fde2d417ebd1c99ca3c2153844d011d1589353a19ef3c0b",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 36,
+      "hasStructuralAnalysis": true
+    },
+    "packages/utils/package.json": {
+      "filePath": "packages/utils/package.json",
+      "contentHash": "f8a22c87be49b80fce50291a48ed86785e547dd28fa18f4531121484745cf67f",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 58,
+      "hasStructuralAnalysis": true
+    },
+    "packages/constants/package.json": {
+      "filePath": "packages/constants/package.json",
+      "contentHash": "a4d2259e02246ede6cce78357c101af84322362ffb629c6213f1cf754a0589a1",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 34,
+      "hasStructuralAnalysis": true
+    },
+    "packages/services/package.json": {
+      "filePath": "packages/services/package.json",
+      "contentHash": "00f1e344947054c180032eeaa9f519dd9eba9084b1525f4e9d8ff59399446045",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "packages/shared-state/package.json": {
+      "filePath": "packages/shared-state/package.json",
+      "contentHash": "00bf7de980803c17c82c1fce3c8d71968b4d8467babaa8c1e73a3cfc37485786",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 42,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/build-branch.yml": {
+      "filePath": ".github/workflows/build-branch.yml",
+      "contentHash": "2630482254675b6949add884351d019b9a460b4d1c8d5e65fd9ffaa602146d1e",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 410,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/feature-deployment.yml": {
+      "filePath": ".github/workflows/feature-deployment.yml",
+      "contentHash": "527d1fb100d6e14f4fcb49d82fa15f03aef1b27be4e659f4d51ee4301219d2ad",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 178,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/build-frontend-image.yml": {
+      "filePath": ".github/workflows/build-frontend-image.yml",
+      "contentHash": "1353ee540b50d470f0e8b1339ebf8b5d8f06845148c9ece6830c6d1fcf8b831d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 60,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/build-backend-image.yml": {
+      "filePath": ".github/workflows/build-backend-image.yml",
+      "contentHash": "d29fa7123806bdd8caef60d02d4818044e8f19ed4d3edf743f6a88ebe652b291",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 52,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/codeql.yml": {
+      "filePath": ".github/workflows/codeql.yml",
+      "contentHash": "f929aa090619f6e45de979575c61af6107bc1b775f34f229e828cf35e3ec2081",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 42,
+      "hasStructuralAnalysis": true
+    },
+    ".github/workflows/pull-request-build-lint-web-apps.yml": {
+      "filePath": ".github/workflows/pull-request-build-lint-web-apps.yml",
+      "contentHash": "662d0a55f21ae3062b11abb63b57288874a1c2d27e40d1d34ae49da2955b2bff",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 205,
+      "hasStructuralAnalysis": true
+    },
+    "deployments/kubernetes/community/README.md": {
+      "filePath": "deployments/kubernetes/community/README.md",
+      "contentHash": "c19888aeaea97d6a810a4b8735cedd1e45e493b6f221832c69b76fa1c90e6300",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 5,
+      "hasStructuralAnalysis": true
+    },
+    "deployments/cli/community/README.md": {
+      "filePath": "deployments/cli/community/README.md",
+      "contentHash": "c6d5d5bcd36d1fbe29f2e9e438e8893b6ddbdf0f48b8207dd44a84aae3c124aa",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 629,
+      "hasStructuralAnalysis": true
+    },
+    "deployments/aio/community/README.md": {
+      "filePath": "deployments/aio/community/README.md",
+      "contentHash": "6946f9d7278a20936e489a7ed378bcb64f683f6aaa45a000342e6693eb2dabfe",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 174,
+      "hasStructuralAnalysis": true
+    }
+  }
+}
