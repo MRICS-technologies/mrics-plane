@@ -197,6 +197,9 @@
         "duration": "Hatırlatma gönderimi öncesi"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Henüz etiket yok",

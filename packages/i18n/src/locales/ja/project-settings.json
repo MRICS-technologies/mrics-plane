@@ -197,6 +197,9 @@
         "duration": "リマインダーを送信する前"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "ラベルがまだありません",

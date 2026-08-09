@@ -197,6 +197,9 @@
         "duration": "알림 전"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "레이블 없음",

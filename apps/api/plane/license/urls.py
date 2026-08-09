@@ -10,6 +10,8 @@ from plane.license.api.views import (
     InstanceAdminSignInEndpoint,
     InstanceAdminSignUpEndpoint,
     InstanceConfigurationEndpoint,
+    GitHubAppConfigurationEndpoint,
+    GitHubAppConfigurationTestEndpoint,
     DisableEmailFeatureEndpoint,
     InstanceEndpoint,
     SignUpScreenVisitedEndpoint,
@@ -40,6 +42,8 @@ urlpatterns = [
         InstanceConfigurationEndpoint.as_view(),
         name="instance-configuration",
     ),
+    path("github-app/", GitHubAppConfigurationEndpoint.as_view(), name="github-app-configuration"),
+    path("github-app/test/", GitHubAppConfigurationTestEndpoint.as_view(), name="github-app-configuration-test"),
     path(
         "configurations/disable-email-feature/",
         DisableEmailFeatureEndpoint.as_view(),

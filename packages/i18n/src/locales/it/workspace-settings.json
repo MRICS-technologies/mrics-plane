@@ -150,6 +150,9 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub"
+      },
       "api_tokens": {
         "heading": "Token API",
         "description": "Genera token API sicuri per integrare i tuoi dati con sistemi e applicazioni esterne.",

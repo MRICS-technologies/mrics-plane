@@ -150,6 +150,9 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub"
+      },
       "api_tokens": {
         "heading": "API Tokeny",
         "description": "Generujte bezpečné API tokeny na integráciu vašich dát s externými systémami a aplikáciami.",

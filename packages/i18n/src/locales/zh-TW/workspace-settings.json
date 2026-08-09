@@ -150,6 +150,9 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub"
+      },
       "api_tokens": {
         "heading": "API 權杖",
         "description": "產生安全的 API 權杖，將您的資料與外部系統和應用程式整合。",

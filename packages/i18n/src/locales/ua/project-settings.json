@@ -197,6 +197,9 @@
         "duration": "Надіслати сповіщення заздалегідь"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Немає міток",

@@ -150,6 +150,9 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub"
+      },
       "api_tokens": {
         "heading": "API 토큰",
         "description": "보안 API 토큰을 생성하여 데이터를 외부 시스템 및 애플리케이션과 통합합니다.",

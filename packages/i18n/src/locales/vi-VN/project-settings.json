@@ -197,6 +197,9 @@
         "duration": "Gửi nhắc nhở trước"
       }
     },
+    "github": {
+      "label": "GitHub"
+    },
     "empty_state": {
       "labels": {
         "title": "Chưa có nhãn",

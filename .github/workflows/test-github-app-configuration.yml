@@ -1,0 +1,99 @@
+name: Test GitHub App configuration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/github-integration-native-backend
+      - feat/github-integration-native-s1
+      - feat/github-integration-native
+      - feat/github-integration-native-s2-mapping-api
+    paths:
+      - apps/api/plane/license/api/serializers/github_app.py
+      - apps/api/plane/license/api/views/github_app.py
+      - apps/api/plane/license/api/views/configuration.py
+      - apps/api/plane/license/api/views/__init__.py
+      - apps/api/plane/license/urls.py
+      - apps/api/plane/middleware/logger.py
+      - apps/api/plane/tests/contract/api/test_github_app_configuration.py
+      - apps/api/plane/app/views/github_sync.py
+      - apps/api/plane/app/serializers/github_sync.py
+      - apps/api/plane/app/urls/github_sync.py
+      - apps/api/plane/app/views/__init__.py
+      - apps/api/plane/db/models/integration/__init__.py
+      - apps/api/plane/db/models/integration/github_sync.py
+      - apps/api/plane/db/models/integration/github_app.py
+      - apps/api/plane/db/migrations/0125_github_workspace_installation_models.py
+      - apps/api/plane/services/github/client.py
+      - apps/api/plane/services/github/credentials.py
+      - apps/api/plane/tests/contract/api/test_github_sync.py
+      - apps/api/plane/tests/contract/api/test_github_workspace_installation_models.py
+      - apps/api/plane/tests/contract/api/test_github_s2_mapping_api.py
+      - .github/workflows/test-github-app-configuration.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test-github-app-configuration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: plane
+          POSTGRES_PASSWORD: plane
+          POSTGRES_DB: plane_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U plane -d plane_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_DB: plane_test
+      POSTGRES_USER: plane
+      POSTGRES_PASSWORD: plane
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      DJANGO_SETTINGS_MODULE: plane.settings.test
+      REDIS_URL: redis://127.0.0.1:6379/0
+      SECRET_KEY: ci-github-app-configuration-test-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            apps/api/requirements/production.txt
+            apps/api/requirements/test.txt
+
+      - name: Install API and test dependencies
+        working-directory: apps/api
+        run: pip install -r requirements/production.txt -r requirements/test.txt
+
+      - name: Run GitHub App configuration contract tests
+        working-directory: apps/api
+        run: >-
+          pytest
+          plane/tests/contract/api/test_github_app_configuration.py
+          plane/tests/contract/api/test_github_sync.py
+          plane/tests/contract/api/test_github_workspace_installation_models.py
+          plane/tests/contract/api/test_github_s2_mapping_api.py
+          --create-db
+          -q

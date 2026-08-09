@@ -40,6 +40,7 @@ import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { IssueStateDurationProperty } from "@/components/issues/state-duration";
 import { SidebarPropertyListItem } from "@/components/common/layout/sidebar/property-list-item";
 import { IssueCycleSelect } from "./cycle-select";
+import { GitHubPanel } from "./github-panel";
 import { IssueLabel } from "./label";
 import { IssueModuleSelect } from "./module-select";
 import type { TIssueOperations } from "./root";
@@ -251,6 +252,8 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 disabled={!isEditable}
               />
             </SidebarPropertyListItem>
+
+            <GitHubPanel workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
           </div>
         </div>
       </div>
