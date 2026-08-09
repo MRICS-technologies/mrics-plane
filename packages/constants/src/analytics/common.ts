@@ -100,6 +100,8 @@ export const ANALYTICS_INSIGHTS_FIELDS: Record<TAnalyticsTabsBase, IInsightField
       i18nKey: "workspace_analytics.completed_work_items",
     },
   ],
+  // Contributors renders its own metrics/table and does not use the shared insight fields.
+  contributors: [],
 };
 
 export const ANALYTICS_DURATION_FILTER_OPTIONS = [
