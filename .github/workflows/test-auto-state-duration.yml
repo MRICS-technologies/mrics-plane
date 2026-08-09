@@ -6,6 +6,9 @@ on:
     branches:
       - feat/time-tracking-spike
       - mrics/dev
+      - preview
+      - "sync/**"
+      - "release/**"
     paths:
       - apps/api/plane/db/models/time_tracking.py
       - apps/api/plane/api/views/time_tracking.py
@@ -15,6 +18,13 @@ on:
       - apps/api/plane/tests/contract/api/test_contributor_analytics.py
       - apps/api/plane/app/views/analytic/project_analytics.py
       - apps/api/plane/app/urls/analytic.py
+      - apps/api/plane/api/serializers/time_tracking.py
+      - apps/api/plane/api/urls/time_tracking.py
+      - apps/api/plane/api/views/issue.py
+      - apps/api/plane/app/views/issue/base.py
+      - apps/api/plane/bgtasks/issue_automation_task.py
+      - apps/api/plane/db/migrations/0122_time_tracking.py
+      - apps/api/plane/db/migrations/0123_workitemworklog_auto_state_source.py
       - .github/workflows/test-auto-state-duration.yml
 
 permissions:
