@@ -8,6 +8,7 @@ from datetime import timedelta
 
 # Third party imports
 from celery import shared_task
+from django.db import transaction
 from django.db.models import Q
 
 # Django imports
@@ -16,6 +17,7 @@ from django.utils import timezone
 # Module imports
 from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import Issue, Project, State
+from plane.db.models.time_tracking import sync_auto_state_worklog
 from plane.utils.exception_logger import log_exception
 
 
@@ -96,12 +98,14 @@ def close_old_issues():
             close_in = project.close_in
 
             # Get all the issues whose updated_at in less that the close_in month
+            close_before = timezone.now() - timedelta(days=close_in * 30)
+            closable_state_groups = ["backlog", "unstarted", "started"]
             issues = Issue.issue_objects.filter(
                 Q(
                     project=project_id,
                     archived_at__isnull=True,
-                    updated_at__lte=(timezone.now() - timedelta(days=close_in * 30)),
-                    state__group__in=["backlog", "unstarted", "started"],
+                    updated_at__lte=close_before,
+                    state__group__in=closable_state_groups,
                 ),
                 Q(issue_cycle__isnull=True)
                 | (Q(issue_cycle__cycle__end_date__lt=timezone.now()) & Q(issue_cycle__isnull=False)),
@@ -122,13 +126,35 @@ def close_old_issues():
                     close_state = project.default_state
 
                 issues_to_update = []
-                for issue in issues:
-                    issue.state = close_state
-                    issues_to_update.append(issue)
 
-                # Bulk Update the issues and log the activity
+                # Lock and update each issue individually so automation does not
+                # overwrite a concurrent user state transition with a stale bulk row.
+                if close_state:
+                    for issue in issues.only("id"):
+                        with transaction.atomic():
+                            locked_issue = Issue.objects.select_for_update().select_related("state").get(pk=issue.id)
+                            if (
+                                locked_issue.archived_at is not None
+                                or locked_issue.updated_at > close_before
+                                or not locked_issue.state
+                                or locked_issue.state.group not in closable_state_groups
+                            ):
+                                continue
+                            old_state_id = locked_issue.state_id
+                            transition_at = timezone.now()
+                            locked_issue.state = close_state
+                            locked_issue.save(update_fields=["state", "updated_at"])
+                            sync_auto_state_worklog(
+                                issue=locked_issue,
+                                user_id=project.created_by_id or locked_issue.created_by_id,
+                                old_state_id=old_state_id,
+                                new_state_id=locked_issue.state_id,
+                                transition_at=transition_at,
+                            )
+                        issues_to_update.append(locked_issue)
+
+                # Log the activity
                 if issues_to_update:
-                    Issue.objects.bulk_update(issues_to_update, ["state"], batch_size=100)
                     [
                         issue_activity.delay(
                             type="issue.activity.updated",

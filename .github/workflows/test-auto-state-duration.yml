@@ -1,0 +1,79 @@
+name: Test automatic state duration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/time-tracking-spike
+      - mrics/dev
+    paths:
+      - apps/api/plane/db/models/time_tracking.py
+      - apps/api/plane/api/views/time_tracking.py
+      - apps/api/plane/app/urls/issue.py
+      - apps/api/plane/tests/unit/models/test_time_tracking_auto_state.py
+      - apps/api/plane/tests/contract/api/test_time_tracking_auto_state.py
+      - apps/api/plane/tests/contract/api/test_contributor_analytics.py
+      - apps/api/plane/app/views/analytic/project_analytics.py
+      - apps/api/plane/app/urls/analytic.py
+      - .github/workflows/test-auto-state-duration.yml
+
+permissions:
+  contents: read
+
+jobs:
+  test-auto-state-duration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: plane
+          POSTGRES_PASSWORD: plane
+          POSTGRES_DB: plane_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U plane -d plane_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://plane:plane@127.0.0.1:5432/plane_test
+      DJANGO_SETTINGS_MODULE: plane.settings.test
+      REDIS_URL: redis://127.0.0.1:6379/0
+      SECRET_KEY: ci-auto-state-duration-test-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            apps/api/requirements/production.txt
+            apps/api/requirements/test.txt
+
+      - name: Install API and test dependencies
+        working-directory: apps/api
+        run: pip install -r requirements/production.txt -r requirements/test.txt
+
+      - name: Run automatic state-duration regression tests
+        working-directory: apps/api
+        run: >-
+          pytest
+          plane/tests/unit/models/test_time_tracking_auto_state.py
+          plane/tests/contract/api/test_time_tracking_auto_state.py
+          plane/tests/contract/api/test_contributor_analytics.py
+          -q

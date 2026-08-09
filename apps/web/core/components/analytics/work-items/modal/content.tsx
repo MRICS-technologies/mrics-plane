@@ -13,6 +13,7 @@ import { Spinner } from "@plane/ui";
 // hooks
 import { useAnalytics } from "@/hooks/store/use-analytics";
 // plane web components
+import { ContributorAnalyticsSection } from "../../contributors";
 import TotalInsights from "../../total-insights";
 import CreatedVsResolved from "../created-vs-resolved";
 import CustomizedInsights from "../customized-insights";
@@ -81,6 +82,7 @@ export const WorkItemsModalMainContent = observer(function WorkItemsModalMainCon
         <CreatedVsResolved />
         <CustomizedInsights peekView={!fullScreen} isEpic={isEpic} />
         <WorkItemsInsightTable />
+        <ContributorAnalyticsSection />
       </div>
     </Tab.Group>
   );

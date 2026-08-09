@@ -10,7 +10,7 @@ import re
 # Django imports
 from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponseRedirect
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import (
     Case,
     CharField,
@@ -78,6 +78,7 @@ from plane.db.models import (
     CycleIssue,
     Workspace,
 )
+from plane.db.models.time_tracking import lock_issue_for_transition, sync_auto_state_worklog
 from plane.settings.storage import S3Storage
 from plane.utils.path_validator import sanitize_filename
 from plane.utils.order_queryset import (
@@ -488,12 +489,25 @@ class IssueListCreateAPIEndpoint(BaseAPIView):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            serializer.save()
-            # Refetch the issue
-            issue = Issue.objects.filter(workspace__slug=slug, project_id=project_id, pk=serializer.data["id"]).first()
-            issue.created_at = request.data.get("created_at", timezone.now())
-            issue.created_by_id = request.data.get("created_by", request.user.id)
-            issue.save(update_fields=["created_at", "created_by"])
+            transition_at = timezone.now()
+            with transaction.atomic():
+                serializer.save()
+                # Refetch the issue
+                issue = Issue.objects.filter(
+                    workspace__slug=slug,
+                    project_id=project_id,
+                    pk=serializer.data["id"],
+                ).first()
+                issue.created_at = request.data.get("created_at", timezone.now())
+                issue.created_by_id = request.data.get("created_by", request.user.id)
+                issue.save(update_fields=["created_at", "created_by"])
+                sync_auto_state_worklog(
+                    issue=issue,
+                    user_id=request.user.id,
+                    old_state_id=None,
+                    new_state_id=issue.state_id,
+                    transition_at=transition_at,
+                )
 
             # Track the issue
             issue_activity.delay(
@@ -656,7 +670,20 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                 if serializer.is_valid():
                     # If the serializer is valid, save the issue and dispatch
                     # the update issue activity worker event.
-                    serializer.save()
+                    with transaction.atomic():
+                        issue = lock_issue_for_transition(issue.id)
+                        old_state_id = issue.state_id
+                        serializer.instance = issue
+                        transition_at = timezone.now()
+                        serializer.save()
+                        issue.refresh_from_db(fields=["state"])
+                        sync_auto_state_worklog(
+                            issue=issue,
+                            user_id=request.user.id,
+                            old_state_id=old_state_id,
+                            new_state_id=issue.state_id,
+                            transition_at=transition_at,
+                        )
                     issue_activity.delay(
                         type="issue.activity.updated",
                         requested_data=requested_data,
@@ -702,20 +729,29 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                 # If the serializer is valid, save the issue and dispatch the
                 # issue activity worker event as created
                 if serializer.is_valid():
-                    serializer.save()
-                    # Refetch the issue
-                    issue = Issue.objects.filter(
-                        workspace__slug=slug,
-                        project_id=project_id,
-                        pk=serializer.data["id"],
-                    ).first()
+                    with transaction.atomic():
+                        transition_at = timezone.now()
+                        serializer.save()
+                        # Refetch the issue
+                        issue = Issue.objects.filter(
+                            workspace__slug=slug,
+                            project_id=project_id,
+                            pk=serializer.data["id"],
+                        ).first()
 
-                    # If any of the created_at or created_by is present, update
-                    # the issue with the provided data, else return with the
-                    # default states given.
-                    issue.created_at = request.data.get("created_at", timezone.now())
-                    issue.created_by_id = request.data.get("created_by", request.user.id)
-                    issue.save(update_fields=["created_at", "created_by"])
+                        # If any of the created_at or created_by is present, update
+                        # the issue with the provided data, else return with the
+                        # default states given.
+                        issue.created_at = request.data.get("created_at", timezone.now())
+                        issue.created_by_id = request.data.get("created_by", request.user.id)
+                        issue.save(update_fields=["created_at", "created_by"])
+                        sync_auto_state_worklog(
+                            issue=issue,
+                            user_id=request.user.id,
+                            old_state_id=None,
+                            new_state_id=issue.state_id,
+                            transition_at=transition_at,
+                        )
 
                     issue_activity.delay(
                         type="issue.activity.created",
@@ -803,7 +839,20 @@ class IssueDetailAPIEndpoint(BaseAPIView):
                     status=status.HTTP_409_CONFLICT,
                 )
 
-            serializer.save()
+            with transaction.atomic():
+                issue = lock_issue_for_transition(issue.id)
+                old_state_id = issue.state_id
+                serializer.instance = issue
+                transition_at = timezone.now()
+                serializer.save()
+                issue.refresh_from_db(fields=["state"])
+                sync_auto_state_worklog(
+                    issue=issue,
+                    user_id=request.user.id,
+                    old_state_id=old_state_id,
+                    new_state_id=issue.state_id,
+                    transition_at=transition_at,
+                )
             issue_activity.delay(
                 type="issue.activity.updated",
                 requested_data=requested_data,
