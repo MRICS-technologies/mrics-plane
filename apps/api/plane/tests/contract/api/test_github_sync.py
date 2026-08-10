@@ -526,3 +526,112 @@ class TestGitHubPullRequestWebhookContract:
         assert current_link.issue.workspace_id == installation.workspace_id
         foreign_link = IssueGitLink.objects.get(workspace=second_workspace, kind="pr", pr_number=21)
         assert foreign_link.issue_id == second_issue.id
+
+
+# ---------------------------------------------------------------------------
+# P1 1.6: installation / installation_repositories webhook lifecycle events
+# ---------------------------------------------------------------------------
+
+
+def _post_signed_webhook_event(api_client, payload, secret, delivery_id, event):
+    body = json.dumps(payload).encode()
+    signature = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    return api_client.post(
+        TestGitHubWebhookAPI.WEBHOOK_URL,
+        data=body,
+        content_type="application/json",
+        HTTP_X_HUB_SIGNATURE_256=signature,
+        HTTP_X_GITHUB_EVENT=event,
+        HTTP_X_GITHUB_DELIVERY=delivery_id,
+    )
+
+
+@pytest.mark.contract
+class TestGitHubInstallationLifecycleWebhook:
+    @pytest.mark.django_db
+    def test_unknown_event_is_a_200_noop(self, api_client, webhook_context):
+        secret = _configure_webhook_app()
+        response = _post_signed_webhook_event(
+            api_client, {"action": "whatever"}, secret, "delivery-unknown-event", "star"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert GithubWebhookDelivery.objects.filter(delivery_id="delivery-unknown-event", event="star").exists()
+
+    @pytest.mark.django_db
+    def test_installation_created_is_a_noop_and_never_attaches_a_workspace(self, api_client, webhook_context):
+        installation, _repository = webhook_context
+        secret = _configure_webhook_app()
+        payload = {"action": "created", "installation": {"id": installation.installation_id + 1}}
+        response = _post_signed_webhook_event(api_client, payload, secret, "delivery-install-created", "installation")
+        assert response.status_code == status.HTTP_200_OK
+        assert not GithubAppInstallation.objects.filter(installation_id=installation.installation_id + 1).exists()
+
+    @pytest.mark.django_db
+    def test_installation_deleted_flips_is_active_and_keeps_the_row(self, api_client, webhook_context):
+        installation, _repository = webhook_context
+        secret = _configure_webhook_app()
+        payload = {"action": "deleted", "installation": {"id": installation.installation_id}}
+        response = _post_signed_webhook_event(api_client, payload, secret, "delivery-install-deleted", "installation")
+        assert response.status_code == status.HTTP_200_OK
+        installation.refresh_from_db()
+        assert installation.is_active is False
+        assert installation.suspended_at is not None
+        assert installation.deleted_at is None
+
+    @pytest.mark.django_db
+    def test_installation_suspend_and_unsuspend_flip_is_active(self, api_client, webhook_context):
+        installation, _repository = webhook_context
+        secret = _configure_webhook_app()
+
+        suspend_payload = {"action": "suspend", "installation": {"id": installation.installation_id}}
+        response = _post_signed_webhook_event(
+            api_client, suspend_payload, secret, "delivery-install-suspend", "installation"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        installation.refresh_from_db()
+        assert installation.is_active is False
+        assert installation.suspended_at is not None
+
+        unsuspend_payload = {"action": "unsuspend", "installation": {"id": installation.installation_id}}
+        response = _post_signed_webhook_event(
+            api_client, unsuspend_payload, secret, "delivery-install-unsuspend", "installation"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        installation.refresh_from_db()
+        assert installation.is_active is True
+        assert installation.suspended_at is None
+
+    @pytest.mark.django_db
+    def test_installation_repositories_removed_disables_repo_and_leaves_mapping_intact(
+        self, api_client, webhook_context, project
+    ):
+        installation, repository = webhook_context
+        secret = _configure_webhook_app()
+        payload = {
+            "action": "removed",
+            "installation": {"id": installation.installation_id},
+            "repositories_removed": [{"id": repository.github_repository_id, "full_name": repository.full_name}],
+        }
+        response = _post_signed_webhook_event(
+            api_client, payload, secret, "delivery-repo-removed", "installation_repositories"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        repository.refresh_from_db()
+        assert repository.is_enabled is False
+        assert RepoProjectMapping.objects.filter(project=project, repository=repository).exists()
+
+    @pytest.mark.django_db
+    def test_installation_repositories_added_is_a_noop(self, api_client, webhook_context):
+        installation, repository = webhook_context
+        secret = _configure_webhook_app()
+        payload = {
+            "action": "added",
+            "installation": {"id": installation.installation_id},
+            "repositories_added": [{"id": repository.github_repository_id, "full_name": repository.full_name}],
+        }
+        response = _post_signed_webhook_event(
+            api_client, payload, secret, "delivery-repo-added", "installation_repositories"
+        )
+        assert response.status_code == status.HTTP_200_OK
+        repository.refresh_from_db()
+        assert repository.is_enabled is True

@@ -164,6 +164,32 @@ class TestInstallationGet:
         assert "workspace" not in resp.data
 
     @pytest.mark.django_db
+    def test_get_exposes_p1_discovery_fields_as_read_only(self, session_client, workspace, installation):
+        # P1 1.7: these are populated by the verified setup callback / webhook
+        # handlers only -- the serializer must expose but never accept them.
+        resp = session_client.get(_install_url(workspace.slug))
+        assert resp.status_code == status.HTTP_200_OK
+        for field in ("account_avatar_url", "repository_selection", "suspended_at", "last_synced_at"):
+            assert field in resp.data
+
+    @pytest.mark.django_db
+    def test_create_ignores_client_supplied_discovery_fields(self, session_client, workspace):
+        resp = session_client.post(
+            _install_url(workspace.slug),
+            {
+                "installation_id": 7770099,
+                "account_login": "acme",
+                "suspended_at": "2020-01-01T00:00:00Z",
+                "account_avatar_url": "https://attacker.example/avatar.png",
+            },
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_201_CREATED
+        created = GithubAppInstallation.objects.get(installation_id=7770099)
+        assert created.suspended_at is None
+        assert created.account_avatar_url == ""
+
+    @pytest.mark.django_db
     def test_non_member_gets_403(self, api_client, workspace):
         user = User.objects.create(email="outsider@plane.so", username="outsider", first_name="Out", last_name="Sider")
         user.set_password("test")
@@ -387,6 +413,70 @@ class TestRepositoryCreate:
             format="json",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.contract
+class TestRepositoryBulkUpsert:
+    """P1 1.5: the repo picker enables/disables many repositories in one POST;
+    the single-object form above (`TestRepositoryCreate`) must keep working."""
+
+    @pytest.mark.django_db
+    def test_bulk_list_upserts_and_updates_existing(self, session_client, workspace, installation, enabled_repo):
+        resp = session_client.post(
+            _repos_url(workspace.slug),
+            [
+                {
+                    "github_repository_id": enabled_repo.github_repository_id,
+                    "full_name": enabled_repo.full_name,
+                    "is_enabled": False,
+                },
+                {
+                    "github_repository_id": 99777,
+                    "full_name": "s2-acme/brand-new",
+                    "is_enabled": True,
+                    "private": True,
+                    "default_branch": "main",
+                    "html_url": "https://github.com/s2-acme/brand-new",
+                },
+            ],
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert len(resp.data) == 2
+
+        enabled_repo.refresh_from_db()
+        assert enabled_repo.is_enabled is False
+
+        created = GithubEnabledRepository.objects.get(installation=installation, github_repository_id=99777)
+        assert created.is_enabled is True
+        assert created.private is True
+        assert created.default_branch == "main"
+
+    @pytest.mark.django_db
+    def test_bulk_list_without_installation_returns_422(self, session_client, workspace):
+        resp = session_client.post(
+            _repos_url(workspace.slug),
+            [{"github_repository_id": 1, "full_name": "a/b"}],
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    @pytest.mark.django_db
+    def test_bulk_list_reports_per_item_errors_without_dropping_valid_rows(
+        self, session_client, workspace, installation
+    ):
+        resp = session_client.post(
+            _repos_url(workspace.slug),
+            [
+                {"github_repository_id": 1, "full_name": "no-slash"},
+                {"github_repository_id": 2, "full_name": "s2-acme/valid-one"},
+            ],
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_207_MULTI_STATUS
+        assert len(resp.data["results"]) == 1
+        assert len(resp.data["errors"]) == 1
+        assert GithubEnabledRepository.objects.filter(installation=installation, github_repository_id=2).exists()
 
 
 @pytest.mark.contract

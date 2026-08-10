@@ -207,3 +207,20 @@ class TestGitHubAppConfigurationAPI:
         response = instance_admin_client.patch(GITHUB_APP_URL, {"unexpected": "value"}, format="json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "value" not in json.dumps(response.data)
+
+    @pytest.mark.django_db
+    def test_app_slug_round_trips_through_the_credentials_bridge(self, instance_admin_client, private_key):
+        # P1 1.1: GITHUB_APP_SLUG must reach plane.services.github.credentials
+        # (the install URL {html_base}/apps/{slug}/installations/new needs it)
+        # not just the license serializer response.
+        from plane.services.github.credentials import get_github_app_credentials
+
+        payload = github_app_payload(private_key)
+        response = instance_admin_client.patch(GITHUB_APP_URL, payload, format="json")
+        assert response.status_code == status.HTTP_200_OK
+
+        response = instance_admin_client.get(GITHUB_APP_URL)
+        assert response.data["app_slug"] == payload["GITHUB_APP_SLUG"]
+
+        credentials = get_github_app_credentials()
+        assert credentials.app_slug == payload["GITHUB_APP_SLUG"]
