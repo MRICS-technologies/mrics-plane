@@ -90,7 +90,7 @@ export function RepositoriesPanel(props: Props) {
 
     setIsSaving(true);
     try {
-      const updated = await githubSyncService.bulkUpdateRepositories(
+      const response = await githubSyncService.bulkUpdateRepositories(
         workspaceSlug,
         changedRepositories.map((repository) => ({
           github_repository_id: repository.github_repository_id,
@@ -101,13 +101,25 @@ export function RepositoriesPanel(props: Props) {
           html_url: repository.html_url,
         }))
       );
+      // N7: a 207 partial failure responds with `{ results, errors }`
+      // instead of a plain array -- never assume `.length` is on the response.
+      const updated = Array.isArray(response) ? response : response.results;
+      const failedCount = Array.isArray(response) ? 0 : response.errors.length;
       setPendingChanges({});
       await Promise.all([mutateAvailable(), mutateEnabled()]);
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: t("common.success"),
-        message: t("workspace_settings.settings.github.repositories.save_success", { count: updated.length }),
-      });
+      if (failedCount > 0) {
+        setToast({
+          type: TOAST_TYPE.ERROR,
+          title: t("common.error"),
+          message: t("workspace_settings.settings.github.repositories.save_failed"),
+        });
+      } else {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: t("common.success"),
+          message: t("workspace_settings.settings.github.repositories.save_success", { count: updated.length }),
+        });
+      }
     } catch {
       setToast({
         type: TOAST_TYPE.ERROR,

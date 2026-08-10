@@ -59,12 +59,14 @@ export function GitHubAppManifestSetupCard(props: Props) {
       });
       submitManifest(post_url, manifest, state);
     } catch (error) {
-      const typedError = error as { status?: number; data?: { error?: string } };
+      // instanceService throws the raw response body (`error?.response?.data`),
+      // i.e. `{ error, detail }` -- not `{ status, data }` like github-sync.service.ts.
+      const typedError = error as { error?: string; detail?: string };
       setToast({
         type: TOAST_TYPE.ERROR,
         title: "Error",
         message:
-          typedError?.data?.error === "already_configured"
+          typedError?.error === "already_configured"
             ? "A GitHub App is already configured on this instance. Remove the existing configuration before creating a new one."
             : "Failed to start the automated GitHub App setup. Please try again.",
       });
@@ -98,9 +100,7 @@ export function GitHubAppManifestSetupCard(props: Props) {
             onClick={() => setShowAdvanced((prev) => !prev)}
             className="w-fit text-12 text-tertiary underline"
           >
-            {showAdvanced
-              ? "Hide advanced options"
-              : "Advanced options (GitHub Enterprise, tunnel/reverse-proxy hosts)"}
+            {showAdvanced ? "Hide advanced options" : "Advanced options (tunnel/reverse-proxy hosts)"}
           </button>
 
           {showAdvanced && (

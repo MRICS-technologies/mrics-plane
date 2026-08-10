@@ -103,7 +103,10 @@ export class GithubSyncService extends APIService {
       });
   }
 
-  /** Bulk enable/disable straight from the live discovery list. */
+  /** Bulk enable/disable straight from the live discovery list. A fully
+   * successful save responds with a plain array; a partial failure (invalid
+   * items, or an attempt to disable a mapped repository) responds 207 with
+   * `{ results, errors }` instead. */
   async bulkUpdateRepositories(
     workspaceSlug: string,
     data: Array<{
@@ -114,7 +117,7 @@ export class GithubSyncService extends APIService {
       default_branch?: string;
       html_url?: string;
     }>
-  ): Promise<TGithubEnabledRepository[]> {
+  ): Promise<TGithubEnabledRepository[] | { results: TGithubEnabledRepository[]; errors: unknown[] }> {
     return this.post(`/api/workspaces/${workspaceSlug}/github/repositories/`, data)
       .then((response) => response?.data)
       .catch((error) => {

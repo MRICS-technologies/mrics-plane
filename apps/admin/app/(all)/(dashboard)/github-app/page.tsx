@@ -25,6 +25,7 @@ const MANIFEST_CALLBACK_MESSAGES: Record<string, string> = {
   conversion_failed: "GitHub could not finish creating the App. Please try automated setup again.",
   already_configured: "A GitHub App is already configured on this instance.",
   invalid_state: "This setup link expired or was already used. Please start automated setup again.",
+  missing_code: "GitHub did not return a setup code. Please try automated setup again.",
 };
 
 const InstanceGithubAppPage = (_props: Route.ComponentProps) => {
