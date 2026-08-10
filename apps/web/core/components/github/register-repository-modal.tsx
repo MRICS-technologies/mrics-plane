@@ -69,10 +69,12 @@ export function RegisterRepositoryModal(props: Props) {
           return;
         }
 
-        let message = "This repository could not be registered.";
-        if (error?.status === 409) message = "This repository is already enabled for this installation.";
-        if (error?.status === 422) message = "This workspace has no active GitHub installation.";
-        setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message });
+        let message = t("workspace_settings.settings.github.repositories.manual.modal.errors.register_failed");
+        if (error?.status === 409)
+          message = t("workspace_settings.settings.github.repositories.manual.modal.errors.conflict");
+        if (error?.status === 422)
+          message = t("workspace_settings.settings.github.repositories.manual.modal.errors.not_configured");
+        setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
       });
   };
 

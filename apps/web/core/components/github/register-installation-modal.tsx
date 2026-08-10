@@ -76,11 +76,11 @@ export function RegisterInstallationModal(props: Props) {
 
         setToast({
           type: TOAST_TYPE.ERROR,
-          title: "Error!",
+          title: t("common.error"),
           message:
             error?.status === 409
-              ? "This workspace already has an active GitHub installation."
-              : "This installation could not be registered.",
+              ? t("workspace_settings.settings.github.installation.manual.modal.errors.conflict")
+              : t("workspace_settings.settings.github.installation.manual.modal.errors.register_failed"),
         });
       });
   };
@@ -98,17 +98,21 @@ export function RegisterInstallationModal(props: Props) {
 
           <div className="flex flex-col gap-1">
             <label htmlFor="installation_id" className="text-13 font-medium">
-              Installation ID
+              {t("workspace_settings.settings.github.installation.manual.modal.installation_id_label")}
             </label>
             <Input
               id="installation_id"
               type="number"
               min={1}
               hasError={Boolean(errors.installation_id)}
-              placeholder="e.g. 12345678"
+              placeholder={t(
+                "workspace_settings.settings.github.installation.manual.modal.installation_id_placeholder"
+              )}
               {...register("installation_id", {
-                required: "Installation ID is required.",
-                validate: (value) => Number(value) > 0 || "Installation ID must be a positive number.",
+                required: t("workspace_settings.settings.github.installation.manual.modal.installation_id_required"),
+                validate: (value) =>
+                  Number(value) > 0 ||
+                  t("workspace_settings.settings.github.installation.manual.modal.installation_id_invalid"),
               })}
             />
             {errors.installation_id && (
@@ -118,14 +122,16 @@ export function RegisterInstallationModal(props: Props) {
 
           <div className="flex flex-col gap-1">
             <label htmlFor="account_login" className="text-13 font-medium">
-              Account login
+              {t("workspace_settings.settings.github.installation.manual.modal.account_login_label")}
             </label>
             <Input
               id="account_login"
               type="text"
               hasError={Boolean(errors.account_login)}
-              placeholder="e.g. my-org"
-              {...register("account_login", { required: "Account login is required." })}
+              placeholder={t("workspace_settings.settings.github.installation.manual.modal.account_login_placeholder")}
+              {...register("account_login", {
+                required: t("workspace_settings.settings.github.installation.manual.modal.account_login_required"),
+              })}
             />
             {errors.account_login && (
               <span className="text-11 text-danger-primary">{errors.account_login.message}</span>
@@ -134,17 +140,27 @@ export function RegisterInstallationModal(props: Props) {
 
           <div className="flex flex-col gap-1">
             <label htmlFor="account_type" className="text-13 font-medium">
-              Account type <span className="text-tertiary">(optional)</span>
+              {t("workspace_settings.settings.github.installation.manual.modal.account_type_label")}{" "}
+              <span className="text-tertiary">
+                {t("workspace_settings.settings.github.installation.manual.modal.account_type_optional")}
+              </span>
             </label>
-            <Input id="account_type" type="text" placeholder="Organization or User" {...register("account_type")} />
+            <Input
+              id="account_type"
+              type="text"
+              placeholder={t("workspace_settings.settings.github.installation.manual.modal.account_type_placeholder")}
+              {...register("account_type")}
+            />
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-subtle p-4">
           <Button variant="secondary" size="sm" onClick={handleClose} type="button">
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button variant="primary" size="sm" type="submit" loading={isSubmitting}>
-            {isSubmitting ? "Registering..." : "Register"}
+            {isSubmitting
+              ? t("workspace_settings.settings.github.installation.manual.modal.submitting")
+              : t("workspace_settings.settings.github.installation.manual.modal.submit")}
           </Button>
         </div>
       </form>
