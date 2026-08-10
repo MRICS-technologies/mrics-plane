@@ -110,13 +110,12 @@ export function RepositoriesPanel(props: Props) {
       if (failedCount > 0) {
         // The 207 body carries the same per-item reasons as the 400 path --
         // surface the first one instead of the generic message.
-        const first = (response as { errors?: Array<{ errors?: Record<string, string | string[]> }> }).errors?.[0]
-          ?.errors
-          ? Object.values(
-              (response as { errors?: Array<{ errors?: Record<string, string | string[]> }> }).errors[0]
-                .errors as Record<string, string | string[]>
-            )[0]
-          : undefined;
+        const itemErrors = (
+          response as {
+            errors?: Array<{ errors?: Record<string, string | string[]> }>;
+          }
+        ).errors?.[0]?.errors;
+        const first = itemErrors ? Object.values(itemErrors)[0] : undefined;
         const firstMessage = Array.isArray(first) ? first[0] : first;
         setToast({
           type: TOAST_TYPE.ERROR,
