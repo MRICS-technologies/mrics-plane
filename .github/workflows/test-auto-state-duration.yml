@@ -25,6 +25,7 @@ on:
       - apps/api/plane/bgtasks/issue_automation_task.py
       - apps/api/plane/db/migrations/0122_time_tracking.py
       - apps/api/plane/db/migrations/0123_workitemworklog_auto_state_source.py
+      - apps/api/requirements/**
       - .github/workflows/test-auto-state-duration.yml
 
 permissions:

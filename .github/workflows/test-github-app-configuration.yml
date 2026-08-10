@@ -35,6 +35,7 @@ on:
       - apps/api/plane/tests/contract/api/test_github_s2_mapping_api.py
       - apps/api/plane/db/migrations/0124_github_sync_models.py
       - apps/api/plane/db/migrations/0126_github_webhook_pr_linking.py
+      - apps/api/requirements/**
       - .github/workflows/test-github-app-configuration.yml
 
 permissions:
