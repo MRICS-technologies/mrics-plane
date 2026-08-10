@@ -57,6 +57,14 @@ function WorkspaceGithubSettingsPage({ params }: Route.ComponentProps) {
         message: t("workspace_settings.settings.github.installation.callback.connected"),
       });
       mutateInstallation();
+    } else if (status === "stale") {
+      // D5: this GitHub account already has the App installed from before --
+      // the only recovery is to uninstall it on GitHub and Connect again.
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("common.error"),
+        message: t("workspace_settings.settings.github.installation.callback.stale"),
+      });
     } else {
       setToast({
         type: TOAST_TYPE.ERROR,

@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 # Third party imports
 import requests
 from django.db import IntegrityError, transaction
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
@@ -293,10 +293,15 @@ class GitHubWebhookView(BaseAPIView):
         if action == "deleted":
             # Soft-delete (not just is_active=False) so the unique
             # installation_id claim is freed -- otherwise a reinstall of the
-            # same account can never attach a fresh row (see N6/I3).
-            installation.is_active = False
-            installation.suspended_at = installation.suspended_at or timezone.now()
-            installation.delete()
+            # same account can never attach a fresh row (see N6/I3). A raw
+            # queryset update avoids SoftDeleteModel's Celery cascade, which
+            # would recursively wipe enabled repos -> project mappings -> git
+            # links (D3).
+            GithubAppInstallation.all_objects.filter(pk=installation.pk).update(
+                is_active=False,
+                suspended_at=installation.suspended_at or timezone.now(),
+                deleted_at=timezone.now(),
+            )
         elif action in _SUSPEND_ACTIONS:
             installation.is_active = False
             installation.suspended_at = timezone.now()
@@ -564,7 +569,12 @@ class WorkspaceInstallationEndpoint(BaseAPIView):
                 {"error": "Remove project mappings before disconnecting this GitHub installation."},
                 status=status.HTTP_409_CONFLICT,
             )
-        installation.delete()
+        # Raw update: SoftDeleteModel.delete() would dispatch a Celery cascade
+        # wiping enabled repos/mappings/git links -- Disconnect must only drop
+        # the installation row itself (D3).
+        GithubAppInstallation.all_objects.filter(pk=installation.pk).update(
+            is_active=False, deleted_at=timezone.now()
+        )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -625,9 +635,16 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
             # I2: GitHub also lands here with no `state` at all whenever
             # `setup_on_update` fires (the installer edited repo access from
             # GitHub's UI). There is no workspace to redirect back to in that
-            # case, so send the browser to the app rather than showing raw JSON.
-            web_url = base_host(request=request, is_app=True).rstrip("/")
-            return HttpResponseRedirect(f"{web_url}/?{urlencode({'github': 'failed'})}")
+            # case, so render a minimal page rather than raw JSON (D7: a root
+            # redirect with a query is read by nothing).
+            return HttpResponse(
+                "<!doctype html><meta charset=utf-8><title>GitHub link expired</title>"
+                "<div style='font-family:sans-serif;max-width:480px;margin:80px auto;line-height:1.6'>"
+                "<h2>This GitHub link is invalid or expired</h2>"
+                "<p>Go back to <b>Workspace Settings &rarr; GitHub</b> and click "
+                "<b>Connect</b> again.</p></div>",
+                content_type="text/html",
+            )
 
         try:
             installation_id = int(request.query_params.get("installation_id", ""))
@@ -650,14 +667,20 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
         if not installation_data or str(installation_data.get("app_id")) != str(credentials.app_id):
             return Response({"error": "installation_mismatch"}, status=status.HTTP_400_BAD_REQUEST)
 
+        web_url = base_host(request=request, is_app=True).rstrip("/")
         try:
             self._upsert_installation(workspace, installation_id, installation_data, claim.get("issued_at"))
         except InstallationClaimedError:
-            return Response({"error": "installation_claimed"}, status=status.HTTP_409_CONFLICT)
+            # D4: 409s must land on the settings page (which toasts
+            # ?github=failed), not raw JSON.
+            redirect_url = f"{web_url}/{workspace.slug}/settings/github/?{urlencode({'github': 'failed'})}"
+            return HttpResponseRedirect(redirect_url)
         except InstallationStaleError:
-            return Response({"error": "installation_stale"}, status=status.HTTP_409_CONFLICT)
+            # D5: distinct state so the page can explain the recovery path
+            # (uninstall the app on GitHub, then Connect again here).
+            redirect_url = f"{web_url}/{workspace.slug}/settings/github/?{urlencode({'github': 'stale'})}"
+            return HttpResponseRedirect(redirect_url)
 
-        web_url = base_host(request=request, is_app=True).rstrip("/")
         redirect_url = f"{web_url}/{workspace.slug}/settings/github/?{urlencode({'github': 'connected'})}"
         return HttpResponseRedirect(redirect_url)
 
@@ -699,9 +722,20 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
             for stale in GithubAppInstallation.objects.select_for_update().filter(workspace=workspace).exclude(
                 installation_id=installation_id
             ):
-                stale.delete()
+                # Raw update, not .delete(): no SoftDelete Celery cascade
+                # (D3) -- freeing the workspace's old claim must not wipe
+                # its enabled repos / mappings / git links.
+                GithubAppInstallation.all_objects.filter(pk=stale.pk).update(
+                    is_active=False, deleted_at=timezone.now()
+                )
 
-            if installation is None:
+            # D1: the freshness window applies unless the row already belongs
+            # to THIS workspace (live or soft-deleted -- reviving your own
+            # disconnect stays free). A soft-deleted row owned by ANOTHER
+            # workspace is exactly the B1 takeover state: Disconnect leaves the
+            # App installed on GitHub, so an attacker can replay the callback
+            # for that id. It must pass through the window like no-row.
+            if installation is None or installation.workspace_id != workspace.id:
                 # Fresh-install window: with no row at all, only a JUST-created
                 # installation may be attached -- an old unclaimed installation
                 # belongs to a different GitHub account that never completed
@@ -712,7 +746,8 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
                             str(installation_data["created_at"]).replace("Z", "+00:00")
                         )
                         issued_dt = datetime.fromisoformat(issued_at)
-                    except ValueError:
+                    except (TypeError, ValueError):
+                        # D8: unparseable timestamps fail closed.
                         raise InstallationStaleError
                     if created_dt < issued_dt:
                         raise InstallationStaleError
@@ -721,9 +756,11 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
                         installation = GithubAppInstallation.objects.create(installation_id=installation_id, **fields)
                         return installation
                 except IntegrityError:
-                    installation = GithubAppInstallation.all_objects.select_for_update().get(
-                        installation_id=installation_id
-                    )
+                    # D2: a live row with this installation_id appeared between
+                    # our select and create. The unique constraint spans live
+                    # rows only, so it must belong to another workspace -- never
+                    # fall through to the unconditional overwrite below.
+                    raise InstallationClaimedError
             for key, value in fields.items():
                 setattr(installation, key, value)
             installation.save()
@@ -848,7 +885,7 @@ class WorkspaceRepositoriesEndpoint(BaseAPIView):
                 validated = serializer.validated_data
                 repository_id = validated["github_repository_id"]
                 live_repo = live_repositories.get(repository_id)
-                if not live_repo or live_repo.get("full_name") != validated["full_name"]:
+                if not live_repo:
                     errors.append(
                         {
                             "index": index,
@@ -856,6 +893,9 @@ class WorkspaceRepositoriesEndpoint(BaseAPIView):
                         }
                     )
                     continue
+                # D9: match by the stable GitHub repository id only -- a repo
+                # renamed between picker load and save must not be rejected;
+                # GitHub's own name is the source of truth here.
                 if repository_id in mapped_repository_ids and not validated.get("is_enabled", True):
                     errors.append(
                         {
@@ -868,7 +908,7 @@ class WorkspaceRepositoriesEndpoint(BaseAPIView):
                     installation=installation,
                     github_repository_id=repository_id,
                     defaults={
-                        "full_name": validated["full_name"],
+                        "full_name": live_repo["full_name"],
                         "is_enabled": validated.get("is_enabled", True),
                         "private": validated.get("private", False),
                         "default_branch": validated.get("default_branch", ""),

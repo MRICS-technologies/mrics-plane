@@ -120,11 +120,21 @@ export function RepositoriesPanel(props: Props) {
           message: t("workspace_settings.settings.github.repositories.save_success", { count: updated.length }),
         });
       }
-    } catch {
+    } catch (error) {
+      // D6: surface the server's per-item message (e.g. "Remove the project
+      // mapping before disabling this repository.") instead of the generic
+      // "save failed" toast, especially for the common single-item case where
+      // the 400 body carries `errors`.
+      const serverErrors = (
+        error as {
+          data?: { errors?: Array<{ errors?: Record<string, string[]> }> };
+        }
+      )?.data?.errors;
+      const firstMessage = serverErrors?.[0]?.errors ? Object.values(serverErrors[0].errors)[0]?.[0] : undefined;
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("common.error"),
-        message: t("workspace_settings.settings.github.repositories.save_failed"),
+        message: firstMessage ?? t("workspace_settings.settings.github.repositories.save_failed"),
       });
     } finally {
       setIsSaving(false);

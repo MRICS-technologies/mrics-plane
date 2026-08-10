@@ -22,6 +22,7 @@ import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from django.core.cache import cache
+from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import status
 
@@ -305,33 +306,40 @@ class TestWorkspaceGitHubInstallURLEndpoint:
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
 
-def _fake_installation_payload(app_id, login="acme", account_type="Organization", repository_selection="all"):
+def _fake_installation_payload(
+    app_id, login="acme", account_type="Organization", repository_selection="all", created_at=None
+):
+    # Default: a "fresh" installation (created after any state token was
+    # issued) so unrelated tests pass through the freshness window. Tests
+    # exercising the window pass an explicit old timestamp.
+    created_at = created_at or (timezone.now() + timedelta(hours=1)).isoformat()
     return {
         "app_id": int(app_id),
         "account": {"login": login, "type": account_type, "avatar_url": f"https://avatars.example/{login}.png"},
         "repository_selection": repository_selection,
+        "created_at": created_at,
     }
 
 
 @pytest.mark.contract
 class TestGitHubSetupCallbackEndpoint:
     @pytest.mark.django_db
-    def test_missing_state_redirects_to_the_app_before_any_github_call(self, api_client):
-        # I2: `setup_on_update` sends GitHub's browser here with no `state`
-        # at all -- there is no workspace to redirect back to, so this must
-        # land on the app (not a raw JSON body) with a failure marker.
+    def test_missing_state_returns_expired_page_before_any_github_call(self, api_client):
+        # I2/D7: `setup_on_update` sends GitHub's browser here with no `state`
+        # at all -- no workspace to redirect back to, so a self-contained
+        # "link expired" page (not raw JSON, not an unread query param).
         with patch("plane.app.views.github_sync.GitHubClient.get_installation") as mock_get:
             resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "123"})
-        assert resp.status_code == status.HTTP_302_FOUND
-        assert "github=failed" in resp["Location"]
+        assert resp.status_code == status.HTTP_200_OK
+        assert b"invalid or expired" in resp.content
         mock_get.assert_not_called()
 
     @pytest.mark.django_db
-    def test_forged_state_redirects_to_the_app_before_any_github_call(self, api_client):
+    def test_forged_state_returns_expired_page_before_any_github_call(self, api_client):
         with patch("plane.app.views.github_sync.GitHubClient.get_installation") as mock_get:
             resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "123", "state": "forged"})
-        assert resp.status_code == status.HTTP_302_FOUND
-        assert "github=failed" in resp["Location"]
+        assert resp.status_code == status.HTTP_200_OK
+        assert b"invalid or expired" in resp.content
         mock_get.assert_not_called()
 
     @pytest.mark.django_db
@@ -444,8 +452,10 @@ class TestGitHubSetupCallbackEndpoint:
         ):
             resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "88", "state": state})
 
-        assert resp.status_code == status.HTTP_409_CONFLICT
-        assert resp.data["error"] == "installation_claimed"
+        # D4: the conflict must land on the settings page (which toasts
+        # ?github=failed), never a raw JSON 409.
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github=failed" in resp["Location"]
         victim.refresh_from_db()
         assert victim.workspace_id == second_workspace.id
         assert victim.account_login == "victim-org"
@@ -470,8 +480,10 @@ class TestGitHubSetupCallbackEndpoint:
         ):
             resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "909", "state": state})
 
-        assert resp.status_code == status.HTTP_409_CONFLICT
-        assert resp.data["error"] == "installation_stale"
+        # D5: the stale case redirects to the settings page with a distinct
+        # marker so the user gets the "uninstall and reconnect" recovery path.
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github=stale" in resp["Location"]
         assert not GithubAppInstallation.all_objects.filter(installation_id=909).exists()
 
     @pytest.mark.django_db
@@ -506,12 +518,9 @@ class TestGitHubSetupCallbackEndpoint:
             workspace=workspace, installation_id=101, account_login="first-org"
         )
         state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
-        with (
-            patch("plane.db.mixins.soft_delete_related_objects.delay"),
-            patch(
-                "plane.app.views.github_sync.GitHubClient.get_installation",
-                return_value=_fake_installation_payload("555111", login="second-org"),
-            ),
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.get_installation",
+            return_value=_fake_installation_payload("555111", login="second-org"),
         ):
             resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "202", "state": state})
 
@@ -523,6 +532,115 @@ class TestGitHubSetupCallbackEndpoint:
         new_installation = GithubAppInstallation.objects.get(installation_id=202)
         assert new_installation.workspace_id == workspace.id
         assert new_installation.account_login == "second-org"
+
+    @pytest.mark.django_db
+    def test_soft_deleted_own_row_revives_despite_old_created_at(
+        self, api_client, workspace, create_user
+    ):
+        # D1 guard: reviving your OWN disconnected installation stays free
+        # even though its GitHub created_at predates the state token (GitHub
+        # reuses the installation id after an uninstall/reinstall).
+        _configure_app()
+        prior = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=303, account_login="acme"
+        )
+        GithubAppInstallation.all_objects.filter(pk=prior.pk).update(
+            is_active=False, deleted_at=timezone.now()
+        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
+        old_payload = _fake_installation_payload("555111", login="acme")
+        old_payload["created_at"] = (timezone.now() - timedelta(days=30)).isoformat()
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.get_installation",
+            return_value=old_payload,
+        ):
+            resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "303", "state": state})
+
+        assert resp.status_code == status.HTTP_302_FOUND
+        revived = GithubAppInstallation.all_objects.get(pk=prior.pk)
+        assert revived.workspace_id == workspace.id
+        assert revived.deleted_at is None
+
+    @pytest.mark.django_db
+    def test_soft_deleted_foreign_row_still_requires_fresh_installation(
+        self, api_client, workspace, second_workspace, create_user
+    ):
+        # D1: a soft-deleted row owned by ANOTHER workspace is still the B1
+        # takeover state (Disconnect leaves the App installed on GitHub), so
+        # the freshness window must apply -- old created_at => stale.
+        _configure_app()
+        victim = GithubAppInstallation.objects.create(
+            workspace=second_workspace, installation_id=404, account_login="victim-org"
+        )
+        GithubAppInstallation.all_objects.filter(pk=victim.pk).update(
+            is_active=False, deleted_at=timezone.now()
+        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
+        old_payload = _fake_installation_payload("555111", login="attacker-org")
+        old_payload["created_at"] = (timezone.now() - timedelta(hours=1)).isoformat()
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.get_installation",
+            return_value=old_payload,
+        ):
+            resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "404", "state": state})
+
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github=stale" in resp["Location"]
+        victim.refresh_from_db()
+        assert victim.workspace_id == second_workspace.id
+
+    @pytest.mark.django_db
+    def test_integrity_error_race_redirects_claimed_not_overwrites(
+        self, api_client, workspace, second_workspace, create_user
+    ):
+        # D2: if a live row appears between our select and create (concurrent
+        # attach), the create fails with IntegrityError -- the loser must be
+        # rejected, never fall through to the unconditional overwrite.
+        _configure_app()
+        GithubAppInstallation.objects.create(
+            workspace=second_workspace, installation_id=505, account_login="victim-org"
+        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
+        with (
+            patch(
+                "plane.app.views.github_sync.GitHubClient.get_installation",
+                return_value=_fake_installation_payload("555111", login="attacker-org"),
+            ),
+            patch(
+                "plane.app.views.github_sync.GithubAppInstallation.objects.create",
+                side_effect=IntegrityError("duplicate key value violates unique constraint"),
+            ),
+        ):
+            resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "505", "state": state})
+
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github=failed" in resp["Location"]
+        victim = GithubAppInstallation.objects.get(installation_id=505)
+        assert victim.workspace_id == second_workspace.id
+
+    @pytest.mark.django_db
+    def test_disconnect_preserves_enabled_repos_and_mappings(
+        self, session_client, workspace, create_user
+    ):
+        # D3: Disconnect soft-deletes the installation row WITHOUT the
+        # SoftDeleteModel Celery cascade -- enabled repos must survive so the
+        # workspace can reconnect. (Mapped repos can't be disconnected at all
+        # -- the endpoint guards with a 409 -- so the survival proof is on
+        # the enabled-repo layer.)
+        _configure_app()
+        installation = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=606, account_login="acme"
+        )
+        repo = GithubEnabledRepository.objects.create(
+            installation=installation, github_repository_id=7001, full_name="acme/widgets"
+        )
+
+        resp = session_client.delete(f"/api/workspaces/{workspace.slug}/github/installation/")
+
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        installation.refresh_from_db()
+        assert installation.deleted_at is not None
+        assert GithubEnabledRepository.objects.filter(pk=repo.pk).exists()
 
 
 # ---------------------------------------------------------------------------

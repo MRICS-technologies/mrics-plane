@@ -175,7 +175,8 @@
           },
           "callback": {
             "connected": "GitHub installation connected successfully.",
-            "failed": "We couldn't verify the GitHub installation. Please try again."
+            "failed": "We couldn't verify the GitHub installation. Please try again.",
+            "stale": "This GitHub account already has the app installed. Uninstall it on GitHub, then connect again."
           },
           "manual": {
             "trigger": "Add manually",
