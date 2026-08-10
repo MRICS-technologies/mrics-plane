@@ -193,8 +193,12 @@ class GitHubAppManifestCallbackEndpoint(BaseAPIView):
     permission_classes = [AllowAny]
 
     def _redirect_to_admin(self, request, github_app_status):
-        admin_url = base_host(request=request, is_admin=True).rstrip("/") + "/github-app/"
-        return HttpResponseRedirect(f"{admin_url}?{urlencode({'github_app': github_app_status})}")
+        admin_url = (base_host(request=request, is_admin=True) or "").rstrip("/")
+        if not admin_url:
+            # No usable host header (tests / misconfigured proxy): stay
+            # relative so the browser remains on the admin app.
+            return HttpResponseRedirect(f"/github-app/?{urlencode({'github_app': github_app_status})}")
+        return HttpResponseRedirect(f"{admin_url}/github-app/?{urlencode({'github_app': github_app_status})}")
 
     def get(self, request):
         state = request.query_params.get("state", "")

@@ -23,6 +23,23 @@ from rest_framework import status
 from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMember
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.db.models.integration.github_sync import RepoProjectMapping
+from plane.db.models.instance import InstanceConfiguration
+from plane.utils.encrypt import encrypt_data
+
+
+def _configure_app(app_id="555111", private_key_pem="fake-key", app_slug="plane-app"):
+    """P1: bulk upsert validates repos against the live GitHub list, which
+    requires instance credentials -- same helper as the setup-flow tests."""
+    InstanceConfiguration.objects.update_or_create(
+        key="GITHUB_APP_ID", defaults={"value": app_id, "category": "GITHUB_APP", "is_encrypted": False}
+    )
+    InstanceConfiguration.objects.update_or_create(
+        key="GITHUB_APP_SLUG", defaults={"value": app_slug, "category": "GITHUB_APP", "is_encrypted": False}
+    )
+    InstanceConfiguration.objects.update_or_create(
+        key="GITHUB_APP_PRIVATE_KEY",
+        defaults={"value": encrypt_data(private_key_pem), "category": "GITHUB_APP", "is_encrypted": True},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -419,6 +436,10 @@ class TestRepositoryCreate:
 class TestRepositoryBulkUpsert:
     """P1 1.5: the repo picker enables/disables many repositories in one POST;
     the single-object form above (`TestRepositoryCreate`) must keep working."""
+
+    @pytest.fixture(autouse=True)
+    def _app_configured(self):
+        _configure_app()
 
     @pytest.mark.django_db
     def test_bulk_list_upserts_and_updates_existing(self, session_client, workspace, installation, enabled_repo):
