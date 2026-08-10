@@ -57,9 +57,11 @@ const stateDurationKey = (workspaceSlug: string, projectId: string, issueId: str
 
 const formatDuration = (seconds?: number) => {
   const totalSeconds = Math.max(0, Math.round(seconds ?? 0));
-  const hours = Math.floor(totalSeconds / 3600);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
 
+  if (days > 0) return `${days}d ${hours}h`;
   if (hours > 0) return `${hours}h ${String(minutes).padStart(2, "0")}m`;
   if (minutes > 0) return `${minutes}m`;
   return "<1m";
