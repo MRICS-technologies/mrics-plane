@@ -35,7 +35,11 @@ from plane.db.models.integration.github_sync import GithubWebhookDelivery, Issue
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import get_github_app_credentials
-from plane.services.github.setup_state import consume as consume_setup_state, issue as issue_setup_state, STATE_TTL_SECONDS
+from plane.services.github.setup_state import (
+    consume as consume_setup_state,
+    issue as issue_setup_state,
+    STATE_TTL_SECONDS,
+)
 
 logger = logging.getLogger(__name__)
 
