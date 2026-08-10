@@ -355,8 +355,10 @@ class TestGitHubSetupCallbackEndpoint:
         assert "github=connected" in first["Location"]
 
         second = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "1", "state": state})
-        assert second.status_code == status.HTTP_302_FOUND
-        assert "github=failed" in second["Location"]
+        # D7: a burned/replayed state takes the same "link expired" path as a
+        # missing one -- an HTML page, never a redirect the UI can't read.
+        assert second.status_code == status.HTTP_200_OK
+        assert b"invalid or expired" in second.content
 
     @pytest.mark.django_db
     def test_installation_app_id_mismatch_returns_400(self, api_client, workspace, create_user):

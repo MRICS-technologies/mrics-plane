@@ -752,16 +752,17 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
                         raise InstallationStaleError
                     if created_dt < issued_dt:
                         raise InstallationStaleError
-                try:
-                    with transaction.atomic():
-                        installation = GithubAppInstallation.objects.create(installation_id=installation_id, **fields)
-                        return installation
-                except IntegrityError:
-                    # D2: a live row with this installation_id appeared between
-                    # our select and create. The unique constraint spans live
-                    # rows only, so it must belong to another workspace -- never
-                    # fall through to the unconditional overwrite below.
-                    raise InstallationClaimedError
+                if installation is None:
+                    try:
+                        with transaction.atomic():
+                            installation = GithubAppInstallation.objects.create(installation_id=installation_id, **fields)
+                            return installation
+                    except IntegrityError:
+                        # D2: a live row with this installation_id appeared between
+                        # our select and create. The unique constraint spans live
+                        # rows only, so it must belong to another workspace -- never
+                        # fall through to the unconditional overwrite below.
+                        raise InstallationClaimedError
             for key, value in fields.items():
                 setattr(installation, key, value)
             installation.save()
