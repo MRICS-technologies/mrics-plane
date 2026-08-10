@@ -3,7 +3,7 @@
 # See the LICENSE file for details.
 
 import time
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import quote, urlencode, urlsplit
 
 import jwt
 from jwt.exceptions import PyJWTError
@@ -176,7 +176,7 @@ class GitHubAppManifestEndpoint(BaseAPIView):
             "default_events": MANIFEST_DEFAULT_EVENTS,
         }
         post_url = (
-            f"{html_base_url}/organizations/{organization}/settings/apps/new"
+            f"{html_base_url}/organizations/{quote(organization)}/settings/apps/new"
             if organization
             else f"{html_base_url}/settings/apps/new"
         )
@@ -201,15 +201,18 @@ class GitHubAppManifestCallbackEndpoint(BaseAPIView):
         code = request.query_params.get("code", "")
 
         # State is checked, and burned, before any GitHub call or persistence.
+        # N4: every failure here redirects to the admin app, never a raw JSON
+        # body -- this endpoint is only ever reached via a GitHub browser
+        # redirect, so JSON would render as an unstyled error page.
         claim = consume_setup_state(state, "manifest")
         if not claim:
-            return Response({"error": "invalid_state"}, status=status.HTTP_400_BAD_REQUEST)
+            return self._redirect_to_admin(request, "invalid_state")
 
         if _is_github_app_already_configured():
-            return Response({"error": "already_configured"}, status=status.HTTP_403_FORBIDDEN)
+            return self._redirect_to_admin(request, "already_configured")
 
         if not code:
-            return Response({"error": "missing_code"}, status=status.HTTP_400_BAD_REQUEST)
+            return self._redirect_to_admin(request, "missing_code")
 
         try:
             data = GitHubClient.convert_manifest(code)

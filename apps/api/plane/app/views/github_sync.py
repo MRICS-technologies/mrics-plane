@@ -7,7 +7,7 @@ import hashlib
 import hmac
 import logging
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 # Third party imports
@@ -47,6 +47,11 @@ logger = logging.getLogger(__name__)
 # `pull_request` event payload -- reject anything past 1 MiB before HMAC or
 # JSON work touches it.
 MAX_WEBHOOK_BODY_BYTES = 1024 * 1024
+
+# I7: hard cap on how many repositories one bulk save can touch -- the repo
+# picker never needs more than this in a single save, and it bounds the
+# transaction opened around the update_or_create loop.
+MAX_BULK_REPOSITORIES = 200
 
 # pull_request.action values this slice understands; anything else (edited,
 # labeled, assigned, ...) is acknowledged with no state change.
@@ -286,9 +291,12 @@ class GitHubWebhookView(BaseAPIView):
             return
 
         if action == "deleted":
+            # Soft-delete (not just is_active=False) so the unique
+            # installation_id claim is freed -- otherwise a reinstall of the
+            # same account can never attach a fresh row (see N6/I3).
             installation.is_active = False
             installation.suspended_at = installation.suspended_at or timezone.now()
-            installation.save(update_fields=["is_active", "suspended_at", "updated_at"])
+            installation.delete()
         elif action in _SUSPEND_ACTIONS:
             installation.is_active = False
             installation.suspended_at = timezone.now()
@@ -580,10 +588,7 @@ class WorkspaceGitHubInstallURLEndpoint(BaseAPIView):
             )
 
         workspace = Workspace.objects.get(slug=slug)
-        redirect = (request.data.get("redirect") or "").strip()
-        state = issue_setup_state(
-            "install", workspace_id=str(workspace.id), user_id=str(request.user.id), redirect=redirect
-        )
+        state = issue_setup_state("install", workspace_id=str(workspace.id), user_id=str(request.user.id))
         install_url = (
             f"{credentials.html_base_url}/apps/{credentials.app_slug}/installations/new"
             f"?{urlencode({'state': state})}"
@@ -592,6 +597,17 @@ class WorkspaceGitHubInstallURLEndpoint(BaseAPIView):
             {"install_url": install_url, "expires_at": timezone.now() + timedelta(seconds=STATE_TTL_SECONDS)},
             status=status.HTTP_200_OK,
         )
+
+
+class InstallationClaimedError(Exception):
+    """Raised when a live (non-soft-deleted) installation row already belongs
+    to a workspace other than the one attempting to claim it (B1)."""
+
+
+class InstallationStaleError(Exception):
+    """Raised when no installation row exists yet but the installation on
+    GitHub pre-dates the state token: an old, unclaimed installation belongs
+    to a different GitHub account and must not be attachable (B1 hardening)."""
 
 
 class GitHubSetupCallbackEndpoint(BaseAPIView):
@@ -606,7 +622,12 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
     def get(self, request):
         claim = consume_setup_state(request.query_params.get("state", ""), "install")
         if not claim:
-            return Response({"error": "invalid_state"}, status=status.HTTP_400_BAD_REQUEST)
+            # I2: GitHub also lands here with no `state` at all whenever
+            # `setup_on_update` fires (the installer edited repo access from
+            # GitHub's UI). There is no workspace to redirect back to in that
+            # case, so send the browser to the app rather than showing raw JSON.
+            web_url = base_host(request=request, is_app=True).rstrip("/")
+            return HttpResponseRedirect(f"{web_url}/?{urlencode({'github': 'failed'})}")
 
         try:
             installation_id = int(request.query_params.get("installation_id", ""))
@@ -629,14 +650,19 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
         if not installation_data or str(installation_data.get("app_id")) != str(credentials.app_id):
             return Response({"error": "installation_mismatch"}, status=status.HTTP_400_BAD_REQUEST)
 
-        self._upsert_installation(workspace, installation_id, installation_data)
+        try:
+            self._upsert_installation(workspace, installation_id, installation_data, claim.get("issued_at"))
+        except InstallationClaimedError:
+            return Response({"error": "installation_claimed"}, status=status.HTTP_409_CONFLICT)
+        except InstallationStaleError:
+            return Response({"error": "installation_stale"}, status=status.HTTP_409_CONFLICT)
 
         web_url = base_host(request=request, is_app=True).rstrip("/")
         redirect_url = f"{web_url}/{workspace.slug}/settings/github/?{urlencode({'github': 'connected'})}"
         return HttpResponseRedirect(redirect_url)
 
     @staticmethod
-    def _upsert_installation(workspace, installation_id, installation_data):
+    def _upsert_installation(workspace, installation_id, installation_data, issued_at=None):
         account = installation_data.get("account") or {}
         fields = {
             "workspace": workspace,
@@ -655,7 +681,41 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
                 .filter(installation_id=installation_id)
                 .first()
             )
+            # B1: a *live* row (not soft-deleted) already claimed by a
+            # different workspace must never be silently re-pointed. A
+            # soft-deleted row is fair game -- that is the documented
+            # reconnect-to-a-different-workspace path.
+            already_claimed = (
+                installation is not None
+                and installation.deleted_at is None
+                and installation.workspace_id != workspace.id
+            )
+            if already_claimed:
+                raise InstallationClaimedError
+
+            # I3/N6: a workspace holds at most one live installation. Free any
+            # other live row this workspace already owns before attaching the
+            # one being claimed here.
+            for stale in GithubAppInstallation.objects.select_for_update().filter(workspace=workspace).exclude(
+                installation_id=installation_id
+            ):
+                stale.delete()
+
             if installation is None:
+                # Fresh-install window: with no row at all, only a JUST-created
+                # installation may be attached -- an old unclaimed installation
+                # belongs to a different GitHub account that never completed
+                # setup here, and grabbing it would be the B1 takeover.
+                if issued_at and installation_data.get("created_at"):
+                    try:
+                        created_dt = datetime.fromisoformat(
+                            str(installation_data["created_at"]).replace("Z", "+00:00")
+                        )
+                        issued_dt = datetime.fromisoformat(issued_at)
+                    except ValueError:
+                        raise InstallationStaleError
+                    if created_dt < issued_dt:
+                        raise InstallationStaleError
                 try:
                     with transaction.atomic():
                         installation = GithubAppInstallation.objects.create(installation_id=installation_id, **fields)
@@ -734,19 +794,79 @@ class WorkspaceRepositoriesEndpoint(BaseAPIView):
 
     @staticmethod
     def _bulk_upsert(installation, items):
+        # I7: bound the batch before opening a transaction or calling GitHub.
+        if len(items) > MAX_BULK_REPOSITORIES:
+            return Response(
+                {"error": f"Cannot update more than {MAX_BULK_REPOSITORIES} repositories in one request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        credentials = get_github_app_credentials()
+        if not credentials:
+            return Response(
+                {"error": "GitHub App is not configured on this instance."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        # I7: only repositories GitHub actually reports for this installation
+        # may be written -- a client-supplied github_repository_id/full_name
+        # is never trusted on its own.
+        try:
+            live_repositories = {
+                repo.get("id"): repo
+                for repo in GitHubClient.for_installation(installation.installation_id).list_installation_repositories()
+            }
+        except requests.RequestException:
+            return Response(
+                {"error": "github_unavailable", "detail": "Could not reach GitHub. Please retry."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except NotImplementedError:
+            return Response(
+                {"error": "GitHub App is not configured on this instance."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
         results = []
         errors = []
         with transaction.atomic():
             installation = GithubAppInstallation.objects.select_for_update().get(pk=installation.pk)
+            # I6: repositories with a live project mapping can never be
+            # disabled through the bulk save -- the mapping would keep
+            # working (branch creation doesn't check is_enabled) while the
+            # repo silently vanished from the picker.
+            mapped_repository_ids = set(
+                RepoProjectMapping.objects.filter(repository__installation=installation).values_list(
+                    "repository__github_repository_id", flat=True
+                )
+            )
             for index, item in enumerate(items):
                 serializer = GithubEnabledRepositorySerializer(data=item)
                 if not serializer.is_valid():
                     errors.append({"index": index, "errors": serializer.errors})
                     continue
                 validated = serializer.validated_data
+                repository_id = validated["github_repository_id"]
+                live_repo = live_repositories.get(repository_id)
+                if not live_repo or live_repo.get("full_name") != validated["full_name"]:
+                    errors.append(
+                        {
+                            "index": index,
+                            "errors": {"github_repository_id": "Repository not found on this installation."},
+                        }
+                    )
+                    continue
+                if repository_id in mapped_repository_ids and not validated.get("is_enabled", True):
+                    errors.append(
+                        {
+                            "index": index,
+                            "errors": {"is_enabled": "Remove the project mapping before disabling this repository."},
+                        }
+                    )
+                    continue
                 repo, _ = GithubEnabledRepository.objects.update_or_create(
                     installation=installation,
-                    github_repository_id=validated["github_repository_id"],
+                    github_repository_id=repository_id,
                     defaults={
                         "full_name": validated["full_name"],
                         "is_enabled": validated.get("is_enabled", True),
@@ -782,12 +902,24 @@ class WorkspaceAvailableRepositoriesEndpoint(BaseAPIView):
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
+        credentials = get_github_app_credentials()
+        if not credentials:
+            return Response(
+                {"error": "GitHub App is not configured on this instance."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
         try:
             repositories = GitHubClient.for_installation(installation.installation_id).list_installation_repositories()
         except requests.RequestException:
             return Response(
                 {"error": "github_unavailable", "detail": "Could not reach GitHub. Please retry."},
                 status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except NotImplementedError:
+            return Response(
+                {"error": "GitHub App is not configured on this instance."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
         enabled_by_repo_id = {

@@ -18,6 +18,7 @@ variables -- see `plane.services.github.credentials`.
 import hashlib
 import hmac
 import json
+from unittest.mock import patch
 
 import pytest
 from rest_framework import status
@@ -567,16 +568,25 @@ class TestGitHubInstallationLifecycleWebhook:
         assert not GithubAppInstallation.objects.filter(installation_id=installation.installation_id + 1).exists()
 
     @pytest.mark.django_db
-    def test_installation_deleted_flips_is_active_and_keeps_the_row(self, api_client, webhook_context):
+    def test_installation_deleted_flips_is_active_and_frees_the_installation_id(self, api_client, webhook_context):
+        # N6: "deleted" must soft-delete (not just is_active=False) so the
+        # unique installation_id claim is freed -- otherwise a reinstall of
+        # the same account can never attach a fresh row (coordinates with I3).
         installation, _repository = webhook_context
         secret = _configure_webhook_app()
         payload = {"action": "deleted", "installation": {"id": installation.installation_id}}
-        response = _post_signed_webhook_event(api_client, payload, secret, "delivery-install-deleted", "installation")
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            response = _post_signed_webhook_event(
+                api_client, payload, secret, "delivery-install-deleted", "installation"
+            )
         assert response.status_code == status.HTTP_200_OK
-        installation.refresh_from_db()
+        # The default `objects` manager filters out soft-deleted rows, so a
+        # plain refresh_from_db() would raise DoesNotExist -- go through
+        # all_objects instead.
+        installation = GithubAppInstallation.all_objects.get(pk=installation.pk)
         assert installation.is_active is False
         assert installation.suspended_at is not None
-        assert installation.deleted_at is None
+        assert installation.deleted_at is not None
 
     @pytest.mark.django_db
     def test_installation_suspend_and_unsuspend_flip_is_active(self, api_client, webhook_context):

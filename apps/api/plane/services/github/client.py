@@ -20,7 +20,10 @@ from plane.services.github.credentials import (
 # token: 1 hour) so a client never presents an expired credential, and
 # shared via django.core.cache (Redis) across web + Celery workers so
 # concurrent calls don't each mint their own token.
-APP_JWT_CACHE_TTL = 540
+APP_JWT_EXP_SECONDS = 540
+# N1: cache the JWT below its own exp so a token served right before eviction
+# still has time left on it, rather than being handed out with ~0s to live.
+APP_JWT_CACHE_TTL = 480
 INSTALLATION_TOKEN_CACHE_TTL = 3000
 
 # `GET /installation/repositories` is paginated at 100/page; this is a hard
@@ -89,7 +92,7 @@ class GitHubClient:
             return token
 
         now = int(time.time())
-        payload = {"iat": now - 60, "exp": now + APP_JWT_CACHE_TTL, "iss": self.app_id}
+        payload = {"iat": now - 60, "exp": now + APP_JWT_EXP_SECONDS, "iss": self.app_id}
         token = jwt.encode(payload, self.private_key, algorithm="RS256")
         cache.set(cache_key, token, APP_JWT_CACHE_TTL)
         return token

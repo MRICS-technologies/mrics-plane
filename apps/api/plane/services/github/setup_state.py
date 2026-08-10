@@ -11,6 +11,7 @@ import hashlib
 import secrets
 
 from django.core.cache import cache
+from django.utils import timezone
 
 STATE_TTL_SECONDS = 900
 _CACHE_PREFIX = "github:setup_state:"
@@ -24,23 +25,30 @@ def _cache_key(state):
 
 def issue(action, **binding):
     """Mint a single-use state token bound to `action` and the given claims
-    (e.g. `user_id`, or `workspace_id`/`user_id`/`redirect`)."""
+    (e.g. `user_id`, or `workspace_id`/`user_id`/`redirect`). `issued_at`
+    anchors the fresh-install window check in the setup callback."""
     state = secrets.token_urlsafe(32)
-    cache.set(_cache_key(state), {"action": action, **binding}, STATE_TTL_SECONDS)
+    cache.set(
+        _cache_key(state),
+        {"action": action, "issued_at": timezone.now().isoformat(), **binding},
+        STATE_TTL_SECONDS,
+    )
     return state
 
 
 def consume(state, expected_action):
     """Redeem a state token: returns the bound claims once, or None if the
     token is missing, expired, already consumed, or bound to a different
-    action. Deleting before returning makes replay impossible."""
+    action. A state bound to a different action is left untouched so it
+    remains redeemable by the flow it was actually issued for; only a
+    matching-action token is deleted, which is what makes replay impossible."""
     if not state:
         return None
     key = _cache_key(state)
     payload = cache.get(key)
     if not payload:
         return None
-    cache.delete(key)
     if payload.get("action") != expected_action:
         return None
+    cache.delete(key)
     return {k: v for k, v in payload.items() if k != "action"}

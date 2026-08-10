@@ -14,6 +14,7 @@ None of these tests contact GitHub -- every GitHub HTTP call is mocked.
 """
 
 import uuid
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -24,8 +25,9 @@ from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import User, Workspace, WorkspaceMember
+from plane.db.models import Project, User, Workspace, WorkspaceMember
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
+from plane.db.models.integration.github_sync import RepoProjectMapping
 from plane.license.models import Instance, InstanceAdmin, InstanceConfiguration
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 from plane.services.github import setup_state
@@ -42,6 +44,10 @@ def _install_url(slug):
 
 def _available_repos_url(slug):
     return f"/api/workspaces/{slug}/github/available-repositories/"
+
+
+def _repositories_url(slug):
+    return f"/api/workspaces/{slug}/github/repositories/"
 
 
 def _configure_app(app_id="555111", private_key_pem="fake-key", app_slug="plane-app"):
@@ -161,28 +167,32 @@ class TestGitHubAppManifestEndpoint:
 
 @pytest.mark.contract
 class TestGitHubAppManifestCallbackEndpoint:
+    """N4: this endpoint is only ever reached via a GitHub browser redirect,
+    so every failure -- like every success -- redirects to the admin app
+    with a `?github_app=<status>` query param rather than returning raw JSON."""
+
     @pytest.mark.django_db
-    def test_missing_state_returns_400(self, api_client):
+    def test_missing_state_redirects_with_invalid_state(self, api_client):
         resp = api_client.get(MANIFEST_CALLBACK_URL, {"code": "abc"})
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
-        assert resp.data["error"] == "invalid_state"
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github_app=invalid_state" in resp["Location"]
 
     @pytest.mark.django_db
-    def test_forged_state_returns_400(self, api_client):
+    def test_forged_state_redirects_with_invalid_state(self, api_client):
         resp = api_client.get(MANIFEST_CALLBACK_URL, {"code": "abc", "state": "not-a-real-state"})
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github_app=invalid_state" in resp["Location"]
 
     @pytest.mark.django_db
-    def test_wrong_action_state_returns_400(self, api_client, workspace, create_user):
+    def test_wrong_action_state_redirects_with_invalid_state(self, api_client, workspace, create_user):
         # A state minted for the *install* flow must not be redeemable here.
-        state = setup_state.issue(
-            "install", workspace_id=str(workspace.id), user_id=str(create_user.id), redirect=""
-        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
         resp = api_client.get(MANIFEST_CALLBACK_URL, {"code": "abc", "state": state})
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github_app=invalid_state" in resp["Location"]
 
     @pytest.mark.django_db
-    def test_replayed_state_returns_400(self, api_client, create_user):
+    def test_replayed_state_redirects_with_invalid_state(self, api_client, create_user):
         state = setup_state.issue("manifest", user_id=str(create_user.id))
         conversion = {
             "id": 111222,
@@ -195,25 +205,34 @@ class TestGitHubAppManifestCallbackEndpoint:
         with patch("plane.license.api.views.github_app.GitHubClient.convert_manifest", return_value=conversion):
             first = api_client.get(MANIFEST_CALLBACK_URL, {"code": "abc", "state": state})
         assert first.status_code == status.HTTP_302_FOUND
+        assert "github_app=connected" in first["Location"]
 
         second = api_client.get(MANIFEST_CALLBACK_URL, {"code": "abc", "state": state})
-        assert second.status_code == status.HTTP_400_BAD_REQUEST
-        assert second.data["error"] == "invalid_state"
+        assert second.status_code == status.HTTP_302_FOUND
+        assert "github_app=invalid_state" in second["Location"]
 
     @pytest.mark.django_db
-    def test_expired_state_returns_400(self, api_client, create_user, monkeypatch):
+    def test_expired_state_redirects_with_invalid_state(self, api_client, create_user, monkeypatch):
         monkeypatch.setattr(setup_state, "STATE_TTL_SECONDS", 0)
         state = setup_state.issue("manifest", user_id=str(create_user.id))
         resp = api_client.get(MANIFEST_CALLBACK_URL, {"code": "abc", "state": state})
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github_app=invalid_state" in resp["Location"]
 
     @pytest.mark.django_db
-    def test_already_configured_returns_403(self, api_client, create_user):
+    def test_already_configured_redirects_with_already_configured(self, api_client, create_user):
         _configure_app()
         state = setup_state.issue("manifest", user_id=str(create_user.id))
         resp = api_client.get(MANIFEST_CALLBACK_URL, {"code": "abc", "state": state})
-        assert resp.status_code == status.HTTP_403_FORBIDDEN
-        assert resp.data["error"] == "already_configured"
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github_app=already_configured" in resp["Location"]
+
+    @pytest.mark.django_db
+    def test_missing_code_redirects_with_missing_code(self, api_client, create_user):
+        state = setup_state.issue("manifest", user_id=str(create_user.id))
+        resp = api_client.get(MANIFEST_CALLBACK_URL, {"state": state})
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github_app=missing_code" in resp["Location"]
 
     @pytest.mark.django_db
     def test_successful_conversion_stores_encrypted_keys_and_hides_secrets(self, api_client, create_user):
@@ -297,41 +316,44 @@ def _fake_installation_payload(app_id, login="acme", account_type="Organization"
 @pytest.mark.contract
 class TestGitHubSetupCallbackEndpoint:
     @pytest.mark.django_db
-    def test_missing_state_returns_400_before_any_github_call(self, api_client):
+    def test_missing_state_redirects_to_the_app_before_any_github_call(self, api_client):
+        # I2: `setup_on_update` sends GitHub's browser here with no `state`
+        # at all -- there is no workspace to redirect back to, so this must
+        # land on the app (not a raw JSON body) with a failure marker.
         with patch("plane.app.views.github_sync.GitHubClient.get_installation") as mock_get:
             resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "123"})
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github=failed" in resp["Location"]
         mock_get.assert_not_called()
 
     @pytest.mark.django_db
-    def test_forged_state_returns_400_before_any_github_call(self, api_client):
+    def test_forged_state_redirects_to_the_app_before_any_github_call(self, api_client):
         with patch("plane.app.views.github_sync.GitHubClient.get_installation") as mock_get:
             resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "123", "state": "forged"})
-        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.status_code == status.HTTP_302_FOUND
+        assert "github=failed" in resp["Location"]
         mock_get.assert_not_called()
 
     @pytest.mark.django_db
-    def test_replayed_state_returns_400(self, api_client, workspace, create_user):
+    def test_replayed_state_redirects_to_the_app(self, api_client, workspace, create_user):
         _configure_app()
-        state = setup_state.issue(
-            "install", workspace_id=str(workspace.id), user_id=str(create_user.id), redirect=""
-        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
         with patch(
             "plane.app.views.github_sync.GitHubClient.get_installation",
             return_value=_fake_installation_payload("555111"),
         ):
             first = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "1", "state": state})
         assert first.status_code == status.HTTP_302_FOUND
+        assert "github=connected" in first["Location"]
 
         second = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "1", "state": state})
-        assert second.status_code == status.HTTP_400_BAD_REQUEST
+        assert second.status_code == status.HTTP_302_FOUND
+        assert "github=failed" in second["Location"]
 
     @pytest.mark.django_db
     def test_installation_app_id_mismatch_returns_400(self, api_client, workspace, create_user):
         _configure_app()
-        state = setup_state.issue(
-            "install", workspace_id=str(workspace.id), user_id=str(create_user.id), redirect=""
-        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
         with patch(
             "plane.app.views.github_sync.GitHubClient.get_installation",
             return_value=_fake_installation_payload("999999999"),
@@ -343,9 +365,7 @@ class TestGitHubSetupCallbackEndpoint:
     @pytest.mark.django_db
     def test_github_verification_failure_returns_502(self, api_client, workspace, create_user):
         _configure_app()
-        state = setup_state.issue(
-            "install", workspace_id=str(workspace.id), user_id=str(create_user.id), redirect=""
-        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
         with patch(
             "plane.app.views.github_sync.GitHubClient.get_installation",
             side_effect=requests.ConnectionError("boom"),
@@ -358,9 +378,7 @@ class TestGitHubSetupCallbackEndpoint:
         self, api_client, workspace, second_workspace, create_user
     ):
         _configure_app()
-        state = setup_state.issue(
-            "install", workspace_id=str(workspace.id), user_id=str(create_user.id), redirect=""
-        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
         with patch(
             "plane.app.views.github_sync.GitHubClient.get_installation",
             return_value=_fake_installation_payload("555111"),
@@ -378,6 +396,11 @@ class TestGitHubSetupCallbackEndpoint:
     def test_soft_deleted_installation_is_revived_not_duplicated(
         self, api_client, workspace, second_workspace, create_user
     ):
+        # This is the legitimate counterpart to the B1 regression below: the
+        # model's own contract (see GithubAppInstallation's docstring) is that
+        # a *soft-deleted* installation -- deleted_at is set, so it is no
+        # longer "live" -- may be revived under a different workspace. Only a
+        # still-live row is protected from being re-pointed (B1).
         _configure_app()
         existing = GithubAppInstallation.objects.create(
             workspace=second_workspace, installation_id=77, account_login="old-org"
@@ -385,9 +408,7 @@ class TestGitHubSetupCallbackEndpoint:
         with patch("plane.db.mixins.soft_delete_related_objects.delay"):
             existing.delete()
 
-        state = setup_state.issue(
-            "install", workspace_id=str(workspace.id), user_id=str(create_user.id), redirect=""
-        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
         with patch(
             "plane.app.views.github_sync.GitHubClient.get_installation",
             return_value=_fake_installation_payload("555111", login="new-org", repository_selection="selected"),
@@ -403,6 +424,106 @@ class TestGitHubSetupCallbackEndpoint:
         assert revived.account_login == "new-org"
         assert revived.repository_selection == "selected"
 
+    @pytest.mark.django_db
+    def test_active_installation_owned_by_another_workspace_cannot_be_rebound(
+        self, api_client, workspace, second_workspace, create_user
+    ):
+        # B1 regression: the callback only verifies the installation's app_id
+        # via GitHub -- it never proves the caller actually administers the
+        # installation's account. Without this check, an attacker who is
+        # admin of `workspace` could enumerate installation ids and steal a
+        # live installation that already belongs to `second_workspace`.
+        _configure_app()
+        victim = GithubAppInstallation.objects.create(
+            workspace=second_workspace, installation_id=88, account_login="victim-org"
+        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.get_installation",
+            return_value=_fake_installation_payload("555111", login="attacker-org"),
+        ):
+            resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "88", "state": state})
+
+        assert resp.status_code == status.HTTP_409_CONFLICT
+        assert resp.data["error"] == "installation_claimed"
+        victim.refresh_from_db()
+        assert victim.workspace_id == second_workspace.id
+        assert victim.account_login == "victim-org"
+        assert victim.deleted_at is None
+
+    @pytest.mark.django_db
+    def test_pre_existing_unclaimed_installation_cannot_be_attached(
+        self, api_client, workspace, create_user
+    ):
+        # B1 hardening (fresh-install window): with no row at all, only a
+        # JUST-created installation may be attached. An installation that
+        # predates the state token belongs to a different GitHub account that
+        # never completed setup here -- attaching it would hand that account's
+        # repos to this workspace.
+        _configure_app()
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
+        old_payload = _fake_installation_payload("555111")
+        old_payload["created_at"] = (timezone.now() - timedelta(hours=1)).isoformat()
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.get_installation",
+            return_value=old_payload,
+        ):
+            resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "909", "state": state})
+
+        assert resp.status_code == status.HTTP_409_CONFLICT
+        assert resp.data["error"] == "installation_stale"
+        assert not GithubAppInstallation.all_objects.filter(installation_id=909).exists()
+
+    @pytest.mark.django_db
+    def test_freshly_created_installation_attaches_normally(
+        self, api_client, workspace, create_user
+    ):
+        # Fresh-install window, happy path: an installation created after the
+        # state token was issued attaches normally.
+        _configure_app()
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
+        fresh_payload = _fake_installation_payload("555111")
+        fresh_payload["created_at"] = (timezone.now() + timedelta(minutes=5)).isoformat()
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.get_installation",
+            return_value=fresh_payload,
+        ):
+            resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "910", "state": state})
+
+        assert resp.status_code == status.HTTP_302_FOUND
+        installation = GithubAppInstallation.objects.get(installation_id=910)
+        assert installation.workspace_id == workspace.id
+
+    @pytest.mark.django_db
+    def test_new_installation_frees_the_workspaces_prior_live_installation(
+        self, api_client, workspace, create_user
+    ):
+        # I3: a workspace must hold at most one live installation. A second,
+        # different installation attached through the callback frees (soft
+        # deletes) the workspace's prior live row rather than stacking rows.
+        _configure_app()
+        first_installation = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=101, account_login="first-org"
+        )
+        state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
+        with (
+            patch("plane.db.mixins.soft_delete_related_objects.delay"),
+            patch(
+                "plane.app.views.github_sync.GitHubClient.get_installation",
+                return_value=_fake_installation_payload("555111", login="second-org"),
+            ),
+        ):
+            resp = api_client.get(SETUP_CALLBACK_URL, {"installation_id": "202", "state": state})
+
+        assert resp.status_code == status.HTTP_302_FOUND
+        # `objects` filters out soft-deleted rows, so refresh_from_db() would
+        # raise DoesNotExist here -- go through all_objects instead.
+        first_installation = GithubAppInstallation.all_objects.get(pk=first_installation.pk)
+        assert first_installation.deleted_at is not None
+        new_installation = GithubAppInstallation.objects.get(installation_id=202)
+        assert new_installation.workspace_id == workspace.id
+        assert new_installation.account_login == "second-org"
+
 
 # ---------------------------------------------------------------------------
 # Live repository discovery
@@ -417,7 +538,18 @@ class TestWorkspaceAvailableRepositoriesEndpoint:
         assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.django_db
+    def test_no_app_configuration_returns_422_not_500(self, session_client, workspace):
+        # I1: an installation row can outlive its instance GitHub App
+        # configuration (e.g. the app was removed). GitHubClient.for_installation
+        # then builds a client with no app id/private key -- discovery must
+        # 422, not 500 when that client tries to mint a JWT.
+        GithubAppInstallation.objects.create(workspace=workspace, installation_id=606059, account_login="acme")
+        resp = session_client.get(_available_repos_url(workspace.slug))
+        assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    @pytest.mark.django_db
     def test_lists_live_repositories_merged_with_enabled_state(self, session_client, workspace):
+        _configure_app()
         installation = GithubAppInstallation.objects.create(
             workspace=workspace, installation_id=606060, account_login="acme"
         )
@@ -455,6 +587,7 @@ class TestWorkspaceAvailableRepositoriesEndpoint:
 
     @pytest.mark.django_db
     def test_github_failure_returns_502_with_retry_hint(self, session_client, workspace):
+        _configure_app()
         GithubAppInstallation.objects.create(workspace=workspace, installation_id=606061, account_login="acme")
         with patch(
             "plane.app.views.github_sync.GitHubClient.list_installation_repositories",
@@ -471,6 +604,110 @@ class TestWorkspaceAvailableRepositoriesEndpoint:
         )
         resp = session_client.get(_available_repos_url(second_workspace.slug))
         assert resp.status_code == status.HTTP_403_FORBIDDEN
+
+
+# ---------------------------------------------------------------------------
+# Bulk repository save (I6/I7)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.contract
+class TestWorkspaceRepositoriesBulkUpsert:
+    @pytest.fixture
+    def installation(self, db, workspace):
+        _configure_app()
+        return GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=707070, account_login="acme"
+        )
+
+    @pytest.fixture
+    def project(self, db, workspace, create_user):
+        return Project.objects.create(
+            name="Bulk Save Project", identifier="BSP", workspace=workspace, created_by=create_user
+        )
+
+    def _live_repos(self):
+        return [
+            {"id": 1, "full_name": "acme/widgets", "private": False, "default_branch": "main", "html_url": "u1"},
+            {"id": 2, "full_name": "acme/gadgets", "private": True, "default_branch": "dev", "html_url": "u2"},
+        ]
+
+    @pytest.mark.django_db
+    def test_bulk_upsert_creates_and_returns_the_full_list(self, session_client, workspace, installation):
+        payload = [
+            {"github_repository_id": 1, "full_name": "acme/widgets", "is_enabled": True},
+            {"github_repository_id": 2, "full_name": "acme/gadgets", "is_enabled": False},
+        ]
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.list_installation_repositories",
+            return_value=self._live_repos(),
+        ):
+            resp = session_client.post(_repositories_url(workspace.slug), payload, format="json")
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert len(resp.data) == 2
+        assert GithubEnabledRepository.objects.filter(installation=installation, is_enabled=True).count() == 1
+
+    @pytest.mark.django_db
+    def test_bulk_upsert_rejects_a_repository_not_on_the_installation(self, session_client, workspace, installation):
+        # I7: the client-supplied github_repository_id/full_name must be
+        # cross-checked against what GitHub actually reports for this
+        # installation before it is trusted and written.
+        payload = [
+            {"github_repository_id": 1, "full_name": "acme/widgets", "is_enabled": True},
+            {"github_repository_id": 999, "full_name": "someone-else/private-repo", "is_enabled": True},
+        ]
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.list_installation_repositories",
+            return_value=self._live_repos(),
+        ):
+            resp = session_client.post(_repositories_url(workspace.slug), payload, format="json")
+
+        assert resp.status_code == status.HTTP_207_MULTI_STATUS, resp.data
+        assert len(resp.data["results"]) == 1
+        assert len(resp.data["errors"]) == 1
+        assert resp.data["errors"][0]["index"] == 1
+        assert not GithubEnabledRepository.objects.filter(
+            installation=installation, github_repository_id=999
+        ).exists()
+
+    @pytest.mark.django_db
+    def test_bulk_upsert_cannot_disable_a_mapped_repository(
+        self, session_client, workspace, installation, project
+    ):
+        # I6: disabling a mapped repository through the bulk save must not
+        # silently succeed -- the mapping would keep working (branch creation
+        # doesn't check is_enabled) while the repo vanished from the picker.
+        repo = GithubEnabledRepository.objects.create(
+            installation=installation, github_repository_id=1, full_name="acme/widgets", is_enabled=True
+        )
+        RepoProjectMapping.objects.create(
+            workspace=workspace,
+            project=project,
+            repository=repo,
+            github_installation_id=installation.installation_id,
+            github_repo=repo.full_name,
+        )
+        payload = [{"github_repository_id": 1, "full_name": "acme/widgets", "is_enabled": False}]
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.list_installation_repositories",
+            return_value=self._live_repos(),
+        ):
+            resp = session_client.post(_repositories_url(workspace.slug), payload, format="json")
+
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST, resp.data
+        assert resp.data["errors"][0]["index"] == 0
+        repo.refresh_from_db()
+        assert repo.is_enabled is True
+
+    @pytest.mark.django_db
+    def test_bulk_upsert_rejects_batches_over_the_cap(self, session_client, workspace, installation):
+        payload = [
+            {"github_repository_id": i, "full_name": f"acme/repo-{i}", "is_enabled": True} for i in range(1, 202)
+        ]
+        resp = session_client.post(_repositories_url(workspace.slug), payload, format="json")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert GithubEnabledRepository.objects.filter(installation=installation).count() == 0
 
 
 # ---------------------------------------------------------------------------
