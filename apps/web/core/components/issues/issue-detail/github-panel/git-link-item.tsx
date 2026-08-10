@@ -6,9 +6,9 @@
 
 import { GitBranch, GitPullRequest } from "lucide-react";
 import { Tooltip } from "@plane/propel/tooltip";
+import type { TIssueGitLink } from "@plane/types";
 import { cn } from "@plane/utils";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-import type { TIssueGitLink } from "@/services/github-sync.service";
 
 const STATE_BADGE_CLASSNAME: Record<TIssueGitLink["state"], string> = {
   open: "bg-success-subtle text-success-primary",
