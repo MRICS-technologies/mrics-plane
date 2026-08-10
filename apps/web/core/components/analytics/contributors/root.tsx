@@ -60,9 +60,11 @@ const rollingRange = (days: number, timeZone: string) => {
 
 const formatDuration = (seconds = 0) => {
   if (seconds < 60) return seconds > 0 ? "<1m" : "0m";
+  const days = Math.floor(seconds / 86400);
   const totalMinutes = Math.floor(seconds / 60);
-  const hours = Math.floor(totalMinutes / 60);
+  const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = totalMinutes % 60;
+  if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
   if (hours === 0) return `${minutes}m`;
   return minutes > 0 ? `${hours}h ${minutes.toString().padStart(2, "0")}m` : `${hours}h`;
 };
