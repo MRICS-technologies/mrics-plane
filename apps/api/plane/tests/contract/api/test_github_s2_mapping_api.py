@@ -442,7 +442,16 @@ class TestRepositoryBulkUpsert:
         _configure_app()
 
     @pytest.mark.django_db
-    def test_bulk_list_upserts_and_updates_existing(self, session_client, workspace, installation, enabled_repo):
+    @patch("plane.app.views.github_sync.GitHubClient.list_installation_repositories")
+    def test_bulk_list_upserts_and_updates_existing(
+        self, mock_list_repos, session_client, workspace, installation, enabled_repo
+    ):
+        # I7: the endpoint cross-checks against GitHub's live list -- return
+        # both payload repos so the validation passes.
+        mock_list_repos.return_value = [
+            {"id": enabled_repo.github_repository_id, "full_name": enabled_repo.full_name, "private": False, "default_branch": "main", "html_url": f"https://github.com/{enabled_repo.full_name}"},
+            {"id": 99777, "full_name": "s2-acme/brand-new", "private": True, "default_branch": "main", "html_url": "https://github.com/s2-acme/brand-new"},
+        ]
         resp = session_client.post(
             _repos_url(workspace.slug),
             [
@@ -483,9 +492,15 @@ class TestRepositoryBulkUpsert:
         assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
 
     @pytest.mark.django_db
+    @patch("plane.app.views.github_sync.GitHubClient.list_installation_repositories")
     def test_bulk_list_reports_per_item_errors_without_dropping_valid_rows(
-        self, session_client, workspace, installation
+        self, mock_list_repos, session_client, workspace, installation
     ):
+        # I7: only repo id 2 exists on GitHub's live list -- id 1 additionally
+        # fails the "owner/name" format, id 2 passes validation.
+        mock_list_repos.return_value = [
+            {"id": 2, "full_name": "s2-acme/valid-one", "private": False, "default_branch": "main", "html_url": "https://github.com/s2-acme/valid-one"},
+        ]
         resp = session_client.post(
             _repos_url(workspace.slug),
             [
