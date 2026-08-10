@@ -5,70 +5,29 @@
  */
 
 import { API_BASE_URL } from "@plane/constants";
+import type {
+  TApiError,
+  TAvailableGithubRepository,
+  TCreateBranchResponse,
+  TCreateMappingPayload,
+  TGithubEnabledRepository,
+  TGithubInstallation,
+  TIssueGitLink,
+  TRepoProjectMapping,
+  TWorkspaceGitHubInstallURLResponse,
+} from "@plane/types";
 import { APIService } from "@/services/api.service";
 
-export type TRepoProjectMappingRepositoryDetail = {
-  id: string;
-  github_repository_id: number;
-  full_name: string;
-  is_enabled: boolean;
-};
-
-export type TRepoProjectMapping = {
-  id: string;
-  github_repo: string;
-  base_branch: string | null;
-  is_default: boolean;
-  repo_label: string | null;
-  repository_detail: TRepoProjectMappingRepositoryDetail | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type TCreateMappingPayload = {
-  repository_id: string;
-  base_branch?: string;
-  repo_label?: string;
-};
-
-export type TApiError = {
-  status?: number;
-  data?: Record<string, unknown>;
-};
-
-export type TIssueGitLink = {
-  id: string;
-  kind: "branch" | "pr";
-  ref: string;
-  url: string;
-  state: "open" | "merged" | "closed" | "unknown";
-  detected_via: string;
-  github_repo: string;
-};
-
-export type TCreateBranchResponse = {
-  branch_name: string;
-  url: string;
-  sha: string;
-};
-
-export type TGithubInstallation = {
-  id: string;
-  installation_id: number;
-  account_login: string;
-  account_type: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export type TGithubEnabledRepository = {
-  id: string;
-  github_repository_id: number;
-  full_name: string;
-  is_enabled: boolean;
-  created_at: string;
-  updated_at: string;
+export type {
+  TApiError,
+  TAvailableGithubRepository,
+  TCreateBranchResponse,
+  TCreateMappingPayload,
+  TGithubEnabledRepository,
+  TGithubInstallation,
+  TIssueGitLink,
+  TRepoProjectMapping,
+  TWorkspaceGitHubInstallURLResponse,
 };
 
 export class GithubSyncService extends APIService {
@@ -103,8 +62,30 @@ export class GithubSyncService extends APIService {
       });
   }
 
+  /** Issues a one-time, workspace-bound state and the GitHub install URL that
+   * carries it (Phase 1 1.4 one-click install). The caller should redirect
+   * the browser to `install_url` -- nothing is persisted until GitHub
+   * verifies the installation and calls back. */
+  async getInstallURL(workspaceSlug: string, redirect?: string): Promise<TWorkspaceGitHubInstallURLResponse> {
+    return this.post(`/api/workspaces/${workspaceSlug}/github/install-url/`, redirect ? { redirect } : {})
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, data: error?.response?.data } as TApiError;
+      });
+  }
+
   async getRepositories(workspaceSlug: string): Promise<TGithubEnabledRepository[]> {
     return this.get(`/api/workspaces/${workspaceSlug}/github/repositories/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, data: error?.response?.data } as TApiError;
+      });
+  }
+
+  /** Live view of every repository the installation can see on GitHub, merged
+   * with this workspace's enabled-repository state (Phase 1 1.5 discovery). */
+  async getAvailableRepositories(workspaceSlug: string): Promise<TAvailableGithubRepository[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/github/available-repositories/`)
       .then((response) => response?.data)
       .catch((error) => {
         throw { status: error?.response?.status, data: error?.response?.data } as TApiError;
@@ -115,6 +96,25 @@ export class GithubSyncService extends APIService {
     workspaceSlug: string,
     data: { github_repository_id: number; full_name: string }
   ): Promise<TGithubEnabledRepository> {
+    return this.post(`/api/workspaces/${workspaceSlug}/github/repositories/`, data)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, data: error?.response?.data } as TApiError;
+      });
+  }
+
+  /** Bulk enable/disable straight from the live discovery list. */
+  async bulkUpdateRepositories(
+    workspaceSlug: string,
+    data: Array<{
+      github_repository_id: number;
+      full_name: string;
+      is_enabled: boolean;
+      private?: boolean;
+      default_branch?: string;
+      html_url?: string;
+    }>
+  ): Promise<TGithubEnabledRepository[]> {
     return this.post(`/api/workspaces/${workspaceSlug}/github/repositories/`, data)
       .then((response) => response?.data)
       .catch((error) => {
