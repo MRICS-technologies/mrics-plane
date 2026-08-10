@@ -755,7 +755,9 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
                 if installation is None:
                     try:
                         with transaction.atomic():
-                            installation = GithubAppInstallation.objects.create(installation_id=installation_id, **fields)
+                            installation = GithubAppInstallation.objects.create(
+                                installation_id=installation_id, **fields
+                            )
                             return installation
                     except IntegrityError:
                         # D2: a live row with this installation_id appeared between
