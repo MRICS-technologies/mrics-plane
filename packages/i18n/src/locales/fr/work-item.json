@@ -422,5 +422,28 @@
       "label": "Titre de l’Epic",
       "required": "Le titre de l’Epic est requis."
     }
+  },
+  "work_item": {
+    "github": {
+      "label": "GitHub",
+      "create_branch": {
+        "trigger": "Créer une branche",
+        "placeholder": "Nom de la branche",
+        "success": "Branche {branch} créée.",
+        "errors": {
+          "conflict": "Une branche ou un lien existe déjà pour cet élément de travail.",
+          "not_configured": "Ce projet n'a aucun dépôt associé.",
+          "failed": "Cette branche n'a pas pu être créée. Veuillez réessayer."
+        }
+      },
+      "link": {
+        "state": {
+          "open": "Ouvert",
+          "merged": "Fusionné",
+          "closed": "Fermé",
+          "unknown": "Inconnu"
+        }
+      }
+    }
   }
 }

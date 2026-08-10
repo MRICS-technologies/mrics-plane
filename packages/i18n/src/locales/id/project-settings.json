@@ -198,7 +198,43 @@
       }
     },
     "github": {
-      "label": "GitHub"
+      "label": "GitHub",
+      "mapping": {
+        "title": "Repository mapping",
+        "description": "Map this project to a GitHub repository to link pull requests and create branches from work items.",
+        "label": "Label: {label}",
+        "base_branch": "Base branch: {branch}",
+        "attach_button": "Attach a GitHub repository (recommended)",
+        "remove_aria_label": "Remove {repo}",
+        "empty": {
+          "title": "No repository attached",
+          "description_ready": "Attach one of your enabled GitHub repositories to link pull requests and create branches from work items.",
+          "description_no_repos": "Enable a repository in workspace settings first, then attach it here."
+        },
+        "errors": {
+          "load_failed": "We couldn't load the repository mapping. Please try again.",
+          "create_failed": "This repository could not be attached. Please try again.",
+          "conflict": "This project already has a mapping for this repository.",
+          "forbidden": "You don't have permission to attach a repository to this project."
+        },
+        "modal": {
+          "title": "Attach a GitHub repository",
+          "description": "Choose one of your workspace's enabled repositories and, optionally, its base branch.",
+          "repository_label": "Repository",
+          "repository_placeholder": "Select a repository",
+          "repository_required": "Select a repository.",
+          "base_branch_label": "Base branch",
+          "base_branch_hint": "Branches are created from this branch. Defaults to the repository's default branch.",
+          "submit": "Attach"
+        },
+        "delete_modal": {
+          "title": "Remove repository mapping",
+          "content": "This stops {repo} from being linked to this project. Existing pull request links stay visible.",
+          "success": "Repository mapping removed.",
+          "forbidden": "You don't have permission to remove this mapping.",
+          "failed": "This mapping could not be removed."
+        }
+      }
     },
     "empty_state": {
       "labels": {

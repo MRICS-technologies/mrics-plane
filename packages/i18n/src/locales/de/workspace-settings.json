@@ -151,7 +151,119 @@
         }
       },
       "github": {
-        "title": "GitHub"
+        "title": "GitHub",
+        "retry": "Retry",
+        "installation": {
+          "title": "GitHub App installation",
+          "description": "Connect this workspace to a GitHub App installation to discover repositories and link pull requests automatically.",
+          "connect_button": "Connect GitHub",
+          "disconnect_button": "Disconnect",
+          "installation_id": "Installation ID: {id}",
+          "status": {
+            "active": "Active",
+            "inactive": "Inactive",
+            "suspended": "Suspended"
+          },
+          "empty": {
+            "title": "No GitHub installation connected",
+            "description": "Connect a GitHub App installation to discover repositories and link pull requests automatically."
+          },
+          "errors": {
+            "load_failed": "We couldn't load the GitHub installation. Please try again.",
+            "not_configured": "GitHub App is not configured on this instance. Contact your instance admin.",
+            "connect_failed": "We couldn't start the GitHub connection. Please try again."
+          },
+          "callback": {
+            "connected": "GitHub installation connected successfully.",
+            "failed": "We couldn't verify the GitHub installation. Please try again."
+          },
+          "manual": {
+            "trigger": "Add manually",
+            "success": "GitHub installation registered.",
+            "modal": {
+              "title": "Add installation manually",
+              "description": "Use this only if the automatic connect flow isn't available -- enter the installation details exactly as shown on GitHub.",
+              "installation_id_label": "Installation ID",
+              "installation_id_placeholder": "e.g. 12345678",
+              "installation_id_required": "Installation ID is required.",
+              "installation_id_invalid": "Installation ID must be a positive number.",
+              "account_login_label": "Account login",
+              "account_login_placeholder": "e.g. my-org",
+              "account_login_required": "Account login is required.",
+              "account_type_label": "Account type",
+              "account_type_optional": "(optional)",
+              "account_type_placeholder": "Organization or User",
+              "submit": "Register",
+              "submitting": "Registering...",
+              "errors": {
+                "conflict": "This workspace already has an active GitHub installation.",
+                "register_failed": "This installation could not be registered."
+              }
+            }
+          },
+          "disconnect_modal": {
+            "title": "Disconnect GitHub installation",
+            "content": "This removes the installation from this workspace. Existing pull request links stay visible, but branch creation and new links will stop working until you reconnect.",
+            "success": "GitHub installation disconnected.",
+            "conflict": "This installation could not be disconnected.",
+            "failed": "This installation could not be disconnected."
+          }
+        },
+        "repositories": {
+          "title": "Repositories",
+          "description": "Choose which repositories from your GitHub installation are available to map to projects.",
+          "search_placeholder": "Search repositories",
+          "no_search_results": "No repositories match your search.",
+          "repository_id": "Repository ID: {id}",
+          "save_success": "{count, plural, one {# repository updated.} other {# repositories updated.}}",
+          "save_failed": "We couldn't save your repository changes. Please try again.",
+          "update_failed": "We couldn't update this repository. Please try again.",
+          "remove_aria_label": "Remove {repo}",
+          "empty": {
+            "no_installation": {
+              "title": "Connect GitHub first",
+              "description": "Connect a GitHub App installation to discover and enable repositories."
+            },
+            "no_repositories": {
+              "title": "No repositories found",
+              "description": "The connected GitHub account doesn't have access to any repositories yet."
+            }
+          },
+          "errors": {
+            "load_failed": "We couldn't reach GitHub to load your repositories.",
+            "fallback_list": "Showing repositories that are already enabled."
+          },
+          "manual": {
+            "trigger": "Add a repository manually",
+            "success": "Repository added.",
+            "modal": {
+              "title": "Add repository manually",
+              "description": "Use this only if the repository doesn't appear in the discovered list -- enter the details exactly as shown on GitHub.",
+              "repository_id_label": "GitHub repository ID",
+              "repository_id_placeholder": "e.g. 123456789",
+              "repository_id_required": "GitHub repository ID is required.",
+              "repository_id_invalid": "GitHub repository ID must be a positive number.",
+              "full_name_label": "Full name",
+              "full_name_placeholder": "owner/repository",
+              "full_name_required": "Full name is required.",
+              "full_name_invalid": "Full name must be exactly \"owner/repository\" with no whitespace or extra slashes.",
+              "submit": "Add repository",
+              "submitting": "Adding...",
+              "errors": {
+                "register_failed": "This repository could not be registered.",
+                "conflict": "This repository is already enabled for this installation.",
+                "not_configured": "This workspace has no active GitHub installation."
+              }
+            }
+          },
+          "delete_modal": {
+            "title": "Remove repository",
+            "content": "This stops {repo} from being available for project mappings. Existing mappings and pull request links stay intact.",
+            "success": "Repository removed.",
+            "conflict": "This repository could not be removed.",
+            "failed": "This repository could not be removed."
+          }
+        }
       },
       "api_tokens": {
         "heading": "API-Tokens",

@@ -151,7 +151,119 @@
         }
       },
       "github": {
-        "title": "GitHub"
+        "title": "GitHub",
+        "retry": "Réessayer",
+        "installation": {
+          "title": "Installation de l'application GitHub",
+          "description": "Connectez cet espace de travail à une installation de l'application GitHub pour découvrir les dépôts et lier les pull requests automatiquement.",
+          "connect_button": "Connecter GitHub",
+          "disconnect_button": "Déconnecter",
+          "installation_id": "ID d'installation : {id}",
+          "status": {
+            "active": "Actif",
+            "inactive": "Inactif",
+            "suspended": "Suspendu"
+          },
+          "empty": {
+            "title": "Aucune installation GitHub connectée",
+            "description": "Connectez une installation de l'application GitHub pour découvrir les dépôts et lier les pull requests automatiquement."
+          },
+          "errors": {
+            "load_failed": "Impossible de charger l'installation GitHub. Veuillez réessayer.",
+            "not_configured": "L'application GitHub n'est pas configurée sur cette instance. Contactez l'administrateur de l'instance.",
+            "connect_failed": "Impossible de démarrer la connexion GitHub. Veuillez réessayer."
+          },
+          "callback": {
+            "connected": "Installation GitHub connectée avec succès.",
+            "failed": "Impossible de vérifier l'installation GitHub. Veuillez réessayer."
+          },
+          "manual": {
+            "trigger": "Ajouter manuellement",
+            "success": "Installation GitHub enregistrée.",
+            "modal": {
+              "title": "Ajouter une installation manuellement",
+              "description": "Utilisez ceci uniquement si le flux de connexion automatique n'est pas disponible — saisissez les détails d'installation exactement comme indiqués sur GitHub.",
+              "installation_id_label": "ID d'installation",
+              "installation_id_placeholder": "ex. 12345678",
+              "installation_id_required": "L'ID d'installation est requis.",
+              "installation_id_invalid": "L'ID d'installation doit être un nombre positif.",
+              "account_login_label": "Identifiant du compte",
+              "account_login_placeholder": "ex. mon-org",
+              "account_login_required": "L'identifiant du compte est requis.",
+              "account_type_label": "Type de compte",
+              "account_type_optional": "(optionnel)",
+              "account_type_placeholder": "Organisation ou utilisateur",
+              "submit": "Enregistrer",
+              "submitting": "Enregistrement...",
+              "errors": {
+                "conflict": "Cet espace de travail possède déjà une installation GitHub active.",
+                "register_failed": "Cette installation n'a pas pu être enregistrée."
+              }
+            }
+          },
+          "disconnect_modal": {
+            "title": "Déconnecter l'installation GitHub",
+            "content": "Cela supprime l'installation de cet espace de travail. Les liens de pull requests existants restent visibles, mais la création de branches et les nouveaux liens cesseront jusqu'à la reconnexion.",
+            "success": "Installation GitHub déconnectée.",
+            "conflict": "Cette installation n'a pas pu être déconnectée.",
+            "failed": "Cette installation n'a pas pu être déconnectée."
+          }
+        },
+        "repositories": {
+          "title": "Dépôts",
+          "description": "Choisissez quels dépôts de votre installation GitHub sont disponibles à associer aux projets.",
+          "search_placeholder": "Rechercher des dépôts",
+          "no_search_results": "Aucun dépôt ne correspond à votre recherche.",
+          "repository_id": "ID du dépôt : {id}",
+          "save_success": "{count, plural, one {# dépôt mis à jour.} other {# dépôts mis à jour.}}",
+          "save_failed": "Impossible d'enregistrer vos modifications de dépôt. Veuillez réessayer.",
+          "update_failed": "Impossible de mettre à jour ce dépôt. Veuillez réessayer.",
+          "remove_aria_label": "Retirer {repo}",
+          "empty": {
+            "no_installation": {
+              "title": "Connectez GitHub d'abord",
+              "description": "Connectez une installation de l'application GitHub pour découvrir et activer les dépôts."
+            },
+            "no_repositories": {
+              "title": "Aucun dépôt trouvé",
+              "description": "Le compte GitHub connecté n'a accès à aucun dépôt pour le moment."
+            }
+          },
+          "errors": {
+            "load_failed": "Impossible de joindre GitHub pour charger vos dépôts.",
+            "fallback_list": "Affichage des dépôts déjà activés."
+          },
+          "manual": {
+            "trigger": "Ajouter un dépôt manuellement",
+            "success": "Dépôt ajouté.",
+            "modal": {
+              "title": "Ajouter un dépôt manuellement",
+              "description": "Utilisez ceci uniquement si le dépôt n'apparaît pas dans la liste découverte — saisissez les détails exactement comme indiqués sur GitHub.",
+              "repository_id_label": "ID du dépôt GitHub",
+              "repository_id_placeholder": "ex. 123456789",
+              "repository_id_required": "L'ID du dépôt GitHub est requis.",
+              "repository_id_invalid": "L'ID du dépôt doit être un nombre positif.",
+              "full_name_label": "Nom complet",
+              "full_name_placeholder": "propriétaire/dépôt",
+              "full_name_required": "Le nom complet est requis.",
+              "full_name_invalid": "Le nom complet doit être exactement \"propriétaire/dépôt\" sans espaces ni barres obliques supplémentaires.",
+              "submit": "Ajouter le dépôt",
+              "submitting": "Ajout...",
+              "errors": {
+                "register_failed": "Ce dépôt n'a pas pu être enregistré.",
+                "conflict": "Ce dépôt est déjà activé pour cette installation.",
+                "not_configured": "Cet espace de travail n'a aucune installation GitHub active."
+              }
+            }
+          },
+          "delete_modal": {
+            "title": "Supprimer le dépôt",
+            "content": "Cela cesse de rendre {repo} disponible pour les associations de projets. Les associations et liens existants restent intacts.",
+            "success": "Dépôt supprimé.",
+            "conflict": "Ce dépôt n'a pas pu être supprimé.",
+            "failed": "Ce dépôt n'a pas pu être supprimé."
+          }
+        }
       },
       "api_tokens": {
         "heading": "Jetons API",
