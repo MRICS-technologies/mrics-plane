@@ -175,7 +175,7 @@ export function InstallationPanel(props: Props) {
             {
               label: t("workspace_settings.settings.github.installation.connect_button"),
               onClick: handleConnect,
-              loading: isConnecting,
+              disabled: isConnecting,
             },
             {
               label: t("workspace_settings.settings.github.installation.manual.trigger"),
