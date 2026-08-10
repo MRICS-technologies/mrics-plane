@@ -12,7 +12,7 @@ on:
       - preview
       - "sync/**"
       - "release/**"
-    paths:
+    paths: &github-app-configuration-paths
       - apps/api/plane/license/api/serializers/github_app.py
       - apps/api/plane/license/api/views/github_app.py
       - apps/api/plane/license/api/views/configuration.py
@@ -41,6 +41,8 @@ on:
       - apps/api/plane/db/migrations/0129_github_discovery_fields.py
       - apps/api/requirements/**
       - .github/workflows/test-github-app-configuration.yml
+  pull_request:
+    paths: *github-app-configuration-paths
 
 permissions:
   contents: read
