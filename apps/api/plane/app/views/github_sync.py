@@ -301,6 +301,7 @@ class GitHubWebhookView(BaseAPIView):
                 is_active=False,
                 suspended_at=installation.suspended_at or timezone.now(),
                 deleted_at=timezone.now(),
+                updated_at=timezone.now(),
             )
         elif action in _SUSPEND_ACTIONS:
             installation.is_active = False
@@ -573,7 +574,7 @@ class WorkspaceInstallationEndpoint(BaseAPIView):
         # wiping enabled repos/mappings/git links -- Disconnect must only drop
         # the installation row itself (D3).
         GithubAppInstallation.all_objects.filter(pk=installation.pk).update(
-            is_active=False, deleted_at=timezone.now()
+            is_active=False, deleted_at=timezone.now(), updated_at=timezone.now()
         )
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -726,7 +727,7 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
                 # (D3) -- freeing the workspace's old claim must not wipe
                 # its enabled repos / mappings / git links.
                 GithubAppInstallation.all_objects.filter(pk=stale.pk).update(
-                    is_active=False, deleted_at=timezone.now()
+                    is_active=False, deleted_at=timezone.now(), updated_at=timezone.now()
                 )
 
             # D1: the freshness window applies unless the row already belongs
@@ -910,9 +911,9 @@ class WorkspaceRepositoriesEndpoint(BaseAPIView):
                     defaults={
                         "full_name": live_repo["full_name"],
                         "is_enabled": validated.get("is_enabled", True),
-                        "private": validated.get("private", False),
-                        "default_branch": validated.get("default_branch", ""),
-                        "html_url": validated.get("html_url", ""),
+                        "private": live_repo.get("private", validated.get("private", False)),
+                        "default_branch": live_repo.get("default_branch", validated.get("default_branch", "")),
+                        "html_url": live_repo.get("html_url", validated.get("html_url", "")),
                     },
                 )
                 results.append(GithubEnabledRepositorySerializer(repo).data)

@@ -108,10 +108,20 @@ export function RepositoriesPanel(props: Props) {
       setPendingChanges({});
       await Promise.all([mutateAvailable(), mutateEnabled()]);
       if (failedCount > 0) {
+        // The 207 body carries the same per-item reasons as the 400 path --
+        // surface the first one instead of the generic message.
+        const first = (response as { errors?: Array<{ errors?: Record<string, string | string[]> }> }).errors?.[0]
+          ?.errors
+          ? Object.values(
+              (response as { errors?: Array<{ errors?: Record<string, string | string[]> }> }).errors[0]
+                .errors as Record<string, string | string[]>
+            )[0]
+          : undefined;
+        const firstMessage = Array.isArray(first) ? first[0] : first;
         setToast({
           type: TOAST_TYPE.ERROR,
           title: t("common.error"),
-          message: t("workspace_settings.settings.github.repositories.save_failed"),
+          message: firstMessage ?? t("workspace_settings.settings.github.repositories.save_failed"),
         });
       } else {
         setToast({
@@ -127,10 +137,13 @@ export function RepositoriesPanel(props: Props) {
       // the 400 body carries `errors`.
       const serverErrors = (
         error as {
-          data?: { errors?: Array<{ errors?: Record<string, string[]> }> };
+          data?: { errors?: Array<{ errors?: Record<string, string | string[]> }> };
         }
       )?.data?.errors;
-      const firstMessage = serverErrors?.[0]?.errors ? Object.values(serverErrors[0].errors)[0]?.[0] : undefined;
+      // The API's per-item errors are plain strings (only DRF serializer
+      // errors are arrays) -- normalise both shapes.
+      const first = serverErrors?.[0]?.errors ? Object.values(serverErrors[0].errors)[0] : undefined;
+      const firstMessage = Array.isArray(first) ? first[0] : first;
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("common.error"),

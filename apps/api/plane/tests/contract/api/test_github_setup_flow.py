@@ -596,10 +596,9 @@ class TestGitHubSetupCallbackEndpoint:
         # D2: if a live row appears between our select and create (concurrent
         # attach), the create fails with IntegrityError -- the loser must be
         # rejected, never fall through to the unconditional overwrite.
+        # Start from NO row so the flow reaches create() (a pre-existing live
+        # row would trip already_claimed first and never exercise the race).
         _configure_app()
-        GithubAppInstallation.objects.create(
-            workspace=second_workspace, installation_id=505, account_login="victim-org"
-        )
         state = setup_state.issue("install", workspace_id=str(workspace.id), user_id=str(create_user.id))
         with (
             patch(
@@ -615,8 +614,10 @@ class TestGitHubSetupCallbackEndpoint:
 
         assert resp.status_code == status.HTTP_302_FOUND
         assert "github=failed" in resp["Location"]
-        victim = GithubAppInstallation.objects.get(installation_id=505)
-        assert victim.workspace_id == second_workspace.id
+        # The race loser must not own the installation.
+        assert not GithubAppInstallation.all_objects.filter(
+            installation_id=505, workspace=workspace
+        ).exists()
 
     @pytest.mark.django_db
     def test_disconnect_preserves_enabled_repos_and_mappings(
