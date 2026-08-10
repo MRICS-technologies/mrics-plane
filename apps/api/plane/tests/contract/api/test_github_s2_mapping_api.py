@@ -24,7 +24,7 @@ from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMe
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.db.models.integration.github_sync import RepoProjectMapping
 from plane.license.models import InstanceConfiguration
-from plane.utils.encrypt import encrypt_data
+from plane.license.utils.encryption import encrypt_data
 
 
 def _configure_app(app_id="555111", private_key_pem="fake-key", app_slug="plane-app"):
