@@ -23,7 +23,7 @@ from rest_framework import status
 from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMember
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.db.models.integration.github_sync import RepoProjectMapping
-from plane.db.models.instance import InstanceConfiguration
+from plane.license.models import InstanceConfiguration
 from plane.utils.encrypt import encrypt_data
 
 
