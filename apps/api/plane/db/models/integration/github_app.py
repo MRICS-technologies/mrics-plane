@@ -28,6 +28,13 @@ class GithubAppInstallation(BaseModel):
     account_login = models.CharField(max_length=255)
     account_type = models.CharField(max_length=50, blank=True)
     is_active = models.BooleanField(default=True)
+    # Phase 1 discovery fields (0129): populated by the verified install
+    # callback and the webhook lifecycle handlers. All additive/nullable so
+    # every pre-0129 row keeps working unpopulated.
+    account_avatar_url = models.CharField(max_length=500, blank=True)
+    repository_selection = models.CharField(max_length=20, blank=True)
+    suspended_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         """Return the installation account and workspace"""
@@ -69,6 +76,12 @@ class GithubEnabledRepository(BaseModel):
     github_repository_id = models.BigIntegerField()
     full_name = models.CharField(max_length=500)
     is_enabled = models.BooleanField(default=True)
+    # Phase 1 discovery fields (0129): populated from the live
+    # `list_installation_repositories()` response, refreshed on every
+    # available-repositories call.
+    private = models.BooleanField(default=False)
+    default_branch = models.CharField(max_length=255, blank=True)
+    html_url = models.CharField(max_length=500, blank=True)
 
     def __str__(self):
         """Return the repository full name"""

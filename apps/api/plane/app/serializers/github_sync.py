@@ -29,11 +29,24 @@ class GithubAppInstallationSerializer(BaseSerializer):
             "installation_id",
             "account_login",
             "account_type",
+            "account_avatar_url",
+            "repository_selection",
             "is_active",
+            "suspended_at",
+            "last_synced_at",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "is_active", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "account_avatar_url",
+            "repository_selection",
+            "is_active",
+            "suspended_at",
+            "last_synced_at",
+            "created_at",
+            "updated_at",
+        ]
 
     def validate_installation_id(self, value):
         if value <= 0:
@@ -63,6 +76,9 @@ class GithubEnabledRepositorySerializer(BaseSerializer):
             "github_repository_id",
             "full_name",
             "is_enabled",
+            "private",
+            "default_branch",
+            "html_url",
             "created_at",
             "updated_at",
         ]
@@ -88,7 +104,7 @@ class GithubEnabledRepositoryNestedSerializer(BaseSerializer):
 
     class Meta:
         model = GithubEnabledRepository
-        fields = ["id", "github_repository_id", "full_name", "is_enabled"]
+        fields = ["id", "github_repository_id", "full_name", "is_enabled", "default_branch"]
 
 
 # ---------------------------------------------------------------------------

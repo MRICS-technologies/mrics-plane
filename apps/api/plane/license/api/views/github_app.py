@@ -3,13 +3,17 @@
 # See the LICENSE file for details.
 
 import time
+from urllib.parse import urlencode, urlsplit
 
 import jwt
 from jwt.exceptions import PyJWTError
+from django.http import HttpResponseRedirect
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .base import BaseAPIView
+from plane.authentication.utils.host import base_host
 from plane.license.api.permissions import InstanceAdminPermission
 from plane.license.api.serializers.github_app import (
     ALLOWED_KEYS,
@@ -20,7 +24,48 @@ from plane.license.api.serializers.github_app import (
 )
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import decrypt_data, encrypt_data
+from plane.services.github.client import GitHubClient
+from plane.services.github.credentials import DEFAULT_GITHUB_HTML_BASE_URL
+from plane.services.github.setup_state import consume as consume_setup_state, issue as issue_setup_state
 from plane.utils.cache import invalidate_cache
+
+# GitHub App manifest defaults (Phase 1 scope only): branch creation, reading
+# repo metadata, and reading PRs for link correlation. No `administration`,
+# no PR/issue write access.
+MANIFEST_DEFAULT_PERMISSIONS = {"contents": "write", "metadata": "read", "pull_requests": "read"}
+MANIFEST_DEFAULT_EVENTS = ["pull_request", "push", "installation", "installation_repositories"]
+
+
+def _write_github_app_configuration(values):
+    """Persist validated `GITHUB_APP_*` values through the single write path
+    so encryption, category, and soft-delete-revival stay consistent whether
+    the caller is the manual PATCH form or the automated manifest callback."""
+    for key, value in values.items():
+        if key == "GITHUB_APP_ENABLED":
+            value = "1" if value else "0"
+        elif isinstance(value, str):
+            value = value.strip() if key not in SECRET_KEYS else value
+
+        # Use all_objects (not the soft-delete-filtered default manager) so a
+        # reconfigure after DELETE recreates a working row instead of hitting
+        # the unique constraint on a retained, soft-deleted record.
+        configuration, _ = InstanceConfiguration.all_objects.get_or_create(
+            key=key,
+            defaults={
+                "category": GITHUB_APP_CATEGORY,
+                "is_encrypted": key in SECRET_KEYS,
+            },
+        )
+        configuration.category = GITHUB_APP_CATEGORY
+        configuration.is_encrypted = key in SECRET_KEYS
+        configuration.value = encrypt_data(value) if key in SECRET_KEYS else value
+        configuration.deleted_at = None
+        configuration.save(update_fields=["category", "is_encrypted", "value", "deleted_at", "updated_at"])
+
+
+def _is_github_app_already_configured():
+    configuration = InstanceConfiguration.objects.filter(key="GITHUB_APP_ID").first()
+    return bool(configuration and configuration.value)
 
 
 class GitHubAppConfigurationEndpoint(BaseAPIView):
@@ -36,29 +81,7 @@ class GitHubAppConfigurationEndpoint(BaseAPIView):
     def patch(self, request):
         serializer = GitHubAppConfigurationRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        for key, value in serializer.validated_data.items():
-            if key == "GITHUB_APP_ENABLED":
-                value = "1" if value else "0"
-            elif isinstance(value, str):
-                value = value.strip() if key not in SECRET_KEYS else value
-
-            # Use all_objects (not the soft-delete-filtered default manager) so a
-            # reconfigure after DELETE recreates a working row instead of hitting
-            # the unique constraint on a retained, soft-deleted record.
-            configuration, _ = InstanceConfiguration.all_objects.get_or_create(
-                key=key,
-                defaults={
-                    "category": GITHUB_APP_CATEGORY,
-                    "is_encrypted": key in SECRET_KEYS,
-                },
-            )
-            configuration.category = GITHUB_APP_CATEGORY
-            configuration.is_encrypted = key in SECRET_KEYS
-            configuration.value = encrypt_data(value) if key in SECRET_KEYS else value
-            configuration.deleted_at = None
-            configuration.save(update_fields=["category", "is_encrypted", "value", "deleted_at", "updated_at"])
-
+        _write_github_app_configuration(serializer.validated_data)
         return Response(serialize_github_app_configuration(), status=status.HTTP_200_OK)
 
     @invalidate_cache(path="/api/instances/configurations/", user=False)
@@ -116,3 +139,96 @@ class GitHubAppConfigurationTestEndpoint(BaseAPIView):
             {"valid": True, "configuration": serialize_github_app_configuration()},
             status=status.HTTP_200_OK,
         )
+
+
+class GitHubAppManifestEndpoint(BaseAPIView):
+    """Instance-admin-only: build the one-time GitHub App manifest + state for
+    the "Automated setup" flow (Coolify pattern). Never contacts GitHub -- the
+    browser POSTs the manifest straight to GitHub via a hidden auto-submit form."""
+
+    permission_classes = [InstanceAdminPermission]
+
+    def post(self, request):
+        if _is_github_app_already_configured():
+            return Response(
+                {"error": "already_configured", "detail": "A GitHub App is already configured on this instance."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        public_base_url = (request.data.get("public_base_url") or "").strip()
+        base_url = public_base_url.rstrip("/") if public_base_url else request.build_absolute_uri("/").rstrip("/")
+        html_base_url = (request.data.get("html_base_url") or DEFAULT_GITHUB_HTML_BASE_URL).rstrip("/")
+        organization = (request.data.get("organization") or "").strip()
+
+        state = issue_setup_state("manifest", user_id=str(request.user.id))
+        hostname = urlsplit(base_url).hostname or "instance"
+
+        manifest = {
+            "name": f"Plane ({hostname})"[:34],
+            "url": base_url,
+            "hook_attributes": {"url": f"{base_url}/api/github/webhook/"},
+            "redirect_url": f"{base_url}/api/instances/github-app/manifest/callback/",
+            "setup_url": f"{base_url}/api/github/setup/",
+            "setup_on_update": True,
+            "public": False,
+            "request_oauth_on_install": False,
+            "default_permissions": MANIFEST_DEFAULT_PERMISSIONS,
+            "default_events": MANIFEST_DEFAULT_EVENTS,
+        }
+        post_url = (
+            f"{html_base_url}/organizations/{organization}/settings/apps/new"
+            if organization
+            else f"{html_base_url}/settings/apps/new"
+        )
+
+        return Response({"manifest": manifest, "post_url": post_url, "state": state}, status=status.HTTP_200_OK)
+
+
+class GitHubAppManifestCallbackEndpoint(BaseAPIView):
+    """`AllowAny` + state-gated: GitHub redirects the admin's browser here with
+    a one-time `code` after the manifest is submitted. State validation must
+    fully gate this endpoint since it is otherwise unauthenticated."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def _redirect_to_admin(self, request, github_app_status):
+        admin_url = base_host(request=request, is_admin=True).rstrip("/") + "/github-app/"
+        return HttpResponseRedirect(f"{admin_url}?{urlencode({'github_app': github_app_status})}")
+
+    def get(self, request):
+        state = request.query_params.get("state", "")
+        code = request.query_params.get("code", "")
+
+        # State is checked, and burned, before any GitHub call or persistence.
+        claim = consume_setup_state(state, "manifest")
+        if not claim:
+            return Response({"error": "invalid_state"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if _is_github_app_already_configured():
+            return Response({"error": "already_configured"}, status=status.HTTP_403_FORBIDDEN)
+
+        if not code:
+            return Response({"error": "missing_code"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = GitHubClient.convert_manifest(code)
+        except Exception:
+            return self._redirect_to_admin(request, "conversion_failed")
+
+        if not data.get("id") or not data.get("pem"):
+            return self._redirect_to_admin(request, "conversion_failed")
+
+        _write_github_app_configuration(
+            {
+                "GITHUB_APP_ID": str(data.get("id")),
+                "GITHUB_APP_SLUG": data.get("slug") or "",
+                "GITHUB_APP_CLIENT_ID": data.get("client_id") or "",
+                "GITHUB_APP_CLIENT_SECRET": data.get("client_secret") or "",
+                "GITHUB_APP_PRIVATE_KEY": data.get("pem") or "",
+                "GITHUB_APP_WEBHOOK_SECRET": data.get("webhook_secret") or "",
+                "GITHUB_APP_ENABLED": True,
+            }
+        )
+
+        return self._redirect_to_admin(request, "connected")

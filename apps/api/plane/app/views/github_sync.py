@@ -7,9 +7,14 @@ import hashlib
 import hmac
 import logging
 import re
+from datetime import timedelta
+from urllib.parse import urlencode
 
 # Third party imports
+import requests
 from django.db import IntegrityError, transaction
+from django.http import HttpResponseRedirect
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -24,11 +29,13 @@ from plane.app.serializers.github_sync import (
     IssueGitLinkSerializer,
     RepoProjectMappingSerializer,
 )
+from plane.authentication.utils.host import base_host
 from plane.db.models import Issue, Project, Workspace
 from plane.db.models.integration.github_sync import GithubWebhookDelivery, IssueGitLink, RepoProjectMapping
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import get_github_app_credentials
+from plane.services.github.setup_state import consume as consume_setup_state, issue as issue_setup_state, STATE_TTL_SECONDS
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +49,14 @@ MAX_WEBHOOK_BODY_BYTES = 1024 * 1024
 _OPEN_ACTIONS = {"opened", "reopened"}
 _CLOSE_ACTIONS = {"closed"}
 _SYNC_ACTIONS = {"synchronize"}
+
+# X-GitHub-Event values this view parses the body for; any other event is
+# still recorded as a delivery (for dedup) but never JSON-decoded.
+_HANDLED_EVENTS = {"pull_request", "installation", "installation_repositories"}
+# GitHub's actual `installation.action` values are "suspend"/"unsuspend";
+# the "suspended"/"unsuspended" spellings are accepted defensively.
+_SUSPEND_ACTIONS = {"suspend", "suspended"}
+_UNSUSPEND_ACTIONS = {"unsuspend", "unsuspended"}
 
 # ---------------------------------------------------------------------------
 # S1: RepoProjectMappingViewSet (hardened for S2)
@@ -228,19 +243,72 @@ class GitHubWebhookView(BaseAPIView):
         if not delivery_id:
             return Response(status=status.HTTP_200_OK)
 
-        # Parse signed pull-request data before recording the delivery. A bad
-        # JSON body must not poison GitHub's retry/dedup path.
-        payload = request.data if event == "pull_request" else None
+        # Parse signed payloads before recording the delivery. A bad JSON body
+        # must not poison GitHub's retry/dedup path.
+        payload = request.data if event in _HANDLED_EVENTS else None
+        installation_id = (payload.get("installation") or {}).get("id") if payload else None
         try:
             with transaction.atomic():
-                GithubWebhookDelivery.objects.create(delivery_id=delivery_id, event=event)
+                GithubWebhookDelivery.objects.create(
+                    delivery_id=delivery_id, event=event, installation_id=installation_id
+                )
                 if payload is not None:
-                    self._process_pull_request(payload or {})
+                    if event == "pull_request":
+                        self._process_pull_request(payload or {})
+                    elif event == "installation":
+                        self._process_installation(payload or {})
+                    elif event == "installation_repositories":
+                        self._process_installation_repositories(payload or {})
         except IntegrityError:
             # A live delivery id can be created only once. GitHub retries are
             # intentionally acknowledged without duplicating side effects.
             return Response(status=status.HTTP_200_OK)
         return Response(status=status.HTTP_200_OK)
+
+    def _process_installation(self, payload):
+        action = payload.get("action")
+        installation_id = (payload.get("installation") or {}).get("id")
+        if not installation_id:
+            return
+
+        if action == "created":
+            # The verified /github/setup/ callback is the source of truth for
+            # attaching a new installation to a workspace; this event carries
+            # no trustworthy workspace binding of its own, so it is a no-op.
+            return
+
+        installation = GithubAppInstallation.objects.filter(installation_id=installation_id).first()
+        if not installation:
+            return
+
+        if action == "deleted":
+            installation.is_active = False
+            installation.suspended_at = installation.suspended_at or timezone.now()
+            installation.save(update_fields=["is_active", "suspended_at", "updated_at"])
+        elif action in _SUSPEND_ACTIONS:
+            installation.is_active = False
+            installation.suspended_at = timezone.now()
+            installation.save(update_fields=["is_active", "suspended_at", "updated_at"])
+        elif action in _UNSUSPEND_ACTIONS:
+            installation.is_active = True
+            installation.suspended_at = None
+            installation.save(update_fields=["is_active", "suspended_at", "updated_at"])
+
+    def _process_installation_repositories(self, payload):
+        if payload.get("action") != "removed":
+            return
+        installation_id = (payload.get("installation") or {}).get("id")
+        if not installation_id:
+            return
+        installation = GithubAppInstallation.objects.filter(installation_id=installation_id).first()
+        if not installation:
+            return
+        repo_ids = [repo.get("id") for repo in payload.get("repositories_removed") or [] if repo.get("id")]
+        if not repo_ids:
+            return
+        GithubEnabledRepository.objects.filter(
+            installation=installation, github_repository_id__in=repo_ids
+        ).update(is_enabled=False, updated_at=timezone.now())
 
     def _process_pull_request(self, payload):
         installation_id = (payload.get("installation") or {}).get("id")
@@ -489,6 +557,116 @@ class WorkspaceInstallationEndpoint(BaseAPIView):
 
 
 # ---------------------------------------------------------------------------
+# P1 1.4: One-click install (Coolify pattern) -- state-verified callback
+# ---------------------------------------------------------------------------
+
+
+class WorkspaceGitHubInstallURLEndpoint(BaseAPIView):
+    """Issues a one-time, workspace-bound `state` and the GitHub install URL
+    that carries it. The browser is sent straight to GitHub; nothing here
+    trusts anything the client supplies beyond the workspace in the URL."""
+
+    @allow_permission([ROLE.ADMIN], level="WORKSPACE")
+    def post(self, request, slug):
+        credentials = get_github_app_credentials()
+        if not credentials or not credentials.app_slug:
+            return Response(
+                {"error": "GitHub App is not configured on this instance."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        workspace = Workspace.objects.get(slug=slug)
+        redirect = (request.data.get("redirect") or "").strip()
+        state = issue_setup_state(
+            "install", workspace_id=str(workspace.id), user_id=str(request.user.id), redirect=redirect
+        )
+        install_url = (
+            f"{credentials.html_base_url}/apps/{credentials.app_slug}/installations/new"
+            f"?{urlencode({'state': state})}"
+        )
+        return Response(
+            {"install_url": install_url, "expires_at": timezone.now() + timedelta(seconds=STATE_TTL_SECONDS)},
+            status=status.HTTP_200_OK,
+        )
+
+
+class GitHubSetupCallbackEndpoint(BaseAPIView):
+    """`AllowAny` + state-gated: GitHub redirects the installer's browser here
+    after `installations/new`. The installation is looked up and verified
+    against our own app id via GitHub before anything is persisted -- the
+    query-string `installation_id`/`setup_action` are never trusted as-is."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        claim = consume_setup_state(request.query_params.get("state", ""), "install")
+        if not claim:
+            return Response({"error": "invalid_state"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            installation_id = int(request.query_params.get("installation_id", ""))
+        except (TypeError, ValueError):
+            return Response({"error": "invalid_installation_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        workspace = Workspace.objects.filter(pk=claim.get("workspace_id")).first()
+        if not workspace:
+            return Response({"error": "invalid_workspace"}, status=status.HTTP_400_BAD_REQUEST)
+
+        credentials = get_github_app_credentials()
+        if not credentials:
+            return Response({"error": "not_configured"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        try:
+            installation_data = GitHubClient.for_installation(installation_id).get_installation(installation_id)
+        except requests.RequestException:
+            return Response({"error": "verification_failed"}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if not installation_data or str(installation_data.get("app_id")) != str(credentials.app_id):
+            return Response({"error": "installation_mismatch"}, status=status.HTTP_400_BAD_REQUEST)
+
+        self._upsert_installation(workspace, installation_id, installation_data)
+
+        web_url = base_host(request=request, is_app=True).rstrip("/")
+        redirect_url = f"{web_url}/{workspace.slug}/settings/github/?{urlencode({'github': 'connected'})}"
+        return HttpResponseRedirect(redirect_url)
+
+    @staticmethod
+    def _upsert_installation(workspace, installation_id, installation_data):
+        account = installation_data.get("account") or {}
+        fields = {
+            "workspace": workspace,
+            "account_login": account.get("login", ""),
+            "account_type": account.get("type", ""),
+            "account_avatar_url": account.get("avatar_url", ""),
+            "repository_selection": installation_data.get("repository_selection", ""),
+            "is_active": True,
+            "suspended_at": None,
+            "deleted_at": None,
+            "last_synced_at": timezone.now(),
+        }
+        with transaction.atomic():
+            installation = (
+                GithubAppInstallation.all_objects.select_for_update()
+                .filter(installation_id=installation_id)
+                .first()
+            )
+            if installation is None:
+                try:
+                    with transaction.atomic():
+                        installation = GithubAppInstallation.objects.create(installation_id=installation_id, **fields)
+                        return installation
+                except IntegrityError:
+                    installation = GithubAppInstallation.all_objects.select_for_update().get(
+                        installation_id=installation_id
+                    )
+            for key, value in fields.items():
+                setattr(installation, key, value)
+            installation.save()
+            return installation
+
+
+# ---------------------------------------------------------------------------
 # S2: Workspace Repositories Endpoints
 # ---------------------------------------------------------------------------
 
@@ -520,7 +698,15 @@ class WorkspaceRepositoriesEndpoint(BaseAPIView):
                 {"error": "No active GitHub installation for this workspace."},
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
-        serializer = GithubEnabledRepositorySerializer(data=request.data)
+        # The repo picker enables/disables many repositories in one save; the
+        # panel's original single-object POST keeps working unchanged.
+        if isinstance(request.data, list):
+            return self._bulk_upsert(installation, request.data)
+        return self._create_single(installation, request.data)
+
+    @staticmethod
+    def _create_single(installation, data):
+        serializer = GithubEnabledRepositorySerializer(data=data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -543,8 +729,86 @@ class WorkspaceRepositoriesEndpoint(BaseAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @staticmethod
+    def _bulk_upsert(installation, items):
+        results = []
+        errors = []
+        with transaction.atomic():
+            installation = GithubAppInstallation.objects.select_for_update().get(pk=installation.pk)
+            for index, item in enumerate(items):
+                serializer = GithubEnabledRepositorySerializer(data=item)
+                if not serializer.is_valid():
+                    errors.append({"index": index, "errors": serializer.errors})
+                    continue
+                validated = serializer.validated_data
+                repo, _ = GithubEnabledRepository.objects.update_or_create(
+                    installation=installation,
+                    github_repository_id=validated["github_repository_id"],
+                    defaults={
+                        "full_name": validated["full_name"],
+                        "is_enabled": validated.get("is_enabled", True),
+                        "private": validated.get("private", False),
+                        "default_branch": validated.get("default_branch", ""),
+                        "html_url": validated.get("html_url", ""),
+                    },
+                )
+                results.append(GithubEnabledRepositorySerializer(repo).data)
+        if errors:
+            return Response(
+                {"results": results, "errors": errors},
+                status=status.HTTP_207_MULTI_STATUS if results else status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(results, status=status.HTTP_200_OK)
+
+    @staticmethod
     def _get_installation(slug):
         return GithubAppInstallation.objects.filter(workspace__slug=slug, is_active=True).first()
+
+
+class WorkspaceAvailableRepositoriesEndpoint(BaseAPIView):
+    """Live view of every repository the installation can see, merged with
+    this workspace's `GithubEnabledRepository` state. No cache table -- the
+    repo picker is opened rarely enough that a direct GitHub call is fine."""
+
+    @allow_permission([ROLE.ADMIN], level="WORKSPACE")
+    def get(self, request, slug):
+        installation = WorkspaceRepositoriesEndpoint._get_installation(slug)
+        if not installation:
+            return Response(
+                {"error": "No active GitHub installation for this workspace."},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+
+        try:
+            repositories = GitHubClient.for_installation(installation.installation_id).list_installation_repositories()
+        except requests.RequestException:
+            return Response(
+                {"error": "github_unavailable", "detail": "Could not reach GitHub. Please retry."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        enabled_by_repo_id = {
+            repo.github_repository_id: repo
+            for repo in GithubEnabledRepository.objects.filter(installation=installation)
+        }
+
+        def _is_enabled(repo_id):
+            enabled_row = enabled_by_repo_id.get(repo_id)
+            return bool(enabled_row and enabled_row.is_enabled)
+
+        data = [
+            {
+                "github_repository_id": repo.get("id"),
+                "full_name": repo.get("full_name", ""),
+                "private": bool(repo.get("private", False)),
+                "default_branch": repo.get("default_branch", ""),
+                "html_url": repo.get("html_url", ""),
+                "is_enabled": _is_enabled(repo.get("id")),
+            }
+            for repo in repositories
+        ]
+        installation.last_synced_at = timezone.now()
+        installation.save(update_fields=["last_synced_at", "updated_at"])
+        return Response(data, status=status.HTTP_200_OK)
 
 
 class WorkspaceRepositoryDetailEndpoint(BaseAPIView):

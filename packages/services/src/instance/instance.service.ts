@@ -13,6 +13,8 @@ import type {
   IInstanceConfiguration,
   IInstanceGitHubAppConfiguration,
   IInstanceInfo,
+  TInstanceGitHubAppManifestRequest,
+  TInstanceGitHubAppManifestResponse,
   TInstanceGitHubAppPatchPayload,
   TInstanceGitHubAppTestResult,
   TPage,
@@ -192,6 +194,22 @@ export class InstanceService extends APIService {
    */
   async testGitHubAppConfiguration(): Promise<TInstanceGitHubAppTestResult> {
     return this.post("/api/instances/github-app/test/")
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw error?.response?.data;
+      });
+  }
+
+  /**
+   * Requests a GitHub App manifest + one-time state for the automated setup flow
+   * @param {TInstanceGitHubAppManifestRequest} data Optional public base URL / org overrides
+   * @returns {Promise<TInstanceGitHubAppManifestResponse>} Promise resolving to the manifest payload
+   * @throws {Error} If the API request fails
+   */
+  async createGitHubAppManifest(
+    data: TInstanceGitHubAppManifestRequest = {}
+  ): Promise<TInstanceGitHubAppManifestResponse> {
+    return this.post("/api/instances/github-app/manifest/", data)
       .then((response) => response?.data)
       .catch((error) => {
         throw error?.response?.data;

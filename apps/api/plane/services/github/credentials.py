@@ -23,6 +23,7 @@ DEFAULT_GITHUB_HTML_BASE_URL = "https://github.com"
 _SECRET_KEYS = {"GITHUB_APP_PRIVATE_KEY", "GITHUB_APP_WEBHOOK_SECRET", "GITHUB_APP_CLIENT_SECRET"}
 _PUBLIC_KEYS = {
     "GITHUB_APP_ID",
+    "GITHUB_APP_SLUG",
     "GITHUB_APP_CLIENT_ID",
     "GITHUB_APP_GITHUB_BASE_URL",
     "GITHUB_APP_HTML_BASE_URL",
@@ -34,6 +35,7 @@ _ALL_KEYS = _SECRET_KEYS | _PUBLIC_KEYS
 @dataclass(frozen=True)
 class GitHubAppCredentials:
     app_id: str = ""
+    app_slug: str = ""
     # repr=False so an accidental log/print of this object can't leak a
     # secret through its default dataclass repr.
     private_key: str = field(default="", repr=False)
@@ -69,6 +71,7 @@ def get_github_app_credentials():
 
     return GitHubAppCredentials(
         app_id=public_value("GITHUB_APP_ID"),
+        app_slug=public_value("GITHUB_APP_SLUG"),
         private_key=secret_value("GITHUB_APP_PRIVATE_KEY"),
         webhook_secret=secret_value("GITHUB_APP_WEBHOOK_SECRET"),
         client_id=public_value("GITHUB_APP_CLIENT_ID"),

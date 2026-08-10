@@ -10,8 +10,11 @@ from plane.app.views import (
     IssueCreateBranchEndpoint,
     GitHubWebhookView,
     WorkspaceInstallationEndpoint,
+    WorkspaceGitHubInstallURLEndpoint,
+    GitHubSetupCallbackEndpoint,
     WorkspaceRepositoriesEndpoint,
     WorkspaceRepositoryDetailEndpoint,
+    WorkspaceAvailableRepositoriesEndpoint,
 )
 
 urlpatterns = [
@@ -46,6 +49,17 @@ urlpatterns = [
         WorkspaceInstallationEndpoint.as_view(),
         name="github-workspace-installation",
     ),
+    # P1 1.4: One-click install
+    path(
+        "workspaces/<str:slug>/github/install-url/",
+        WorkspaceGitHubInstallURLEndpoint.as_view(),
+        name="github-workspace-install-url",
+    ),
+    path(
+        "github/setup/",
+        GitHubSetupCallbackEndpoint.as_view(),
+        name="github-setup-callback",
+    ),
     # S2: Workspace repositories
     path(
         "workspaces/<str:slug>/github/repositories/",
@@ -56,5 +70,11 @@ urlpatterns = [
         "workspaces/<str:slug>/github/repositories/<uuid:repo_id>/",
         WorkspaceRepositoryDetailEndpoint.as_view(),
         name="github-workspace-repository-detail",
+    ),
+    # P1 1.5: Automatic repository discovery
+    path(
+        "workspaces/<str:slug>/github/available-repositories/",
+        WorkspaceAvailableRepositoriesEndpoint.as_view(),
+        name="github-workspace-available-repositories",
     ),
 ]

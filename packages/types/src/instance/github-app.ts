@@ -51,3 +51,28 @@ export type TInstanceGitHubAppPatchPayload = Partial<
 > & {
   GITHUB_APP_ENABLED?: boolean;
 };
+
+export type TInstanceGitHubAppManifestRequest = {
+  public_base_url?: string;
+  html_base_url?: string;
+  organization?: string;
+};
+
+export type TInstanceGitHubAppManifest = {
+  name: string;
+  url: string;
+  hook_attributes: { url: string };
+  redirect_url: string;
+  setup_url: string;
+  setup_on_update: boolean;
+  public: boolean;
+  request_oauth_on_install: boolean;
+  default_permissions: Record<string, string>;
+  default_events: string[];
+};
+
+export type TInstanceGitHubAppManifestResponse = {
+  manifest: TInstanceGitHubAppManifest;
+  post_url: string;
+  state: string;
+};
