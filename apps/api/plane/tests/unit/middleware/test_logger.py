@@ -174,7 +174,9 @@ class TestAPITokenLogMiddlewareGitHubAppBodyExclusion:
         )
         request.user = AnonymousUser()
         with patch("plane.middleware.logger.process_logs") as process_logs:
-            middleware.process_request(request, HttpResponse(self.SENTINEL.encode()), request_body=self.SENTINEL.encode())
+            middleware.process_request(
+                request, HttpResponse(self.SENTINEL.encode()), request_body=self.SENTINEL.encode()
+            )
             log_data = process_logs.delay.call_args.kwargs["log_data"]
 
         assert log_data["body"] is None

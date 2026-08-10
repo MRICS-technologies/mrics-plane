@@ -391,7 +391,12 @@ class GitHubWebhookView(BaseAPIView):
             deleted.state = state or "unknown"
             deleted.github_updated_at = updated_at
             deleted.detected_via = detected_via
-            deleted.save(update_fields=["deleted_at", "issue", "project", "ref", "url", "state", "github_updated_at", "detected_via", "updated_at"])
+            deleted.save(
+                update_fields=[
+                    "deleted_at", "issue", "project", "ref", "url", "state", "github_updated_at", "detected_via",
+                    "updated_at",
+                ]
+            )
             return
 
         try:
@@ -413,7 +418,9 @@ class GitHubWebhookView(BaseAPIView):
             # A concurrent delivery created it first. Lock and apply this event
             # only if its timestamp is newer, instead of losing that update.
             existing = IssueGitLink.objects.select_for_update().filter(**filters).first()
-            if existing and (not existing.github_updated_at or (updated_at and updated_at > existing.github_updated_at)):
+            if existing and (
+                not existing.github_updated_at or (updated_at and updated_at > existing.github_updated_at)
+            ):
                 existing.ref = ref or existing.ref
                 existing.url = url or existing.url
                 if state:

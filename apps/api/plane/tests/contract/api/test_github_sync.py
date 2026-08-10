@@ -240,7 +240,16 @@ def _configure_webhook_app(secret="test-webhook-secret"):
     return secret
 
 
-def _pull_request_payload(installation, repository, number=17, title="TP-1 implement webhook", head="feature/TP-1-webhook", action="opened", merged=False, updated_at="2026-07-31T00:00:00Z"):
+def _pull_request_payload(
+    installation,
+    repository,
+    number=17,
+    title="TP-1 implement webhook",
+    head="feature/TP-1-webhook",
+    action="opened",
+    merged=False,
+    updated_at="2026-07-31T00:00:00Z",
+):
     return {
         "action": action,
         "installation": {"id": installation.installation_id},
@@ -415,13 +424,19 @@ class TestGitHubPullRequestWebhookContract:
         assert _post_signed_webhook(api_client, payload, secret, "delivery-no-match").status_code == status.HTTP_200_OK
         assert not IssueGitLink.objects.filter(kind="pr").exists()
 
-        second_workspace = Workspace.objects.create(name="Other Workspace", slug="other-webhook-workspace", owner=create_user)
+        second_workspace = Workspace.objects.create(
+            name="Other Workspace", slug="other-webhook-workspace", owner=create_user
+        )
         WorkspaceMember.objects.create(workspace=second_workspace, member=create_user, role=20)
         second_project = Project.objects.create(
             name="Other Project", identifier="TP", workspace=second_workspace, created_by=create_user
         )
         second_issue = Issue.objects.create(
-            name="Other Issue", project=second_project, workspace=second_workspace, created_by=create_user, sequence_id=999
+            name="Other Issue",
+            project=second_project,
+            workspace=second_workspace,
+            created_by=create_user,
+            sequence_id=999,
         )
         RepoProjectMapping.objects.create(
             workspace=second_workspace,
@@ -430,7 +445,10 @@ class TestGitHubPullRequestWebhookContract:
             github_installation_id=installation.installation_id,
             github_repo=repository.full_name,
         )
-        assert _post_signed_webhook(api_client, payload, secret, "delivery-cross-workspace").status_code == status.HTTP_200_OK
+        assert (
+            _post_signed_webhook(api_client, payload, secret, "delivery-cross-workspace").status_code
+            == status.HTTP_200_OK
+        )
         assert not IssueGitLink.objects.filter(kind="pr", issue=second_issue).exists()
 
 
@@ -439,12 +457,21 @@ class TestGitHubPullRequestWebhookContract:
         installation, repository = webhook_context
         secret = _configure_webhook_app()
         payload = _pull_request_payload(installation, repository, number=20, title="TP-1 initial")
-        assert _post_signed_webhook(api_client, payload, secret, "delivery-existing-open").status_code == status.HTTP_200_OK
+        assert (
+            _post_signed_webhook(api_client, payload, secret, "delivery-existing-open").status_code
+            == status.HTTP_200_OK
+        )
         payload.update(action="closed")
         payload["pull_request"].update(
-            title="release housekeeping", head={"ref": "release/no-key"}, merged=False, updated_at="2026-07-31T03:00:00Z"
+            title="release housekeeping",
+            head={"ref": "release/no-key"},
+            merged=False,
+            updated_at="2026-07-31T03:00:00Z",
         )
-        assert _post_signed_webhook(api_client, payload, secret, "delivery-existing-close").status_code == status.HTTP_200_OK
+        assert (
+            _post_signed_webhook(api_client, payload, secret, "delivery-existing-close").status_code
+            == status.HTTP_200_OK
+        )
         link = IssueGitLink.objects.get(kind="pr", github_repo=repository.full_name, pr_number=20)
         assert link.state == "closed"
         assert link.ref == "release/no-key"
@@ -452,20 +479,29 @@ class TestGitHubPullRequestWebhookContract:
         synchronize = _pull_request_payload(
             installation, repository, number=22, title="TP-1 synchronize", action="synchronize"
         )
-        assert _post_signed_webhook(api_client, synchronize, secret, "delivery-sync-initial").status_code == status.HTTP_200_OK
+        assert (
+            _post_signed_webhook(api_client, synchronize, secret, "delivery-sync-initial").status_code
+            == status.HTTP_200_OK
+        )
         assert IssueGitLink.objects.get(kind="pr", github_repo=repository.full_name, pr_number=22).state == "open"
 
     @pytest.mark.django_db
     def test_pr_identity_is_scoped_to_workspace(self, api_client, webhook_context, create_user):
         installation, repository = webhook_context
         secret = _configure_webhook_app()
-        second_workspace = Workspace.objects.create(name="Separate Workspace", slug="separate-webhook-workspace", owner=create_user)
+        second_workspace = Workspace.objects.create(
+            name="Separate Workspace", slug="separate-webhook-workspace", owner=create_user
+        )
         WorkspaceMember.objects.create(workspace=second_workspace, member=create_user, role=20)
         second_project = Project.objects.create(
             name="Separate Project", identifier="ZZ", workspace=second_workspace, created_by=create_user
         )
         second_issue = Issue.objects.create(
-            name="Separate Issue", project=second_project, workspace=second_workspace, created_by=create_user, sequence_id=1
+            name="Separate Issue",
+            project=second_project,
+            workspace=second_workspace,
+            created_by=create_user,
+            sequence_id=1,
         )
         IssueGitLink.objects.create(
             workspace=second_workspace,
@@ -480,7 +516,10 @@ class TestGitHubPullRequestWebhookContract:
             detected_via="title",
         )
         payload = _pull_request_payload(installation, repository, number=21, title="TP-1 current workspace")
-        assert _post_signed_webhook(api_client, payload, secret, "delivery-workspace-scoped").status_code == status.HTTP_200_OK
+        assert (
+            _post_signed_webhook(api_client, payload, secret, "delivery-workspace-scoped").status_code
+            == status.HTTP_200_OK
+        )
         current_link = IssueGitLink.objects.get(
             workspace=installation.workspace, kind="pr", github_repo=repository.full_name, pr_number=21
         )
