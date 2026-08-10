@@ -8,22 +8,19 @@ import { useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import useSWR, { mutate } from "swr";
 // plane imports
+import { GITHUB_PROJECT_MAPPINGS_KEY, GITHUB_REPOSITORIES_KEY } from "@plane/constants";
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { EmptyStateCompact } from "@plane/propel/empty-state";
+import type { TCreateMappingPayload, TRepoProjectMapping } from "@plane/types";
 import { Loader } from "@plane/ui";
 // components
 import { SettingsHeading } from "@/components/settings/heading";
 // services
-import {
-  GithubSyncService,
-  type TCreateMappingPayload,
-  type TRepoProjectMapping,
-} from "@/services/github-sync.service";
+import { GithubSyncService } from "@/services/github-sync.service";
 // local imports
-import { GITHUB_REPOSITORIES_KEY } from "../swr-keys";
 import { CreateMappingModal } from "./create-mapping-modal";
 import { MappingListItem } from "./mapping-list-item";
-import { GITHUB_PROJECT_MAPPINGS_KEY } from "./mapping-swr-keys";
 
 const githubSyncService = new GithubSyncService();
 
@@ -34,6 +31,7 @@ type Props = {
 
 export function MappingPanel(props: Props) {
   const { workspaceSlug, projectId } = props;
+  const { t } = useTranslation();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
 
@@ -91,17 +89,19 @@ export function MappingPanel(props: Props) {
       />
 
       <SettingsHeading
-        title="Repository mapping"
-        description="Map this project to one enabled repository in the workspace's GitHub installation."
+        title={t("project_settings.github.mapping.title")}
+        description={t("project_settings.github.mapping.description")}
         control={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setIsAddModalOpen(true)}
-            disabled={hasMapping || enabledRepositories.length === 0}
-          >
-            Add mapping
-          </Button>
+          !hasMapping ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsAddModalOpen(true)}
+              disabled={enabledRepositories.length === 0}
+            >
+              {t("project_settings.github.mapping.attach_button")}
+            </Button>
+          ) : undefined
         }
       />
 
@@ -115,11 +115,11 @@ export function MappingPanel(props: Props) {
             <TriangleAlert className="size-8" />
           </span>
           <div>
-            <h6 className="text-14 font-medium">Something went wrong!</h6>
-            <p className="text-13 text-tertiary">Mapping could not be loaded, please try again.</p>
+            <h6 className="text-14 font-medium">{t("common.something_went_wrong")}</h6>
+            <p className="text-13 text-tertiary">{t("project_settings.github.mapping.errors.load_failed")}</p>
           </div>
           <Button variant="link" onClick={handleRetry} loading={isRetrying}>
-            Try again
+            {t("workspace_settings.settings.github.retry")}
           </Button>
         </div>
       ) : hasMapping ? (
@@ -131,14 +131,16 @@ export function MappingPanel(props: Props) {
       ) : (
         <EmptyStateCompact
           assetKey="link"
-          title="No repository mapped"
+          title={t("project_settings.github.mapping.empty.title")}
           description={
             enabledRepositories.length > 0
-              ? "Map this project to an enabled repository."
-              : "Enable a repository in workspace GitHub settings before mapping this project."
+              ? t("project_settings.github.mapping.empty.description_ready")
+              : t("project_settings.github.mapping.empty.description_no_repos")
           }
           actions={
-            enabledRepositories.length > 0 ? [{ label: "Add mapping", onClick: () => setIsAddModalOpen(true) }] : []
+            enabledRepositories.length > 0
+              ? [{ label: t("project_settings.github.mapping.attach_button"), onClick: () => setIsAddModalOpen(true) }]
+              : []
           }
           align="start"
           rootClassName="py-10"

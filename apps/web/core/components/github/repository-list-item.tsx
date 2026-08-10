@@ -7,10 +7,10 @@
 import { useState } from "react";
 import { XCircle } from "lucide-react";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import type { TGithubEnabledRepository } from "@plane/types";
 import { ToggleSwitch } from "@plane/ui";
-// services
-import type { TGithubEnabledRepository } from "@/services/github-sync.service";
 // local imports
 import { DeleteRepositoryModal } from "./delete-repository-modal";
 
@@ -22,13 +22,18 @@ type Props = {
 
 export function RepositoryListItem(props: Props) {
   const { repository, onToggle, onDelete } = props;
+  const { t } = useTranslation();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
 
   const handleToggle = async (value: boolean) => {
     setIsToggling(true);
     await onToggle(repository, value).catch(() => {
-      setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message: "This repository could not be updated." });
+      setToast({
+        type: TOAST_TYPE.ERROR,
+        title: t("common.error"),
+        message: t("workspace_settings.settings.github.repositories.update_failed"),
+      });
     });
     setIsToggling(false);
   };
@@ -43,14 +48,20 @@ export function RepositoryListItem(props: Props) {
       />
       <div className="flex flex-col gap-0.5">
         <span className="text-13 font-medium">{repository.full_name}</span>
-        <span className="text-11 text-tertiary">Repository ID: {repository.github_repository_id}</span>
+        <span className="text-11 text-tertiary">
+          {t("workspace_settings.settings.github.repositories.repository_id", {
+            id: repository.github_repository_id,
+          })}
+        </span>
       </div>
       <div className="flex items-center gap-4">
         <ToggleSwitch value={repository.is_enabled} onChange={handleToggle} disabled={isToggling} />
         <button
           type="button"
           onClick={() => setIsDeleteModalOpen(true)}
-          aria-label={`Remove ${repository.full_name}`}
+          aria-label={t("workspace_settings.settings.github.repositories.remove_aria_label", {
+            repo: repository.full_name,
+          })}
           className="grid place-items-center text-danger-primary"
         >
           <XCircle className="h-4 w-4" />

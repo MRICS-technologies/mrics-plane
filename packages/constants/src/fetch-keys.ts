@@ -94,6 +94,19 @@ export const WORKSPACE_PROJECT_NAVIGATION_PREFERENCES = (workspaceSlug: string) 
 
 export const PROJECT_GITHUB_REPOSITORY = (projectId: string) => `PROJECT_GITHUB_REPOSITORY_${projectId.toUpperCase()}`;
 
+// github sync (Phase 1 app-manifest + one-click install rework)
+export const GITHUB_INSTALLATION_KEY = (workspaceSlug: string) => `GITHUB_INSTALLATION_${workspaceSlug.toUpperCase()}`;
+export const GITHUB_REPOSITORIES_KEY = (workspaceSlug: string) => `GITHUB_REPOSITORIES_${workspaceSlug.toUpperCase()}`;
+export const GITHUB_AVAILABLE_REPOSITORIES_KEY = (workspaceSlug: string) =>
+  `GITHUB_AVAILABLE_REPOSITORIES_${workspaceSlug.toUpperCase()}`;
+// Shared by both the project-settings mapping panel and the issue GitHub
+// panel -- a single key keeps them on the same SWR cache entry so creating a
+// mapping in settings revalidates the issue panel instead of leaving it stale.
+export const GITHUB_PROJECT_MAPPINGS_KEY = (workspaceSlug: string, projectId: string) =>
+  `GITHUB_PROJECT_MAPPINGS_${workspaceSlug.toUpperCase()}_${projectId.toUpperCase()}`;
+export const GITHUB_ISSUE_GIT_LINKS_KEY = (workspaceSlug: string, projectId: string, issueId: string) =>
+  `GITHUB_ISSUE_GIT_LINKS_${workspaceSlug.toUpperCase()}_${projectId.toUpperCase()}_${issueId.toUpperCase()}`;
+
 // cycles
 export const WORKSPACE_ACTIVE_CYCLES_LIST = (workspaceSlug: string, cursor: string, per_page: string) =>
   `WORKSPACE_ACTIVE_CYCLES_LIST_${workspaceSlug.toUpperCase()}_${cursor.toUpperCase()}_${per_page.toUpperCase()}`;

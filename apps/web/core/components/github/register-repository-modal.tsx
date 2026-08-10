@@ -6,6 +6,7 @@
 
 import { useForm } from "react-hook-form";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
@@ -30,6 +31,7 @@ type Props = {
 
 export function RegisterRepositoryModal(props: Props) {
   const { isOpen, onClose, onRegister } = props;
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
@@ -78,9 +80,11 @@ export function RegisterRepositoryModal(props: Props) {
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="flex flex-col gap-4 p-5">
-          <h3 className="text-lg font-medium">Add repository</h3>
+          <h3 className="text-lg font-medium">
+            {t("workspace_settings.settings.github.repositories.manual.modal.title")}
+          </h3>
           <p className="text-13 text-tertiary">
-            Manually register a repository for this workspace&apos;s installation. This does not contact GitHub.
+            {t("workspace_settings.settings.github.repositories.manual.modal.description")}
           </p>
 
           <div className="flex flex-col gap-1">
