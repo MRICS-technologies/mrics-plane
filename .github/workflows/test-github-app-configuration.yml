@@ -30,11 +30,15 @@ on:
       - apps/api/plane/db/migrations/0125_github_workspace_installation_models.py
       - apps/api/plane/services/github/client.py
       - apps/api/plane/services/github/credentials.py
+      - apps/api/plane/services/github/setup_state.py
       - apps/api/plane/tests/contract/api/test_github_sync.py
       - apps/api/plane/tests/contract/api/test_github_workspace_installation_models.py
       - apps/api/plane/tests/contract/api/test_github_s2_mapping_api.py
+      - apps/api/plane/tests/contract/api/test_github_setup_flow.py
       - apps/api/plane/db/migrations/0124_github_sync_models.py
       - apps/api/plane/db/migrations/0126_github_webhook_pr_linking.py
+      - apps/api/plane/db/migrations/0128_remove_issuegitlink_issuegitlink_unique_repo_pr_number_when_pr_and_deleted_at_null_and_more.py
+      - apps/api/plane/db/migrations/0129_github_discovery_fields.py
       - apps/api/requirements/**
       - .github/workflows/test-github-app-configuration.yml
 
@@ -102,5 +106,6 @@ jobs:
           plane/tests/contract/api/test_github_sync.py
           plane/tests/contract/api/test_github_workspace_installation_models.py
           plane/tests/contract/api/test_github_s2_mapping_api.py
+          plane/tests/contract/api/test_github_setup_flow.py
           --create-db
           -q
