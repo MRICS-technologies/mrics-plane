@@ -32,8 +32,13 @@ from plane.utils.cache import invalidate_cache
 # GitHub App manifest defaults (Phase 1 scope only): branch creation, reading
 # repo metadata, and reading PRs for link correlation. No `administration`,
 # no PR/issue write access.
+#
+# NOTE (GitHub manifest rules): `installation` and `installation_repositories`
+# MUST NOT be listed in default_events -- GitHub rejects the manifest with
+# "Default events unsupported" and delivers those lifecycle events to every
+# app automatically.
 MANIFEST_DEFAULT_PERMISSIONS = {"contents": "write", "metadata": "read", "pull_requests": "read"}
-MANIFEST_DEFAULT_EVENTS = ["pull_request", "push", "installation", "installation_repositories"]
+MANIFEST_DEFAULT_EVENTS = ["pull_request", "push"]
 
 
 def _write_github_app_configuration(values):
