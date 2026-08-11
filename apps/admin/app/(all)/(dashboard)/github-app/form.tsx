@@ -207,11 +207,19 @@ export function InstanceGitHubAppConfigForm(props: Props) {
     try {
       const updated = await instanceService.updateGitHubAppConfiguration(payload);
       onChange(updated);
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Done!",
-        message: "GitHub App configuration saved. You should test it now.",
-      });
+      if (updated.reset_count) {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "GitHub App configuration saved",
+          message: `App ID changed — ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? " was" : "s were"} reset. Each workspace must reconnect.`,
+        });
+      } else {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Done!",
+          message: "GitHub App configuration saved. You should test it now.",
+        });
+      }
       reset({
         GITHUB_APP_ID: updated.app_id ?? "",
         GITHUB_APP_SLUG: updated.app_slug ?? "",
@@ -268,7 +276,9 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Configuration removed",
-        message: "The GitHub App configuration has been removed from this instance.",
+        message: updated.reset_count
+          ? `The GitHub App configuration has been removed from this instance. ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? " was" : "s were"} reset.`
+          : "The GitHub App configuration has been removed from this instance.",
       });
       reset({
         GITHUB_APP_ID: "",
@@ -301,7 +311,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
         handleSubmit={handleDelete}
         isSubmitting={isDeleting}
         title="Remove GitHub App configuration"
-        content="This will permanently remove the GitHub App credentials stored on this instance. You can reconfigure it again at any time."
+        content="This disconnects GitHub from every workspace and removes all repository mappings. Reconfiguring the app will not restore them."
         primaryButtonText={{ loading: "Removing", default: "Remove" }}
       />
 

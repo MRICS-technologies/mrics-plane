@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 # Third party imports
 import requests
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -35,6 +36,7 @@ from plane.db.models.integration.github_sync import GithubWebhookDelivery, Issue
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import get_github_app_credentials
+from plane.services.github.installations import soft_delete_installations
 from plane.services.github.setup_state import (
     consume as consume_setup_state,
     issue as issue_setup_state,
@@ -106,10 +108,29 @@ class RepoProjectMappingViewSet(BaseViewSet):
             with transaction.atomic():
                 serializer.save(workspace=project.workspace, project=project)
         except IntegrityError:
-            return Response(
-                {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
-                status=status.HTTP_409_CONFLICT,
-            )
+            # F1: unique_together=["project", "github_repo"] is unconditional
+            # (no deleted_at__isnull=True partial constraint), so a
+            # soft-deleted row from a prior disconnect/reset still occupies
+            # the slot -- revive it instead of leaving reconnect permanently
+            # 409ing, mirroring _write_github_app_configuration's revival.
+            existing = RepoProjectMapping.all_objects.filter(
+                project=project,
+                github_repo=serializer.validated_data.get("github_repo"),
+                deleted_at__isnull=False,
+            ).first()
+            if not existing:
+                return Response(
+                    {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            for field, value in serializer.validated_data.items():
+                setattr(existing, field, value)
+            existing.workspace = project.workspace
+            existing.project = project
+            existing.is_default = True
+            existing.deleted_at = None
+            existing.save()
+            return Response(self.serializer_class(existing).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -324,9 +345,9 @@ class GitHubWebhookView(BaseAPIView):
         repo_ids = [repo.get("id") for repo in payload.get("repositories_removed") or [] if repo.get("id")]
         if not repo_ids:
             return
-        GithubEnabledRepository.objects.filter(
-            installation=installation, github_repository_id__in=repo_ids
-        ).update(is_enabled=False, updated_at=timezone.now())
+        GithubEnabledRepository.objects.filter(installation=installation, github_repository_id__in=repo_ids).update(
+            is_enabled=False, updated_at=timezone.now()
+        )
 
     def _process_pull_request(self, payload):
         installation_id = (payload.get("installation") or {}).get("id")
@@ -462,12 +483,7 @@ class GitHubWebhookView(BaseAPIView):
 
         # Restore a soft-deleted matching PR instead of creating a duplicate
         # that the historic unique_together constraint would reject.
-        deleted = (
-            IssueGitLink.all_objects.select_for_update()
-            .filter(**filters)
-            .order_by("-updated_at")
-            .first()
-        )
+        deleted = IssueGitLink.all_objects.select_for_update().filter(**filters).order_by("-updated_at").first()
         if deleted:
             deleted.deleted_at = None
             deleted.issue = issue
@@ -479,7 +495,14 @@ class GitHubWebhookView(BaseAPIView):
             deleted.detected_via = detected_via
             deleted.save(
                 update_fields=[
-                    "deleted_at", "issue", "project", "ref", "url", "state", "github_updated_at", "detected_via",
+                    "deleted_at",
+                    "issue",
+                    "project",
+                    "ref",
+                    "url",
+                    "state",
+                    "github_updated_at",
+                    "detected_via",
                     "updated_at",
                 ]
             )
@@ -565,11 +588,29 @@ class WorkspaceInstallationEndpoint(BaseAPIView):
         installation = GithubAppInstallation.objects.filter(workspace__slug=slug).first()
         if not installation:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        if RepoProjectMapping.objects.filter(repository__installation=installation).exists():
+        force = str(request.query_params.get("force", "") or request.data.get("force", "")).lower() in (
+            "1",
+            "true",
+        )
+        # F4: legacy mappings (repository=None, github_installation_id set)
+        # are invisible to a `repository__installation` filter alone.
+        mapping_count = RepoProjectMapping.objects.filter(
+            Q(repository__installation=installation)
+            | Q(repository__isnull=True, github_installation_id=installation.installation_id)
+        ).count()
+        if mapping_count and not force:
             return Response(
-                {"error": "Remove project mappings before disconnecting this GitHub installation."},
+                {
+                    "error": "Remove project mappings before disconnecting this GitHub installation.",
+                    "mapping_count": mapping_count,
+                },
                 status=status.HTTP_409_CONFLICT,
             )
+        if force:
+            # Repos + mappings are dropped too; git links are preserved so a
+            # workspace keeps its PR link history after a forced disconnect.
+            soft_delete_installations([installation])
+            return Response(status=status.HTTP_204_NO_CONTENT)
         # Raw update: SoftDeleteModel.delete() would dispatch a Celery cascade
         # wiping enabled repos/mappings/git links -- Disconnect must only drop
         # the installation row itself (D3).
@@ -601,8 +642,7 @@ class WorkspaceGitHubInstallURLEndpoint(BaseAPIView):
         workspace = Workspace.objects.get(slug=slug)
         state = issue_setup_state("install", workspace_id=str(workspace.id), user_id=str(request.user.id))
         install_url = (
-            f"{credentials.html_base_url}/apps/{credentials.app_slug}/installations/new"
-            f"?{urlencode({'state': state})}"
+            f"{credentials.html_base_url}/apps/{credentials.app_slug}/installations/new?{urlencode({'state': state})}"
         )
         return Response(
             {"install_url": install_url, "expires_at": timezone.now() + timedelta(seconds=STATE_TTL_SECONDS)},
@@ -701,9 +741,7 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
         }
         with transaction.atomic():
             installation = (
-                GithubAppInstallation.all_objects.select_for_update()
-                .filter(installation_id=installation_id)
-                .first()
+                GithubAppInstallation.all_objects.select_for_update().filter(installation_id=installation_id).first()
             )
             # B1: a *live* row (not soft-deleted) already claimed by a
             # different workspace must never be silently re-pointed. A
@@ -720,8 +758,10 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
             # I3/N6: a workspace holds at most one live installation. Free any
             # other live row this workspace already owns before attaching the
             # one being claimed here.
-            for stale in GithubAppInstallation.objects.select_for_update().filter(workspace=workspace).exclude(
-                installation_id=installation_id
+            for stale in (
+                GithubAppInstallation.objects.select_for_update()
+                .filter(workspace=workspace)
+                .exclude(installation_id=installation_id)
             ):
                 # Raw update, not .delete(): no SoftDelete Celery cascade
                 # (D3) -- freeing the workspace's old claim must not wipe
@@ -743,9 +783,7 @@ class GitHubSetupCallbackEndpoint(BaseAPIView):
                 # setup here, and grabbing it would be the B1 takeover.
                 if issued_at and installation_data.get("created_at"):
                     try:
-                        created_dt = datetime.fromisoformat(
-                            str(installation_data["created_at"]).replace("Z", "+00:00")
-                        )
+                        created_dt = datetime.fromisoformat(str(installation_data["created_at"]).replace("Z", "+00:00"))
                         issued_dt = datetime.fromisoformat(issued_at)
                     except (TypeError, ValueError):
                         # D8: unparseable timestamps fail closed.

@@ -54,8 +54,8 @@ export class GithubSyncService extends APIService {
       });
   }
 
-  async deleteInstallation(workspaceSlug: string): Promise<void> {
-    return this.delete(`/api/workspaces/${workspaceSlug}/github/installation/`)
+  async deleteInstallation(workspaceSlug: string, force?: boolean): Promise<void> {
+    return this.delete(`/api/workspaces/${workspaceSlug}/github/installation/${force ? "?force=1" : ""}`)
       .then((response) => response?.data)
       .catch((error) => {
         throw { status: error?.response?.status, data: error?.response?.data } as TApiError;

@@ -28,9 +28,7 @@ on:
       - apps/api/plane/db/models/integration/github_sync.py
       - apps/api/plane/db/models/integration/github_app.py
       - apps/api/plane/db/migrations/0125_github_workspace_installation_models.py
-      - apps/api/plane/services/github/client.py
-      - apps/api/plane/services/github/credentials.py
-      - apps/api/plane/services/github/setup_state.py
+      - apps/api/plane/services/github/**
       - apps/api/plane/tests/contract/api/test_github_sync.py
       - apps/api/plane/tests/contract/api/test_github_workspace_installation_models.py
       - apps/api/plane/tests/contract/api/test_github_s2_mapping_api.py

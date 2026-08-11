@@ -13,23 +13,28 @@ import { AlertModalCore } from "@plane/ui";
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onDisconnect: () => Promise<void>;
+  onDisconnect: (force?: boolean) => Promise<void>;
 };
 
 export function DisconnectInstallationModal(props: Props) {
   const { isOpen, onClose, onDisconnect } = props;
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Set from a 409's `mapping_count` once the first (non-force) attempt is
+  // rejected -- its presence switches the modal into force-confirm mode, and
+  // the next submit calls onDisconnect(true).
+  const [mappingCount, setMappingCount] = useState<number | null>(null);
 
   const handleClose = () => {
     onClose();
     setIsSubmitting(false);
+    setMappingCount(null);
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await onDisconnect();
+      await onDisconnect(mappingCount !== null);
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("common.success"),
@@ -37,7 +42,12 @@ export function DisconnectInstallationModal(props: Props) {
       });
       handleClose();
     } catch (error) {
-      const typedError = error as { status?: number; data?: { error?: string } };
+      const typedError = error as { status?: number; data?: { error?: string; mapping_count?: number } };
+      if (mappingCount === null && typedError?.status === 409 && typeof typedError?.data?.mapping_count === "number") {
+        setMappingCount(typedError.data.mapping_count);
+        setIsSubmitting(false);
+        return;
+      }
       setToast({
         type: TOAST_TYPE.ERROR,
         title: t("common.error"),
@@ -58,7 +68,13 @@ export function DisconnectInstallationModal(props: Props) {
       handleSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       title={t("workspace_settings.settings.github.installation.disconnect_modal.title")}
-      content={t("workspace_settings.settings.github.installation.disconnect_modal.content")}
+      content={
+        mappingCount !== null
+          ? t("workspace_settings.settings.github.installation.disconnect_modal.force_content", {
+              count: mappingCount,
+            })
+          : t("workspace_settings.settings.github.installation.disconnect_modal.content")
+      }
     />
   );
 }

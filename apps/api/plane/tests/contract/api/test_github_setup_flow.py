@@ -26,9 +26,9 @@ from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import Project, User, Workspace, WorkspaceMember
+from plane.db.models import Issue, Project, ProjectMember, User, Workspace, WorkspaceMember
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
-from plane.db.models.integration.github_sync import RepoProjectMapping
+from plane.db.models.integration.github_sync import IssueGitLink, RepoProjectMapping
 from plane.license.models import Instance, InstanceAdmin, InstanceConfiguration
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 from plane.services.github import setup_state
@@ -37,6 +37,11 @@ from plane.services.github.client import GitHubClient
 MANIFEST_URL = "/api/instances/github-app/manifest/"
 MANIFEST_CALLBACK_URL = "/api/instances/github-app/manifest/callback/"
 SETUP_CALLBACK_URL = "/api/github/setup/"
+GITHUB_APP_CONFIG_URL = "/api/instances/github-app/"
+
+
+def _mapping_url(slug, project_id):
+    return f"/api/workspaces/{slug}/projects/{project_id}/github/mappings/"
 
 
 def _install_url(slug):
@@ -644,6 +649,257 @@ class TestGitHubSetupCallbackEndpoint:
         installation.refresh_from_db()
         assert installation.deleted_at is not None
         assert GithubEnabledRepository.objects.filter(pk=repo.pk).exists()
+
+
+# ---------------------------------------------------------------------------
+# F3/F5: app-id-change reset via the PATCH endpoint (reset_count wiring)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.contract
+class TestGitHubAppConfigurationPatchReset:
+    @pytest.mark.django_db
+    def test_app_id_change_soft_deletes_installations_repos_mappings_and_git_links(
+        self, instance_admin_client, workspace, create_user
+    ):
+        _configure_app(app_id="111111")
+        installation = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=9001, account_login="acme"
+        )
+        repo = GithubEnabledRepository.objects.create(
+            installation=installation, github_repository_id=1, full_name="acme/widgets"
+        )
+        project = Project.objects.create(
+            name="Reset Project", identifier="RST", workspace=workspace, created_by=create_user
+        )
+        mapping = RepoProjectMapping.objects.create(
+            workspace=workspace,
+            project=project,
+            repository=repo,
+            github_installation_id=installation.installation_id,
+            github_repo=repo.full_name,
+        )
+        issue = Issue.objects.create(name="Reset Issue", project=project, workspace=workspace, created_by=create_user)
+        git_link = IssueGitLink.objects.create(
+            workspace=workspace,
+            project=project,
+            issue=issue,
+            github_repo=repo.full_name,
+            kind="pr",
+            ref="42",
+            url="https://github.com/acme/widgets/pull/42",
+            pr_number=42,
+        )
+
+        resp = instance_admin_client.patch(GITHUB_APP_CONFIG_URL, {"GITHUB_APP_ID": "222222"}, format="json")
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["reset_count"] == 1
+        assert GithubAppInstallation.all_objects.get(pk=installation.pk).deleted_at is not None
+        assert GithubEnabledRepository.all_objects.get(pk=repo.pk).deleted_at is not None
+        assert RepoProjectMapping.all_objects.get(pk=mapping.pk).deleted_at is not None
+        assert IssueGitLink.all_objects.get(pk=git_link.pk).deleted_at is not None
+
+    @pytest.mark.django_db
+    def test_app_id_change_resets_every_workspace(self, instance_admin_client, workspace, second_workspace):
+        _configure_app(app_id="111111")
+        first = GithubAppInstallation.objects.create(workspace=workspace, installation_id=9101, account_login="acme")
+        second = GithubAppInstallation.objects.create(
+            workspace=second_workspace, installation_id=9102, account_login="beta"
+        )
+
+        resp = instance_admin_client.patch(GITHUB_APP_CONFIG_URL, {"GITHUB_APP_ID": "222222"}, format="json")
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["reset_count"] == 2
+        assert GithubAppInstallation.all_objects.get(pk=first.pk).deleted_at is not None
+        assert GithubAppInstallation.all_objects.get(pk=second.pk).deleted_at is not None
+
+    @pytest.mark.django_db
+    def test_same_app_id_re_patch_after_delete_does_not_reset_again(self, instance_admin_client, workspace):
+        # F3 regression, updated for B1: DELETE is now the explicit reset
+        # point (see TestGitHubAppConfigurationDeleteReset below), so the
+        # installation is already soft-deleted by the time this re-patch
+        # runs. Re-entering the SAME app id afterwards (e.g. to fix a bad
+        # private key) must not report a SECOND reset just because `old` is
+        # now missing.
+        _configure_app(app_id="333333")
+        installation = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=9201, account_login="acme"
+        )
+
+        delete_resp = instance_admin_client.delete(GITHUB_APP_CONFIG_URL)
+        assert delete_resp.status_code == status.HTTP_200_OK
+        assert not InstanceConfiguration.objects.filter(key="GITHUB_APP_ID").exists()
+        assert GithubAppInstallation.all_objects.get(pk=installation.pk).deleted_at is not None
+
+        resp = instance_admin_client.patch(
+            GITHUB_APP_CONFIG_URL,
+            {"GITHUB_APP_ID": "333333", "GITHUB_APP_PRIVATE_KEY": "fresh-key"},
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["reset_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# B1: DELETE resets every workspace connection (the app-recreation flow)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.contract
+class TestGitHubAppConfigurationDeleteReset:
+    @pytest.mark.django_db
+    def test_delete_soft_deletes_installations_and_reports_reset_count(
+        self, instance_admin_client, workspace, second_workspace
+    ):
+        # B1: the manifest callback only ever runs with no persisted
+        # GITHUB_APP_ID (it 403s otherwise), so `_reset_on_app_id_change` is
+        # always a no-op there -- DELETE is the only place left that resets
+        # existing installations when an admin recreates the app.
+        _configure_app(app_id="444444")
+        first = GithubAppInstallation.objects.create(workspace=workspace, installation_id=9401, account_login="acme")
+        repo = GithubEnabledRepository.objects.create(
+            installation=first, github_repository_id=1, full_name="acme/widgets"
+        )
+        second = GithubAppInstallation.objects.create(
+            workspace=second_workspace, installation_id=9402, account_login="beta"
+        )
+
+        resp = instance_admin_client.delete(GITHUB_APP_CONFIG_URL)
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["reset_count"] == 2
+        assert GithubAppInstallation.all_objects.get(pk=first.pk).deleted_at is not None
+        assert GithubAppInstallation.all_objects.get(pk=second.pk).deleted_at is not None
+        assert GithubEnabledRepository.all_objects.get(pk=repo.pk).deleted_at is not None
+        assert not InstanceConfiguration.objects.filter(key="GITHUB_APP_ID").exists()
+
+    @pytest.mark.django_db
+    def test_delete_with_no_installations_reports_zero_reset_count(self, instance_admin_client):
+        _configure_app(app_id="444444")
+
+        resp = instance_admin_client.delete(GITHUB_APP_CONFIG_URL)
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["reset_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# F4: force-disconnect covers legacy mappings, keeps git links
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.contract
+class TestWorkspaceInstallationForceDisconnect:
+    @pytest.mark.django_db
+    def test_force_disconnect_removes_legacy_mapping_and_keeps_git_links(self, session_client, workspace, create_user):
+        _configure_app()
+        installation = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=9301, account_login="acme"
+        )
+        repo = GithubEnabledRepository.objects.create(
+            installation=installation, github_repository_id=1, full_name="acme/widgets"
+        )
+        project = Project.objects.create(
+            name="Force Disconnect Project", identifier="FDP", workspace=workspace, created_by=create_user
+        )
+        mapped_repo_mapping = RepoProjectMapping.objects.create(
+            workspace=workspace,
+            project=project,
+            repository=repo,
+            github_installation_id=installation.installation_id,
+            github_repo=repo.full_name,
+        )
+        # A legacy mapping predating the repository FK: repository=NULL,
+        # only the raw github_installation_id is set.
+        legacy_project = Project.objects.create(
+            name="Legacy Mapping Project", identifier="LMP", workspace=workspace, created_by=create_user
+        )
+        legacy_mapping = RepoProjectMapping.objects.create(
+            workspace=workspace,
+            project=legacy_project,
+            repository=None,
+            github_installation_id=installation.installation_id,
+            github_repo="acme/legacy",
+        )
+        issue = Issue.objects.create(
+            name="Force Disconnect Issue", project=project, workspace=workspace, created_by=create_user
+        )
+        git_link = IssueGitLink.objects.create(
+            workspace=workspace,
+            project=project,
+            issue=issue,
+            github_repo=repo.full_name,
+            kind="pr",
+            ref="7",
+            url="https://github.com/acme/widgets/pull/7",
+            pr_number=7,
+        )
+
+        # Non-force still 409s and now counts BOTH the FK-backed and the
+        # legacy mapping (F4) instead of only the former.
+        conflict = session_client.delete(f"/api/workspaces/{workspace.slug}/github/installation/")
+        assert conflict.status_code == status.HTTP_409_CONFLICT
+        assert conflict.data["mapping_count"] == 2
+
+        resp = session_client.delete(f"/api/workspaces/{workspace.slug}/github/installation/?force=1")
+
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert RepoProjectMapping.all_objects.get(pk=mapped_repo_mapping.pk).deleted_at is not None
+        assert RepoProjectMapping.all_objects.get(pk=legacy_mapping.pk).deleted_at is not None
+        # PR link history is kept: force-disconnect never touches git links.
+        assert IssueGitLink.all_objects.get(pk=git_link.pk).deleted_at is None
+
+
+# ---------------------------------------------------------------------------
+# F1: soft-deleted RepoProjectMapping is revived, not permanently 409ing
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.contract
+class TestRepoProjectMappingCreate:
+    @pytest.fixture
+    def installation(self, db, workspace):
+        _configure_app()
+        return GithubAppInstallation.objects.create(workspace=workspace, installation_id=808080, account_login="acme")
+
+    @pytest.fixture
+    def repo(self, db, installation):
+        return GithubEnabledRepository.objects.create(
+            installation=installation, github_repository_id=1, full_name="acme/widgets", is_enabled=True
+        )
+
+    @pytest.fixture
+    def project(self, db, workspace, create_user):
+        project = Project.objects.create(
+            name="Mapping Project", identifier="MAP", workspace=workspace, created_by=create_user
+        )
+        ProjectMember.objects.create(workspace=workspace, project=project, member=create_user, role=20, is_active=True)
+        return project
+
+    @pytest.mark.django_db
+    def test_remap_after_soft_delete_revives_row_instead_of_409(self, session_client, workspace, project, repo):
+        mapping = RepoProjectMapping.objects.create(
+            workspace=workspace,
+            project=project,
+            repository=repo,
+            github_installation_id=repo.installation.installation_id,
+            github_repo=repo.full_name,
+        )
+        RepoProjectMapping.all_objects.filter(pk=mapping.pk).update(deleted_at=timezone.now())
+
+        resp = session_client.post(
+            _mapping_url(workspace.slug, project.id), {"repository_id": str(repo.id)}, format="json"
+        )
+
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert str(resp.data["id"]) == str(mapping.pk)
+        revived = RepoProjectMapping.objects.get(pk=mapping.pk)
+        assert revived.deleted_at is None
+        assert revived.github_repo == repo.full_name
+        assert RepoProjectMapping.all_objects.filter(project=project).count() == 1
 
 
 # ---------------------------------------------------------------------------

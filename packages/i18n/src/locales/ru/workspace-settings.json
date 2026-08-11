@@ -205,6 +205,7 @@
           "disconnect_modal": {
             "title": "Disconnect GitHub installation",
             "content": "This removes the installation from this workspace. Existing pull request links stay visible, but branch creation and new links will stop working until you reconnect.",
+            "force_content": "{count, plural, one {This installation has # active project mapping.} other {This installation has # active project mappings.}} Disconnecting now will remove {count, plural, one {it} other {them}} too. Existing pull request links stay visible, but branch creation will stop working until you reconnect and remap.",
             "success": "GitHub installation disconnected.",
             "conflict": "This installation could not be disconnected.",
             "failed": "This installation could not be disconnected."

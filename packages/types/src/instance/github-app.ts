@@ -39,6 +39,10 @@ export type IInstanceGitHubAppConfiguration = {
   private_key: TInstanceGitHubAppSecretMeta;
   webhook_secret: TInstanceGitHubAppSecretMeta;
   client_secret: TInstanceGitHubAppSecretMeta;
+  /** Only present on the PATCH and DELETE responses: how many workspace
+   * installations were soft-deleted -- by PATCH changing `GITHUB_APP_ID`, or
+   * by DELETE clearing the configuration outright. */
+  reset_count?: number;
 };
 
 export type TInstanceGitHubAppTestResult = {
