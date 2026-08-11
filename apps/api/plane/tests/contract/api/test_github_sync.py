@@ -223,6 +223,47 @@ class TestIssueCreateBranchAPI:
         )
         assert links.count() == 1
 
+    @pytest.mark.django_db
+    def test_create_branch_links_branch_already_linked_to_another_issue(
+        self, session_client, workspace, project, issue, mapping, create_user
+    ):
+        # Option 3 (Phase 2): one GitHub branch may be intentionally linked to
+        # several Plane issues -- linking a branch that another issue already
+        # links must succeed (200, no GitHub create call), not 409, leaving
+        # two independent live branch links behind.
+        _configure_webhook_app()
+        other_issue = Issue.objects.create(
+            name="Other Issue", project=project, workspace=project.workspace, created_by=create_user
+        )
+        IssueGitLink.objects.create(
+            workspace=project.workspace,
+            project=project,
+            issue=other_issue,
+            github_repo=mapping.github_repo,
+            kind="branch",
+            ref="feature/shared-branch",
+            url="https://github.example/acme/widgets/tree/feature/shared-branch",
+            state="open",
+            detected_via="manual",
+        )
+
+        url = _create_branch_url(workspace.slug, project.id, issue.id)
+        with (
+            patch("plane.app.views.github_sync.GitHubClient.get_branch_sha", return_value="deadbeef"),
+            patch("plane.app.views.github_sync.GitHubClient.create_branch") as mock_create,
+        ):
+            response = session_client.post(url, {"branch_name": "feature/shared-branch"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert response.data["linked_existing"] is True
+        mock_create.assert_not_called()
+
+        links = IssueGitLink.objects.filter(
+            github_repo=mapping.github_repo, kind="branch", ref="feature/shared-branch"
+        )
+        assert links.count() == 2
+        assert set(links.values_list("issue_id", flat=True)) == {issue.id, other_issue.id}
+
 
 def _set_github_app_webhook_secret(secret):
     InstanceConfiguration.objects.update_or_create(
@@ -507,6 +548,63 @@ class TestGitHubPullRequestWebhookContract:
         assert _post_signed_webhook(api_client, payload, secret, "delivery-reopened").status_code == status.HTTP_200_OK
         link.refresh_from_db()
         assert link.state == "open"
+
+    @pytest.mark.django_db
+    def test_webhook_shared_branch_fans_out_pr_link_to_every_linked_issue(
+        self, api_client, webhook_context, project, issue, create_user
+    ):
+        # Option 3 (Phase 2): a PR opened from a branch shared by multiple
+        # issues must attach to ALL of them, not just the first/newest match.
+        installation, repository = webhook_context
+        secret = _configure_webhook_app()
+        second_issue = Issue.objects.create(
+            name="Second Issue",
+            project=project,
+            workspace=project.workspace,
+            created_by=create_user,
+            sequence_id=2,
+        )
+        for target_issue in (issue, second_issue):
+            IssueGitLink.objects.create(
+                workspace=project.workspace,
+                project=project,
+                issue=target_issue,
+                github_repo=repository.full_name,
+                kind="branch",
+                ref="feature/shared-branch",
+                url="https://github.example/acme/widgets/tree/feature/shared-branch",
+                state="open",
+                detected_via="manual",
+            )
+
+        payload = _pull_request_payload(
+            installation, repository, number=55, title="no key here", head="feature/shared-branch"
+        )
+        response = _post_signed_webhook(api_client, payload, secret, "delivery-shared-open")
+        assert response.status_code == status.HTTP_200_OK
+
+        links = IssueGitLink.objects.filter(kind="pr", github_repo=repository.full_name, pr_number=55)
+        assert links.count() == 2
+        assert set(links.values_list("issue_id", flat=True)) == {issue.id, second_issue.id}
+        assert all(link.state == "open" and link.detected_via == "branch" for link in links)
+
+        # A later delivery for the same PR must update every linked issue's
+        # row, not just one of them, and must not create duplicates.
+        payload.update(action="closed")
+        payload["pull_request"].update(merged=True, updated_at="2026-07-31T05:00:00Z")
+        response = _post_signed_webhook(api_client, payload, secret, "delivery-shared-closed")
+        assert response.status_code == status.HTTP_200_OK
+
+        links = IssueGitLink.objects.filter(kind="pr", github_repo=repository.full_name, pr_number=55)
+        assert links.count() == 2
+        assert all(link.state == "merged" for link in links)
+
+        # GitHub retrying the exact same delivery must be a pure no-op.
+        replay = _post_signed_webhook(api_client, payload, secret, "delivery-shared-closed")
+        assert replay.status_code == status.HTTP_200_OK
+        links = IssueGitLink.objects.filter(kind="pr", github_repo=repository.full_name, pr_number=55)
+        assert links.count() == 2
+        assert all(link.state == "merged" for link in links)
 
     @pytest.mark.django_db
     def test_issue_key_no_match_and_cross_workspace_mapping_are_safe(self, api_client, webhook_context, create_user):

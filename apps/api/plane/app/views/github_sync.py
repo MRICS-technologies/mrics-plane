@@ -445,59 +445,71 @@ class GitHubWebhookView(BaseAPIView):
         updated_at = self._parse_datetime(pr_payload.get("updated_at"))
 
         # State updates must continue to work even if the title/head no longer
-        # contains a key. The existing link is accepted only when it belongs to
+        # contains a key. Existing links are accepted only when they belong to
         # this installation workspace and one of its current project mappings.
+        # A shared branch can back more than one live PR link (one per linked
+        # issue) -- update every one of them, never just the first.
         mapped_project_ids = {mapping.project_id for mapping in mappings}
-        existing = IssueGitLink.objects.filter(
-            workspace=installation.workspace, kind="pr", github_repo=repo_full_name, pr_number=pr_number
-        ).first()
-        if existing:
-            if existing.project_id not in mapped_project_ids:
-                return
+        existing_links = [
+            link
+            for link in IssueGitLink.objects.filter(
+                workspace=installation.workspace, kind="pr", github_repo=repo_full_name, pr_number=pr_number
+            ).select_related("project", "issue")
+            if link.project_id in mapped_project_ids
+        ]
+        for link in existing_links:
             self._upsert_pr_link(
-                project=existing.project,
-                issue=existing.issue,
+                project=link.project,
+                issue=link.issue,
                 repo_full_name=repo_full_name,
                 pr_number=pr_number,
                 ref=head_ref,
                 url=pr_payload.get("html_url", ""),
                 state=state,
                 updated_at=updated_at,
-                detected_via=existing.detected_via,
+                detected_via=link.detected_via,
             )
-            return
 
-        project, issue, detected_via = self._resolve_issue(
-            mappings, repo_full_name, head_ref, pr_payload.get("title") or ""
-        )
-        if not issue:
-            return
-        self._upsert_pr_link(
-            project=project,
-            issue=issue,
-            repo_full_name=repo_full_name,
-            pr_number=pr_number,
-            ref=head_ref,
-            url=pr_payload.get("html_url", ""),
-            state=state,
-            updated_at=updated_at,
-            detected_via=detected_via,
-        )
+        # Newly-matching issues (eg. the branch was shared with another issue
+        # after this PR was opened) still need a link created for them, on top
+        # of whatever already-known links were just updated above.
+        already_linked_issue_ids = {link.issue_id for link in existing_links}
+        resolved = self._resolve_issues(mappings, repo_full_name, head_ref, pr_payload.get("title") or "")
+        for project, issue, detected_via in resolved:
+            if issue.id in already_linked_issue_ids:
+                continue
+            self._upsert_pr_link(
+                project=project,
+                issue=issue,
+                repo_full_name=repo_full_name,
+                pr_number=pr_number,
+                ref=head_ref,
+                url=pr_payload.get("html_url", ""),
+                state=state,
+                updated_at=updated_at,
+                detected_via=detected_via,
+            )
 
     @staticmethod
-    def _resolve_issue(mappings, repo_full_name, head_ref, title):
+    def _resolve_issues(mappings, repo_full_name, head_ref, title):
+        """Every issue this PR should be linked to. A branch may be linked to
+        several issues at once (shared-branch, Phase 2) -- all of them win over
+        the title/head issue-key fallback, deduplicated by issue id, ordered
+        deterministically by project id then issue id."""
         branch_matches = []
+        seen_issue_ids = set()
         if head_ref:
             for mapping in mappings:
-                branch_link = IssueGitLink.objects.filter(
+                branch_links = IssueGitLink.objects.filter(
                     project=mapping.project, github_repo=repo_full_name, kind="branch", ref=head_ref
-                ).first()
-                if branch_link:
+                ).select_related("issue").order_by("issue_id")
+                for branch_link in branch_links:
+                    if branch_link.issue_id in seen_issue_ids:
+                        continue
+                    seen_issue_ids.add(branch_link.issue_id)
                     branch_matches.append((mapping.project, branch_link.issue, "branch"))
-        if len(branch_matches) == 1:
-            return branch_matches[0]
-        if len(branch_matches) > 1:
-            return None, None, None
+        if branch_matches:
+            return branch_matches
 
         issue_matches = []
         for mapping in mappings:
@@ -509,7 +521,7 @@ class GitHubWebhookView(BaseAPIView):
                     if issue:
                         issue_matches.append((mapping.project, issue, "title"))
                         break
-        return issue_matches[0] if len(issue_matches) == 1 else (None, None, None)
+        return [issue_matches[0]] if len(issue_matches) == 1 else []
 
     @staticmethod
     def _resolve_state(action, merged):
@@ -527,7 +539,16 @@ class GitHubWebhookView(BaseAPIView):
 
     @staticmethod
     def _upsert_pr_link(project, issue, repo_full_name, pr_number, ref, url, state, updated_at, detected_via):
-        filters = {"workspace": project.workspace, "kind": "pr", "github_repo": repo_full_name, "pr_number": pr_number}
+        # `issue` is part of the identity now (Phase 2): a shared branch's PR
+        # fans out to several issues, each holding its own live link for the
+        # same repo/pr_number, so lookups must be scoped per issue too.
+        filters = {
+            "workspace": project.workspace,
+            "kind": "pr",
+            "github_repo": repo_full_name,
+            "pr_number": pr_number,
+            "issue": issue,
+        }
         existing = IssueGitLink.objects.select_for_update().filter(**filters).first()
         if existing:
             # Do not let an equal, absent, or older timestamp regress a known

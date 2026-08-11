@@ -93,11 +93,14 @@ class IssueGitLink(ProjectBaseModel):
                 condition=Q(deleted_at__isnull=True),
                 name="issuegitlink_unique_live_issue_repo_kind_ref",
             ),
-            # A GitHub PR number is unique only inside a Plane workspace.
+            # A GitHub PR number is unique per issue inside a Plane workspace --
+            # Phase 2 allows one PR to fan out to every issue sharing its
+            # source branch, so the same (workspace, repo, pr_number) may now
+            # back multiple live rows, one per linked issue.
             models.UniqueConstraint(
-                fields=["workspace", "github_repo", "pr_number"],
+                fields=["workspace", "github_repo", "pr_number", "issue"],
                 condition=Q(kind="pr", deleted_at__isnull=True),
-                name="issuegitlink_unique_repo_pr_number_when_pr_and_deleted_at_null",
+                name="issuegitlink_unique_repo_pr_number_per_issue_when_pr_and_deleted_at_null",
             ),
         ]
         verbose_name = "Issue Git Link"
