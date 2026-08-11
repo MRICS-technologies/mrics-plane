@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 # Third party imports
 import requests
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -107,10 +108,29 @@ class RepoProjectMappingViewSet(BaseViewSet):
             with transaction.atomic():
                 serializer.save(workspace=project.workspace, project=project)
         except IntegrityError:
-            return Response(
-                {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
-                status=status.HTTP_409_CONFLICT,
-            )
+            # F1: unique_together=["project", "github_repo"] is unconditional
+            # (no deleted_at__isnull=True partial constraint), so a
+            # soft-deleted row from a prior disconnect/reset still occupies
+            # the slot -- revive it instead of leaving reconnect permanently
+            # 409ing, mirroring _write_github_app_configuration's revival.
+            existing = RepoProjectMapping.all_objects.filter(
+                project=project,
+                github_repo=serializer.validated_data.get("github_repo"),
+                deleted_at__isnull=False,
+            ).first()
+            if not existing:
+                return Response(
+                    {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
+                    status=status.HTTP_409_CONFLICT,
+                )
+            for field, value in serializer.validated_data.items():
+                setattr(existing, field, value)
+            existing.workspace = project.workspace
+            existing.project = project
+            existing.is_default = True
+            existing.deleted_at = None
+            existing.save()
+            return Response(self.serializer_class(existing).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -572,7 +592,12 @@ class WorkspaceInstallationEndpoint(BaseAPIView):
             "1",
             "true",
         )
-        mapping_count = RepoProjectMapping.objects.filter(repository__installation=installation).count()
+        # F4: legacy mappings (repository=None, github_installation_id set)
+        # are invisible to a `repository__installation` filter alone.
+        mapping_count = RepoProjectMapping.objects.filter(
+            Q(repository__installation=installation)
+            | Q(repository__isnull=True, github_installation_id=installation.installation_id)
+        ).count()
         if mapping_count and not force:
             return Response(
                 {

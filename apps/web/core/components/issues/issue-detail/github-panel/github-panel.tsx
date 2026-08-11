@@ -72,7 +72,7 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
   // header + skeleton) while loading rather than flashing the header on
   // every open of an unmapped project's work item.
   if (isLoading) return null;
-  if (!hasMapping && !hasGitLinks) return null;
+  if (!hasGitLinks && (!hasMapping || disabled)) return null;
 
   return (
     <div className="border-t border-subtle-1 pt-2.5">
