@@ -22,10 +22,12 @@ from plane.license.api.serializers.github_app import (
     GitHubAppConfigurationRequestSerializer,
     serialize_github_app_configuration,
 )
+from plane.db.models.integration.github_app import GithubAppInstallation
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import decrypt_data, encrypt_data
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import DEFAULT_GITHUB_HTML_BASE_URL
+from plane.services.github.installations import soft_delete_installations
 from plane.services.github.setup_state import consume as consume_setup_state, issue as issue_setup_state
 from plane.utils.cache import invalidate_cache
 
@@ -41,10 +43,41 @@ MANIFEST_DEFAULT_PERMISSIONS = {"contents": "write", "metadata": "read", "pull_r
 MANIFEST_DEFAULT_EVENTS = ["pull_request", "push"]
 
 
+def _reset_on_app_id_change(values) -> int:
+    """Soft-delete every workspace's GitHub installation (and everything
+    under it) when `values` carries a `GITHUB_APP_ID` that differs from what
+    is currently persisted -- including when nothing is currently persisted.
+
+    A missing `old` only happens after `GitHubAppConfigurationEndpoint.delete`
+    hard-deletes the config rows, and the manifest callback only reaches here
+    once `_is_github_app_already_configured()` has already gated out a
+    from-scratch setup -- so `old=None` with live installations always means
+    the app was recreated, and installations pointing at the dead app_id must
+    be reset. First-time setup has zero installations, so this is a no-op.
+
+    Returns the number of installations reset (0 if nothing changed).
+    """
+    if "GITHUB_APP_ID" not in values:
+        return 0
+
+    old = InstanceConfiguration.objects.filter(key="GITHUB_APP_ID").first()
+    old_value = (old.value or "").strip() if old else ""
+    new_value = str(values["GITHUB_APP_ID"]).strip()
+    if old_value == new_value:
+        return 0
+
+    result = soft_delete_installations(GithubAppInstallation.objects.all(), include_git_links=True)
+    return result["installations"]
+
+
 def _write_github_app_configuration(values):
     """Persist validated `GITHUB_APP_*` values through the single write path
     so encryption, category, and soft-delete-revival stay consistent whether
-    the caller is the manual PATCH form or the automated manifest callback."""
+    the caller is the manual PATCH form or the automated manifest callback.
+
+    Returns the number of installations reset by `_reset_on_app_id_change`
+    (0 unless `values` changes `GITHUB_APP_ID`)."""
+    reset_count = _reset_on_app_id_change(values)
     for key, value in values.items():
         if key == "GITHUB_APP_ENABLED":
             value = "1" if value else "0"
@@ -66,6 +99,8 @@ def _write_github_app_configuration(values):
         configuration.value = encrypt_data(value) if key in SECRET_KEYS else value
         configuration.deleted_at = None
         configuration.save(update_fields=["category", "is_encrypted", "value", "deleted_at", "updated_at"])
+
+    return reset_count
 
 
 def _is_github_app_already_configured():
@@ -231,7 +266,7 @@ class GitHubAppManifestCallbackEndpoint(BaseAPIView):
         if not data.get("id") or not data.get("pem"):
             return self._redirect_to_admin(request, "conversion_failed")
 
-        _write_github_app_configuration(
+        reset_count = _write_github_app_configuration(
             {
                 "GITHUB_APP_ID": str(data.get("id")),
                 "GITHUB_APP_SLUG": data.get("slug") or "",
@@ -243,4 +278,4 @@ class GitHubAppManifestCallbackEndpoint(BaseAPIView):
             }
         )
 
-        return self._redirect_to_admin(request, "connected")
+        return self._redirect_to_admin(request, "connected_reset" if reset_count else "connected")
