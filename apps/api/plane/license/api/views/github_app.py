@@ -125,9 +125,7 @@ class GitHubAppConfigurationEndpoint(BaseAPIView):
         serializer = GitHubAppConfigurationRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         reset_count = _write_github_app_configuration(serializer.validated_data)
-        return Response(
-            {**serialize_github_app_configuration(), "reset_count": reset_count}, status=status.HTTP_200_OK
-        )
+        return Response({**serialize_github_app_configuration(), "reset_count": reset_count}, status=status.HTTP_200_OK)
 
     @invalidate_cache(path="/api/instances/configurations/", user=False)
     @invalidate_cache(path="/api/instances/", user=False)
