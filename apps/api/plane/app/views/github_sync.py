@@ -640,6 +640,31 @@ class WorkspaceGitHubInstallURLEndpoint(BaseAPIView):
             )
 
         workspace = Workspace.objects.get(slug=slug)
+
+        # Re-connect (Coolify pattern): if the app is already installed on
+        # GitHub, `installations/new` shows the Configure page instead of a
+        # fresh install dialog and no callback fires, so a Disconnected
+        # workspace could never re-attach. Uninstall the workspace's last
+        # soft-deleted installation on GitHub first so the dialog is fresh
+        # again. Best-effort: a first-time connect has no such row, and a
+        # failure here (network, or 404 because it's already gone) must not
+        # block the redirect -- the fresh-install flow below is the goal.
+        stale = (
+            GithubAppInstallation.all_objects.filter(workspace=workspace, deleted_at__isnull=False)
+            .order_by("-updated_at")
+            .first()
+        )
+        if stale and stale.installation_id:
+            try:
+                GitHubClient.for_installation(stale.installation_id).delete_installation(stale.installation_id)
+            except requests.RequestException:
+                logger.info(
+                    "Best-effort GitHub uninstall failed for stale installation %s (workspace %s); "
+                    "proceeding with install URL anyway.",
+                    stale.installation_id,
+                    workspace.id,
+                )
+
         state = issue_setup_state("install", workspace_id=str(workspace.id), user_id=str(request.user.id))
         install_url = (
             f"{credentials.html_base_url}/apps/{credentials.app_slug}/installations/new?{urlencode({'state': state})}"

@@ -116,6 +116,20 @@ class GitHubClient:
         response.raise_for_status()
         return response.json()
 
+    def delete_installation(self, installation_id):
+        """`DELETE /app/installations/{id}` -- uninstalls a stale installation
+        on GitHub before a re-connect issues a fresh install URL, so GitHub
+        shows the install dialog again instead of the already-installed
+        Configure page. Raises on failure; callers treat a stale uninstall as
+        best-effort and swallow the error (the install may already be gone)."""
+        response = requests.delete(
+            f"{self.github_base_url}/app/installations/{installation_id}",
+            headers=self._app_headers(),
+            timeout=10,
+        )
+        response.raise_for_status()
+        return response
+
     def get_installation_token(self):
         if not self.installation_id:
             raise NotImplementedError("GitHub App installation is not configured")
