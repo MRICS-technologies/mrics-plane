@@ -4,16 +4,17 @@ The MRICS Plane fork includes a native GitHub App integration for connecting a P
 
 ## Status
 
-| Capability | Status |
-| --- | --- |
-| Instance GitHub App configuration | Available |
-| Workspace installation and repository registration | Available |
-| Repository → Plane project mapping | Available |
-| Create a branch from a Plane issue | Available |
-| Signed `pull_request` webhook → Plane PR link | Deployed to dev; final live GitHub-delivery smoke test pending |
-| PR action → Plane workflow-state automation | Not implemented |
+| Capability                                         | Status                                                  |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| Instance GitHub App configuration                  | Available                                               |
+| Workspace installation and repository registration | Available                                               |
+| Repository → Plane project mapping                 | Available                                               |
+| Create or link a branch from a Plane issue         | Available                                               |
+| Shared branch across multiple issues               | Available                                               |
+| Signed `pull_request` webhook → Plane PR links     | Available; shared branches fan out to all linked issues |
+| PR action → Plane workflow-state automation        | Not implemented                                         |
 
-The current implementation is merged in `mrics/dev`. It passed the hosted PostgreSQL/Redis contract suite on the merged SHA and is deployed to the MRICS dev instance. Production is not part of this rollout.
+The current implementation is merged in `mrics/dev` and staged as `mrics-v1.4.2.5` on `https://plane-staging.scalezy.com`. Production promotion remains a separate backup + approval step.
 
 ## Documentation map
 
@@ -24,12 +25,12 @@ The current implementation is merged in `mrics/dev`. It passed the hosted Postgr
 
 ## Roles
 
-| Role | Responsibility |
-| --- | --- |
-| Instance admin | Configures the GitHub App credentials and public webhook base URL in Plane’s instance/God-mode settings. |
-| Workspace admin | Registers the GitHub installation and enables repositories available to the workspace. |
-| Project admin | Maps an enabled repository to the appropriate Plane project. |
-| Developer | Uses the issue key in branch names or PR titles and verifies links on the Plane issue. |
+| Role            | Responsibility                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| Instance admin  | Configures the GitHub App credentials and public webhook base URL in Plane’s instance/God-mode settings. |
+| Workspace admin | Registers the GitHub installation and enables repositories available to the workspace.                   |
+| Project admin   | Maps an enabled repository to the appropriate Plane project.                                             |
+| Developer       | Uses the issue key in branch names or PR titles and verifies links on the Plane issue.                   |
 
 ## Security model
 
@@ -38,6 +39,8 @@ GitHub credentials remain server-side and write-only. The webhook endpoint is pu
 ## Quick start
 
 1. Complete [Administrator setup](./admin-setup.md).
-2. Create a Plane issue in a mapped project, such as `TP-123`.
-3. Create a PR from the enabled repository with `TP-123` in its branch name or title.
-4. Follow the [dev acceptance smoke test](./operations-and-troubleshooting.md#dev-acceptance-smoke-test).
+2. Create or open a Plane issue in a mapped project, such as `TP-123`.
+3. Use the GitHub panel to create a suggested branch such as `feature/muhammed-tp-123-fix-login`, or type an existing branch name to link it.
+4. If one branch covers multiple issues, link the same branch from each relevant issue.
+5. Open a PR from the linked branch. The PR appears on every issue linked to that branch.
+6. Follow the [dev acceptance smoke test](./operations-and-troubleshooting.md#dev-acceptance-smoke-test).
