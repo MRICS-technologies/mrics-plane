@@ -134,7 +134,18 @@ class GitHubAppConfigurationEndpoint(BaseAPIView):
         # manager only soft-deletes (sets deleted_at). Soft-deleted rows would
         # keep the key occupied and break a subsequent PATCH reconfiguration.
         InstanceConfiguration.all_objects.filter(key__in=ALLOWED_KEYS).delete()
-        return Response(serialize_github_app_configuration(), status=status.HTTP_200_OK)
+
+        # Removing the config is the explicit reset point: any live
+        # installation now points at credentials the instance no longer
+        # holds, so token minting for it would fail silently until someone
+        # notices. Reset every workspace here rather than leaving it to the
+        # next reconfigure (B1 -- the manifest callback and same-id PATCH are
+        # both no-ops by design; DELETE is the only place left that resets).
+        result = soft_delete_installations(GithubAppInstallation.objects.all(), include_git_links=True)
+        return Response(
+            {**serialize_github_app_configuration(), "reset_count": result["installations"]},
+            status=status.HTTP_200_OK,
+        )
 
 
 class GitHubAppConfigurationTestEndpoint(BaseAPIView):
@@ -269,7 +280,12 @@ class GitHubAppManifestCallbackEndpoint(BaseAPIView):
         if not data.get("id") or not data.get("pem"):
             return self._redirect_to_admin(request, "conversion_failed")
 
-        reset_count = _write_github_app_configuration(
+        # This callback is only reachable when no app is configured yet (the
+        # `_is_github_app_already_configured()` guard above), so
+        # `_write_github_app_configuration` never has an old GITHUB_APP_ID to
+        # compare against and its reset is always a no-op here. The DELETE
+        # endpoint is the explicit reset point for recreating the app.
+        _write_github_app_configuration(
             {
                 "GITHUB_APP_ID": str(data.get("id")),
                 "GITHUB_APP_SLUG": data.get("slug") or "",
@@ -281,4 +297,4 @@ class GitHubAppManifestCallbackEndpoint(BaseAPIView):
             }
         )
 
-        return self._redirect_to_admin(request, "connected_reset" if reset_count else "connected")
+        return self._redirect_to_admin(request, "connected")

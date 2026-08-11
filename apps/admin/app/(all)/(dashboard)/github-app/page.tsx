@@ -45,14 +45,6 @@ const InstanceGithubAppPage = (_props: Route.ComponentProps) => {
     if (status === "connected") {
       setToast({ type: TOAST_TYPE.SUCCESS, title: "GitHub App connected", message: "The GitHub App is ready to use." });
       mutate();
-    } else if (status === "connected_reset") {
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "GitHub App connected",
-        message:
-          "The GitHub App is ready. All workspace GitHub connections were reset — each workspace must reconnect.",
-      });
-      mutate();
     } else {
       setToast({
         type: TOAST_TYPE.ERROR,

@@ -211,7 +211,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
         setToast({
           type: TOAST_TYPE.SUCCESS,
           title: "GitHub App configuration saved",
-          message: `App ID changed — ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? "" : "s"} were reset. Each workspace must reconnect.`,
+          message: `App ID changed — ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? " was" : "s were"} reset. Each workspace must reconnect.`,
         });
       } else {
         setToast({
@@ -276,7 +276,9 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: "Configuration removed",
-        message: "The GitHub App configuration has been removed from this instance.",
+        message: updated.reset_count
+          ? `The GitHub App configuration has been removed from this instance. ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? " was" : "s were"} reset.`
+          : "The GitHub App configuration has been removed from this instance.",
       });
       reset({
         GITHUB_APP_ID: "",
