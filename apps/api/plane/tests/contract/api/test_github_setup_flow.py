@@ -305,6 +305,58 @@ class TestWorkspaceGitHubInstallURLEndpoint:
         resp = api_client.post(_install_url(workspace.slug), {}, format="json")
         assert resp.status_code == status.HTTP_403_FORBIDDEN
 
+    @pytest.mark.django_db
+    def test_first_connect_issues_no_github_delete(self, session_client, workspace):
+        # No soft-deleted row for this workspace yet -- a first-time Connect
+        # must not touch GitHub's uninstall endpoint at all.
+        _configure_app()
+        with patch("plane.app.views.github_sync.GitHubClient.delete_installation") as mock_delete:
+            resp = session_client.post(_install_url(workspace.slug), {}, format="json")
+        assert resp.status_code == status.HTTP_200_OK
+        mock_delete.assert_not_called()
+
+    @pytest.mark.django_db
+    def test_reconnect_uninstalls_stale_installation_before_redirect(self, session_client, workspace):
+        # Re-connect (Coolify pattern): a prior Disconnect left a soft-deleted
+        # row and the app still installed on GitHub. `installations/new` would
+        # show the Configure page (no callback) unless the stale install is
+        # uninstalled first -- so the install-url endpoint must fire the
+        # DELETE before it ever returns the install URL.
+        _configure_app()
+        stale = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=9001, account_login="acme"
+        )
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            stale.delete()
+
+        with patch("plane.app.views.github_sync.GitHubClient.delete_installation") as mock_delete:
+            resp = session_client.post(_install_url(workspace.slug), {}, format="json")
+
+        assert resp.status_code == status.HTTP_200_OK
+        mock_delete.assert_called_once_with(9001)
+        assert "install_url" in resp.data
+
+    @pytest.mark.django_db
+    def test_reconnect_proceeds_when_github_uninstall_fails(self, session_client, workspace):
+        # The uninstall is best-effort -- the install may already be gone on
+        # GitHub's side (404) or the call may fail outright. Either way the
+        # endpoint must still return a fresh install URL.
+        _configure_app()
+        stale = GithubAppInstallation.objects.create(
+            workspace=workspace, installation_id=9002, account_login="acme"
+        )
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            stale.delete()
+
+        with patch(
+            "plane.app.views.github_sync.GitHubClient.delete_installation",
+            side_effect=requests.HTTPError("404 Client Error"),
+        ):
+            resp = session_client.post(_install_url(workspace.slug), {}, format="json")
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert "install_url" in resp.data
+
 
 def _fake_installation_payload(
     app_id, login="acme", account_type="Organization", repository_selection="all", created_at=None
