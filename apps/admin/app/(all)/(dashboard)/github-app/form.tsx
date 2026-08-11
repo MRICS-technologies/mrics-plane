@@ -311,7 +311,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
         handleSubmit={handleDelete}
         isSubmitting={isDeleting}
         title="Remove GitHub App configuration"
-        content="This will permanently remove the GitHub App credentials stored on this instance. You can reconfigure it again at any time."
+        content="This disconnects GitHub from every workspace and removes all repository mappings. Reconfiguring the app will not restore them."
         primaryButtonText={{ loading: "Removing", default: "Remove" }}
       />
 
