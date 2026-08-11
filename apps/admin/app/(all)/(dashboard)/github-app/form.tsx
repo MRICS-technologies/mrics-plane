@@ -207,11 +207,19 @@ export function InstanceGitHubAppConfigForm(props: Props) {
     try {
       const updated = await instanceService.updateGitHubAppConfiguration(payload);
       onChange(updated);
-      setToast({
-        type: TOAST_TYPE.SUCCESS,
-        title: "Done!",
-        message: "GitHub App configuration saved. You should test it now.",
-      });
+      if (updated.reset_count) {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "GitHub App configuration saved",
+          message: `App ID changed — ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? "" : "s"} were reset. Each workspace must reconnect.`,
+        });
+      } else {
+        setToast({
+          type: TOAST_TYPE.SUCCESS,
+          title: "Done!",
+          message: "GitHub App configuration saved. You should test it now.",
+        });
+      }
       reset({
         GITHUB_APP_ID: updated.app_id ?? "",
         GITHUB_APP_SLUG: updated.app_slug ?? "",

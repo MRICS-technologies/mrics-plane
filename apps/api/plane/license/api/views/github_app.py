@@ -45,15 +45,16 @@ MANIFEST_DEFAULT_EVENTS = ["pull_request", "push"]
 
 def _reset_on_app_id_change(values) -> int:
     """Soft-delete every workspace's GitHub installation (and everything
-    under it) when `values` carries a `GITHUB_APP_ID` that differs from what
-    is currently persisted -- including when nothing is currently persisted.
+    under it) when `values` carries a `GITHUB_APP_ID` that differs from a
+    currently-persisted one.
 
-    A missing `old` only happens after `GitHubAppConfigurationEndpoint.delete`
-    hard-deletes the config rows, and the manifest callback only reaches here
-    once `_is_github_app_already_configured()` has already gated out a
-    from-scratch setup -- so `old=None` with live installations always means
-    the app was recreated, and installations pointing at the dead app_id must
-    be reset. First-time setup has zero installations, so this is a no-op.
+    Only resets when a `GITHUB_APP_ID` is already persisted AND the new value
+    differs from it. When nothing is persisted -- first-time setup, or the
+    manual recovery flow of `GitHubAppConfigurationEndpoint.delete` followed
+    by re-entering the same app id to fix a bad key -- this is a no-op:
+    stale installations are simply re-pointed at the (re)configured app the
+    next time they reconnect, rather than every workspace being wiped by an
+    ordinary admin recovery action.
 
     Returns the number of installations reset (0 if nothing changed).
     """
@@ -62,6 +63,8 @@ def _reset_on_app_id_change(values) -> int:
 
     old = InstanceConfiguration.objects.filter(key="GITHUB_APP_ID").first()
     old_value = (old.value or "").strip() if old else ""
+    if not old_value:
+        return 0
     new_value = str(values["GITHUB_APP_ID"]).strip()
     if old_value == new_value:
         return 0
@@ -121,8 +124,10 @@ class GitHubAppConfigurationEndpoint(BaseAPIView):
     def patch(self, request):
         serializer = GitHubAppConfigurationRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        _write_github_app_configuration(serializer.validated_data)
-        return Response(serialize_github_app_configuration(), status=status.HTTP_200_OK)
+        reset_count = _write_github_app_configuration(serializer.validated_data)
+        return Response(
+            {**serialize_github_app_configuration(), "reset_count": reset_count}, status=status.HTTP_200_OK
+        )
 
     @invalidate_cache(path="/api/instances/configurations/", user=False)
     @invalidate_cache(path="/api/instances/", user=False)

@@ -12,6 +12,7 @@ row here is soft-deleted with a raw ``.update()`` instead.
 """
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
@@ -38,12 +39,21 @@ def soft_delete_installations(installations, *, include_git_links: bool = False)
         if not inst_ids:
             return {"installations": 0, "repositories": 0, "mappings": 0, "git_links": 0}
 
-        ws_ids = list(GithubAppInstallation.objects.filter(id__in=inst_ids).values_list("workspace_id", flat=True))
+        target_installations = GithubAppInstallation.objects.filter(id__in=inst_ids)
+        ws_ids = list(target_installations.values_list("workspace_id", flat=True))
+        external_installation_ids = list(target_installations.values_list("installation_id", flat=True))
         repo_qs = GithubEnabledRepository.objects.filter(installation_id__in=inst_ids)
         repo_ids, repo_names = zip(*repo_qs.values_list("id", "full_name")) if repo_qs.exists() else ((), ())
 
+        # F4: legacy mappings (created before the repository FK existed)
+        # store only `github_installation_id` -- the real GitHub installation
+        # id -- with `repository` left null, so they are invisible to the
+        # `repository__installation_id__in` filter alone and would survive a
+        # force-disconnect / app-id reset.
         mapping_count = RepoProjectMapping.all_objects.filter(
-            deleted_at__isnull=True, repository__installation_id__in=inst_ids
+            Q(repository__installation_id__in=inst_ids)
+            | Q(repository__isnull=True, github_installation_id__in=external_installation_ids),
+            deleted_at__isnull=True,
         ).update(deleted_at=now, updated_at=now)
 
         git_link_count = 0
