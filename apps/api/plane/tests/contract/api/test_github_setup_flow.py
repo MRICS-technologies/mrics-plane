@@ -881,7 +881,10 @@ class TestGitHubClientCaching:
         cache.set("github:installation_token:555", "stale-token", 3000)
 
         responses = [_FakeResponse(401), _FakeResponse(200, {"object": {"sha": "abc123"}})]
-        with patch("plane.services.github.client.requests.request", side_effect=responses) as mock_request:
+        with (
+            patch.object(GitHubClient, "_app_jwt", return_value="fake-jwt"),
+            patch("plane.services.github.client.requests.request", side_effect=responses) as mock_request,
+        ):
             sha = client.get_branch_sha("acme", "widgets", "main")
 
         assert sha == "abc123"
