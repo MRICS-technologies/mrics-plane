@@ -3,6 +3,35 @@
 This log tracks every shipped round of the MRICS GitHub integration. Each entry
 maps to a merge on `mrics/dev` and an immutable image tag (`mrics-vX.Y.Z`).
 
+## v1.4.2.5 — creator-name branch suggestions (2026-08-11)
+
+- **UX:** the issue panel's suggested branch name now includes the creator's
+  first name when available, for example
+  `feature/muhammed-alldev-92-payment-flow`.
+- **Fallback:** if `first_name` is blank, Plane uses the first token of
+  `display_name`; if no usable name exists, it keeps the previous
+  `feature/<issue-key>-<slug>` format.
+- **Images:** frontend
+  `sha256:5e886e15433ff334e74f956917641219637f40cf49348602b767292a78279c65`.
+
+## v1.4.2.4 — Phase 2 branch-linking foundation (2026-08-11)
+
+- **Existing branch linking:** typing a branch that already exists on GitHub now
+  links it to the Plane issue instead of returning a conflict.
+- **Shared branches:** a single GitHub branch may intentionally be linked to
+  multiple Plane issues.
+- **PR fan-out:** pull-request webhooks from a shared branch create/update PR
+  links for **every issue** linked to that branch.
+- **Migration `0130`:** PR-link uniqueness is widened from
+  `(workspace, repo, PR number)` to `(workspace, repo, PR number, issue)` so one
+  GitHub PR can appear on multiple work items.
+- **Images:** backend
+  `sha256:4e675f35590186be7bd46b67192e451e56b6dc48a37d8d21352acd54b8eb0e94`,
+  frontend
+  `sha256:8b09f9d3a45ce92ce66f52579af8cce3420939938cbce7c21e65c8ed8ab7d50d`,
+  admin
+  `sha256:702dbcd0f123a5d8a176277cbe344e80c506987e0033d0d649211e7d3481ece9`.
+
 ## v1.4.2.1 — manifest events fix (2026-08-11)
 
 - **Fix:** GitHub rejects manifests that declare `installation` /

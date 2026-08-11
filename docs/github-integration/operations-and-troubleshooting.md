@@ -7,18 +7,19 @@ Use this guide to accept the dev rollout, investigate a failed delivery, or stop
 Run this against the dev instance before any production discussion.
 
 1. Confirm the GitHub App configuration, active installation, enabled repository, and project mapping are present.
-2. Create or choose a Plane issue in the mapped project, for example `TP-123`.
-3. Open a PR in the enabled repository using a key in the title or branch:
+2. Create or choose one or more Plane issues in the mapped project, for example `TP-123` and optionally `TP-124`.
+3. Use the GitHub panel to create or link a branch. For a shared-branch test, link the same branch from both issues.
+4. Open a PR in the enabled repository using the linked branch or a key in the title:
 
    ```text
    TP-123 test webhook linking
    ```
 
-4. In GitHub App settings, open the webhook delivery and confirm it succeeded.
-5. In Plane, open `TP-123` and confirm exactly one PR link appears.
-6. Push another commit and confirm the same link remains open and is updated.
-7. Close/reopen or merge the PR and confirm the same link reflects the new state.
-8. Re-deliver the same GitHub delivery from GitHub’s UI and confirm Plane does not create a duplicate link.
+5. In GitHub App settings, open the webhook delivery and confirm it succeeded.
+6. In Plane, open every issue linked to that branch and confirm the PR link appears on each one.
+7. Push another commit and confirm the same link rows remain open and are updated.
+8. Close/reopen or merge the PR and confirm the linked issues reflect the new PR state.
+9. Re-deliver the same GitHub delivery from GitHub’s UI and confirm Plane does not create duplicate links.
 
 Record the result without copying request bodies, signatures, secrets, cookies, or access tokens.
 
@@ -37,13 +38,13 @@ The root should return `200`. The second endpoint should return `401` when no us
 
 ## Delivery outcomes
 
-| Observation | Meaning | First action |
-| --- | --- | --- |
-| `401 Invalid signature` | GitHub and Plane do not share the same webhook secret, or the request was altered before it reached Plane. | Re-enter the same secret directly in both admin UIs; check reverse-proxy handling of request bodies. |
-| `413` | Payload exceeds the 1 MiB webhook limit. | Do not raise the limit casually; inspect the event and confirm the endpoint receives only intended PR deliveries. |
-| `200` but no link | The delivery may be duplicated, unsupported, disabled, unmapped, ambiguous, or not tied to a resolvable issue. | Check the installation, repository state, project mapping, branch link, and issue key. |
-| Duplicate links | Unexpected; replay protection and PR uniqueness should prevent this. | Disable the repository mapping, preserve non-secret metadata, and investigate before re-enabling. |
-| Link appears on the wrong issue | Treat as a correlation defect. | Disable the mapping and preserve PR number, delivery ID, project identifiers, and timestamps only. |
+| Observation                     | Meaning                                                                                                        | First action                                                                                                      |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `401 Invalid signature`         | GitHub and Plane do not share the same webhook secret, or the request was altered before it reached Plane.     | Re-enter the same secret directly in both admin UIs; check reverse-proxy handling of request bodies.              |
+| `413`                           | Payload exceeds the 1 MiB webhook limit.                                                                       | Do not raise the limit casually; inspect the event and confirm the endpoint receives only intended PR deliveries. |
+| `200` but no link               | The delivery may be duplicated, unsupported, disabled, unmapped, ambiguous, or not tied to a resolvable issue. | Check the installation, repository state, project mapping, branch link, and issue key.                            |
+| Duplicate links                 | Unexpected; replay protection and PR uniqueness should prevent this.                                           | Disable the repository mapping, preserve non-secret metadata, and investigate before re-enabling.                 |
+| Link appears on the wrong issue | Treat as a correlation defect.                                                                                 | Disable the mapping and preserve PR number, delivery ID, project identifiers, and timestamps only.                |
 
 ## Safe pause and rollback
 

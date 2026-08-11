@@ -1,6 +1,6 @@
 # Pull request linking
 
-The webhook feature keeps a Plane issue’s Git links synchronized with the pull request that relates to it. It creates or updates a PR link; it does **not** change the Plane issue’s workflow state.
+The webhook feature keeps Plane issue Git links synchronized with the pull request that relates to them. It creates or updates PR links; it does **not** change Plane workflow state yet.
 
 ## Event flow
 
@@ -9,43 +9,44 @@ GitHub pull_request delivery
   → POST /api/github/webhook/
   → verify signature over raw body
   → verify delivery id, installation, enabled repository, and mapping
-  → resolve the Plane issue
-  → create or update one PR link
+  → resolve the Plane issue(s)
+  → create or update PR links
 ```
 
 ## Supported lifecycle events
 
-| GitHub action | Plane link state |
-| --- | --- |
-| `opened` | `open` |
-| `reopened` | `open` |
-| `synchronize` | `open` |
-| `closed` with `merged: false` | `closed` |
-| `closed` with `merged: true` | `merged` |
+| GitHub action                 | Plane link state |
+| ----------------------------- | ---------------- |
+| `opened`                      | `open`           |
+| `reopened`                    | `open`           |
+| `synchronize`                 | `open`           |
+| `closed` with `merged: false` | `closed`         |
+| `closed` with `merged: true`  | `merged`         |
 
 Unsupported actions are acknowledged without modifying a link. This keeps the initial scope narrow and predictable.
 
 ## How Plane resolves the issue
 
-Plane uses the following order and creates a link only when it gets one unambiguous result:
+Plane uses the following order:
 
-1. **Existing PR link** — later events update the existing link even if a key is no longer present in the PR title or branch.
-2. **Existing Plane-created branch link** — the PR head branch is matched to an existing branch link for one mapped project.
-3. **Issue key** — Plane searches the PR title and head branch for an issue key using the mapped project identifier, for example `TP-123`.
+1. **Existing PR links** — later events update every existing link for the same workspace/repository/PR number, even if a key is no longer present in the PR title or branch.
+2. **Existing branch links** — the PR head branch is matched to every live branch link for mapped projects. A shared branch can resolve to multiple Plane issues; the PR fans out to all of them.
+3. **Issue key fallback** — when no branch link exists, Plane searches the PR title and head branch for an issue key using the mapped project identifier, for example `TP-123`.
 
-If multiple mappings match or no mapped issue is found, Plane does nothing. It will not guess and attach the PR to an unrelated issue.
+If the fallback issue-key search is ambiguous or no mapped issue is found, Plane does nothing. It will not guess and attach the PR to an unrelated issue.
 
 ## Expected developer workflow
 
-1. Create or select a Plane work item, for example `TP-123`.
-2. Use the Plane branch-creation action where possible. It records the branch link and gives the webhook the strongest correlation signal.
-3. If creating a branch manually, include the issue key in the branch name, for example `feature/TP-123-webhook-linking`.
-4. Include the key in the PR title as a fallback, for example `TP-123: link webhook deliveries`.
-5. Open, update, close, reopen, or merge the PR normally.
+1. Create or select one or more Plane work items, for example `TP-123` and `TP-124`.
+2. Use the Plane branch create/link action where possible. It records the branch link and gives the webhook the strongest correlation signal.
+3. If one branch covers multiple work items, link that same branch from each relevant issue before opening the PR.
+4. If creating a branch manually, include the issue key in the branch name, for example `feature/muhammed-tp-123-webhook-linking`.
+5. Include the key in the PR title as a fallback, for example `TP-123: link webhook deliveries`.
+6. Open, update, close, reopen, or merge the PR normally.
 
 ## Link guarantees
 
-- A GitHub PR number is unique only inside its Plane workspace and repository context.
+- A GitHub PR number is unique per issue inside its Plane workspace and repository context, so the same GitHub PR can appear on every issue linked to a shared branch.
 - Repeated delivery IDs are acknowledged without duplicate side effects.
 - Older or timestamp-less events cannot regress a newer link state.
 - Soft-deleted historical links can be restored safely.
