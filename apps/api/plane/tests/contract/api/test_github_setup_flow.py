@@ -147,11 +147,11 @@ class TestGitHubAppManifestEndpoint:
             "metadata": "read",
             "pull_requests": "read",
         }
+        # GitHub manifest rules: installation lifecycle events must NOT be
+        # declared in default_events (auto-delivered; manifest rejected otherwise).
         assert set(manifest["default_events"]) == {
             "pull_request",
             "push",
-            "installation",
-            "installation_repositories",
         }
 
     @pytest.mark.django_db
