@@ -132,6 +132,8 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
 
             <IssueStateDurationProperty workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
 
+            <GitHubPanel workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} disabled={!isEditable} />
+
             {createdByDetails && (
               <SidebarPropertyListItem icon={UserCirclePropertyIcon} label={t("common.created_by")}>
                 <div className="flex gap-2 px-2">
@@ -252,8 +254,6 @@ export const IssueDetailsSidebar = observer(function IssueDetailsSidebar(props: 
                 disabled={!isEditable}
               />
             </SidebarPropertyListItem>
-
-            <GitHubPanel workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
           </div>
         </div>
       </div>

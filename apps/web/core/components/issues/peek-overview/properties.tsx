@@ -40,6 +40,7 @@ import { IssueParentSelectRoot } from "@/components/issues/parent-select-root";
 import { IssueStateDurationProperty } from "@/components/issues/state-duration";
 import type { TIssueOperations } from "../issue-detail";
 import { IssueCycleSelect } from "../issue-detail/cycle-select";
+import { GitHubPanel } from "../issue-detail/github-panel";
 import { IssueLabel } from "../issue-detail/label";
 import { IssueModuleSelect } from "../issue-detail/module-select";
 
@@ -125,6 +126,8 @@ export const PeekOverviewProperties = observer(function PeekOverviewProperties(p
         </SidebarPropertyListItem>
 
         <IssueStateDurationProperty workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} />
+
+        <GitHubPanel workspaceSlug={workspaceSlug} projectId={projectId} issueId={issueId} disabled={disabled} />
 
         {createdByDetails && (
           <SidebarPropertyListItem

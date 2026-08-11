@@ -27,10 +27,11 @@ type Props = {
   workspaceSlug: string;
   projectId: string;
   issueId: string;
+  disabled?: boolean;
 };
 
 export const GitHubPanel = observer(function GitHubPanel(props: Props) {
-  const { workspaceSlug, projectId, issueId } = props;
+  const { workspaceSlug, projectId, issueId, disabled } = props;
   const { t } = useTranslation();
   const { getProjectIdentifierById } = useProject();
   const {
@@ -74,7 +75,7 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
   if (!hasMapping && !hasGitLinks) return null;
 
   return (
-    <div>
+    <div className="border-t border-subtle-1 pt-2.5">
       <h6 className="flex items-center gap-1.5 text-body-xs-medium">
         <Github className="size-3.5" />
         {t("work_item.github.label")}
@@ -88,7 +89,7 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
           </div>
         )}
 
-        {hasMapping && (
+        {hasMapping && !disabled && (
           <CreateBranchButton
             workspaceSlug={workspaceSlug}
             projectId={projectId}
