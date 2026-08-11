@@ -884,12 +884,19 @@ class TestGitHubClientCaching:
         with (
             patch.object(GitHubClient, "_app_jwt", return_value="fake-jwt"),
             patch("plane.services.github.client.requests.request", side_effect=responses) as mock_request,
+            patch(
+                "plane.services.github.client.requests.post",
+                return_value=_FakeResponse(200, {"token": "fresh-token"}),
+            ) as mock_post,
         ):
             sha = client.get_branch_sha("acme", "widgets", "main")
 
         assert sha == "abc123"
         assert mock_request.call_count == 2
-        assert cache.get("github:installation_token:555") is None
+        mock_post.assert_called_once()
+        # The 401 invalidated the STALE token; the retry re-minted and cached
+        # the fresh one (get_installation_token always caches).
+        assert cache.get("github:installation_token:555") == "fresh-token"
 
     @pytest.mark.django_db
     def test_list_installation_repositories_pagination_cap_is_honoured(self):
