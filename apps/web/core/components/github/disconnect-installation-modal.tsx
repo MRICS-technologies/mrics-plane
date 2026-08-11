@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore } from "@plane/ui";
 
@@ -17,6 +18,7 @@ type Props = {
 
 export function DisconnectInstallationModal(props: Props) {
   const { isOpen, onClose, onDisconnect } = props;
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
@@ -28,17 +30,22 @@ export function DisconnectInstallationModal(props: Props) {
     setIsSubmitting(true);
     try {
       await onDisconnect();
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "GitHub installation disconnected." });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("common.success"),
+        message: t("workspace_settings.settings.github.installation.disconnect_modal.success"),
+      });
       handleClose();
     } catch (error) {
       const typedError = error as { status?: number; data?: { error?: string } };
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
+        title: t("common.error"),
         message:
           typedError?.status === 409
-            ? (typedError?.data?.error ?? "Remove project mappings before disconnecting this installation.")
-            : "This installation could not be disconnected.",
+            ? (typedError?.data?.error ??
+              t("workspace_settings.settings.github.installation.disconnect_modal.conflict"))
+            : t("workspace_settings.settings.github.installation.disconnect_modal.failed"),
       });
       setIsSubmitting(false);
     }
@@ -50,8 +57,8 @@ export function DisconnectInstallationModal(props: Props) {
       handleClose={handleClose}
       handleSubmit={handleSubmit}
       isSubmitting={isSubmitting}
-      title="Disconnect GitHub installation"
-      content="This removes the registered installation from this workspace. Repositories enabled under it will also be removed. This action cannot be undone."
+      title={t("workspace_settings.settings.github.installation.disconnect_modal.title")}
+      content={t("workspace_settings.settings.github.installation.disconnect_modal.content")}
     />
   );
 }

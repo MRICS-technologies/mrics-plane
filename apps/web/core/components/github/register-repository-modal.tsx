@@ -6,6 +6,7 @@
 
 import { useForm } from "react-hook-form";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { Button } from "@plane/propel/button";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
@@ -30,6 +31,7 @@ type Props = {
 
 export function RegisterRepositoryModal(props: Props) {
   const { isOpen, onClose, onRegister } = props;
+  const { t } = useTranslation();
   const {
     register,
     handleSubmit,
@@ -67,10 +69,12 @@ export function RegisterRepositoryModal(props: Props) {
           return;
         }
 
-        let message = "This repository could not be registered.";
-        if (error?.status === 409) message = "This repository is already enabled for this installation.";
-        if (error?.status === 422) message = "This workspace has no active GitHub installation.";
-        setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message });
+        let message = t("workspace_settings.settings.github.repositories.manual.modal.errors.register_failed");
+        if (error?.status === 409)
+          message = t("workspace_settings.settings.github.repositories.manual.modal.errors.conflict");
+        if (error?.status === 422)
+          message = t("workspace_settings.settings.github.repositories.manual.modal.errors.not_configured");
+        setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
       });
   };
 
@@ -78,9 +82,11 @@ export function RegisterRepositoryModal(props: Props) {
     <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <div className="flex flex-col gap-4 p-5">
-          <h3 className="text-lg font-medium">Add repository</h3>
+          <h3 className="text-lg font-medium">
+            {t("workspace_settings.settings.github.repositories.manual.modal.title")}
+          </h3>
           <p className="text-13 text-tertiary">
-            Manually register a repository for this workspace&apos;s installation. This does not contact GitHub.
+            {t("workspace_settings.settings.github.repositories.manual.modal.description")}
           </p>
 
           <div className="flex flex-col gap-1">

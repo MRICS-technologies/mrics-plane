@@ -98,6 +98,36 @@ class TestGithubEnabledRepositoryConstraints:
 
 
 @pytest.mark.contract
+class TestGithubDiscoveryFieldsMigration0129:
+    """0129 is additive-only (nullable/blank-default columns): every pre-0129
+    row -- and every row created without touching these fields -- must keep
+    working with them left at their blank/null default."""
+
+    @pytest.mark.django_db
+    def test_installation_discovery_fields_default_blank(self, installation):
+        assert installation.account_avatar_url == ""
+        assert installation.repository_selection == ""
+        assert installation.suspended_at is None
+        assert installation.last_synced_at is None
+
+    @pytest.mark.django_db
+    def test_enabled_repository_discovery_fields_default_blank(self, installation):
+        repo = GithubEnabledRepository.objects.create(
+            installation=installation, github_repository_id=1, full_name="acme/widgets"
+        )
+        assert repo.private is False
+        assert repo.default_branch == ""
+        assert repo.html_url == ""
+
+    @pytest.mark.django_db
+    def test_webhook_delivery_installation_id_defaults_null(self):
+        from plane.db.models.integration.github_sync import GithubWebhookDelivery
+
+        delivery = GithubWebhookDelivery.objects.create(delivery_id="0129-default-check", event="pull_request")
+        assert delivery.installation_id is None
+
+
+@pytest.mark.contract
 class TestRepoProjectMappingDefaultConstraint:
     @pytest.mark.django_db
     def test_only_one_live_default_mapping_per_project(self, project):

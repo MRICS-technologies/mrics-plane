@@ -242,8 +242,11 @@ from .timezone.base import TimezoneEndpoint
 
 from .github_sync import (
     WorkspaceInstallationEndpoint,
+    WorkspaceGitHubInstallURLEndpoint,
+    GitHubSetupCallbackEndpoint,
     WorkspaceRepositoriesEndpoint,
     WorkspaceRepositoryDetailEndpoint,
+    WorkspaceAvailableRepositoriesEndpoint,
     RepoProjectMappingViewSet,
     IssueGitLinkViewSet,
     IssueCreateBranchEndpoint,

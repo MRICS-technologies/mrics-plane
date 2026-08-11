@@ -116,6 +116,9 @@ class GithubWebhookDelivery(BaseModel):
 
     delivery_id = models.CharField(max_length=255)
     event = models.CharField(max_length=100, blank=True)
+    # 0129: for triage only -- the webhook resolves the workspace from the
+    # installation row it looks up, never from this stored value.
+    installation_id = models.BigIntegerField(null=True, blank=True)
 
     def __str__(self):
         """Return the delivery id and event"""

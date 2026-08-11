@@ -19,6 +19,8 @@ import { AlertModalCore, ToggleSwitch } from "@plane/ui";
 // components
 import type { TControllerInputFormField } from "@/components/common/controller-input";
 import { ControllerInput } from "@/components/common/controller-input";
+// local imports
+import { GitHubAppManifestSetupCard } from "./manifest-setup-card";
 
 type Props = {
   config: IInstanceGitHubAppConfiguration;
@@ -71,6 +73,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
   const [isTesting, setIsTesting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(config.configured);
 
   const {
     handleSubmit,
@@ -302,6 +305,8 @@ export function InstanceGitHubAppConfigForm(props: Props) {
         primaryButtonText={{ loading: "Removing", default: "Remove" }}
       />
 
+      <GitHubAppManifestSetupCard config={config} />
+
       <div className="flex items-center justify-between gap-4 rounded-lg bg-layer-1 px-6 py-4">
         <div className="flex flex-col gap-1">
           <div className="text-14 font-medium text-primary">Enable GitHub App</div>
@@ -314,68 +319,80 @@ export function InstanceGitHubAppConfigForm(props: Props) {
         <ToggleSwitch value={config.enabled} onChange={handleToggleEnabled} size="sm" disabled={isEnabling} />
       </div>
 
-      <div className="flex flex-col gap-y-4">
-        <div className="text-18 font-medium">App details</div>
-        {FORM_FIELDS.map((field) => (
-          <ControllerInput
-            key={field.key}
-            control={control}
-            type={field.type}
-            name={field.key}
-            label={field.label}
-            placeholder={field.placeholder}
-            error={field.error}
-            required={field.required}
-          />
-        ))}
-      </div>
+      <button
+        type="button"
+        onClick={() => setShowManualForm((prev) => !prev)}
+        className="w-fit text-14 font-medium text-primary underline"
+      >
+        {showManualForm ? "Hide manual configuration" : "Advanced / GitHub Enterprise: configure manually"}
+      </button>
 
-      <div className="flex flex-col gap-y-4">
-        <div className="text-18 font-medium">Secrets</div>
-        {SECRET_FIELDS.map(({ field, meta }) => (
-          <div key={field.key} className="flex flex-col gap-1">
-            <ControllerInput
-              control={control}
-              type={field.type}
-              name={field.key}
-              label={field.label}
-              placeholder={field.placeholder}
-              error={field.error}
-              required={field.required}
-            />
-            <p className="text-11 text-tertiary">{secretMeta(meta)}</p>
+      {showManualForm && (
+        <>
+          <div className="flex flex-col gap-y-4">
+            <div className="text-18 font-medium">App details</div>
+            {FORM_FIELDS.map((field) => (
+              <ControllerInput
+                key={field.key}
+                control={control}
+                type={field.type}
+                name={field.key}
+                label={field.label}
+                placeholder={field.placeholder}
+                error={field.error}
+                required={field.required}
+              />
+            ))}
           </div>
-        ))}
-      </div>
 
-      <div className="flex items-center gap-4">
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={(e) => void handleSubmit(onSubmit)(e)}
-          loading={isSubmitting}
-          disabled={!isDirty}
-        >
-          {isSubmitting ? "Saving" : "Save changes"}
-        </Button>
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={handleTestConnection}
-          loading={isTesting}
-          disabled={!config.configured || isTesting}
-        >
-          {isTesting ? "Testing" : "Test connection"}
-        </Button>
-        <Button
-          variant="error-fill"
-          size="lg"
-          onClick={() => setIsDeleteModalOpen(true)}
-          disabled={!hasAnyConfiguration(config)}
-        >
-          Remove configuration
-        </Button>
-      </div>
+          <div className="flex flex-col gap-y-4">
+            <div className="text-18 font-medium">Secrets</div>
+            {SECRET_FIELDS.map(({ field, meta }) => (
+              <div key={field.key} className="flex flex-col gap-1">
+                <ControllerInput
+                  control={control}
+                  type={field.type}
+                  name={field.key}
+                  label={field.label}
+                  placeholder={field.placeholder}
+                  error={field.error}
+                  required={field.required}
+                />
+                <p className="text-11 text-tertiary">{secretMeta(meta)}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={(e) => void handleSubmit(onSubmit)(e)}
+              loading={isSubmitting}
+              disabled={!isDirty}
+            >
+              {isSubmitting ? "Saving" : "Save changes"}
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={handleTestConnection}
+              loading={isTesting}
+              disabled={!config.configured || isTesting}
+            >
+              {isTesting ? "Testing" : "Test connection"}
+            </Button>
+            <Button
+              variant="error-fill"
+              size="lg"
+              onClick={() => setIsDeleteModalOpen(true)}
+              disabled={!hasAnyConfiguration(config)}
+            >
+              Remove configuration
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

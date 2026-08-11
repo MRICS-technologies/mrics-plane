@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore } from "@plane/ui";
 
@@ -18,6 +19,7 @@ type Props = {
 
 export function DeleteMappingModal(props: Props) {
   const { isOpen, onClose, onDelete, mappingLabel } = props;
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
@@ -29,13 +31,19 @@ export function DeleteMappingModal(props: Props) {
     setIsSubmitting(true);
     try {
       await onDelete();
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Mapping removed." });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("common.success"),
+        message: t("project_settings.github.mapping.delete_modal.success"),
+      });
       handleClose();
     } catch (error) {
       const typedError = error as { status?: number };
-      let message = "This mapping could not be removed.";
-      if (typedError?.status === 403) message = "You do not have permission to remove this mapping.";
-      setToast({ type: TOAST_TYPE.ERROR, title: "Error!", message });
+      const message =
+        typedError?.status === 403
+          ? t("project_settings.github.mapping.delete_modal.forbidden")
+          : t("project_settings.github.mapping.delete_modal.failed");
+      setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
       setIsSubmitting(false);
     }
   };
@@ -46,12 +54,8 @@ export function DeleteMappingModal(props: Props) {
       handleClose={handleClose}
       handleSubmit={handleSubmit}
       isSubmitting={isSubmitting}
-      title="Remove mapping"
-      content={
-        <>
-          Remove the mapping to <span className="font-medium">{mappingLabel}</span> from this project?
-        </>
-      }
+      title={t("project_settings.github.mapping.delete_modal.title")}
+      content={t("project_settings.github.mapping.delete_modal.content", { repo: mappingLabel })}
     />
   );
 }

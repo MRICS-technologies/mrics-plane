@@ -422,5 +422,28 @@
       "label": "Tytuł epiku",
       "required": "Tytuł epiku jest wymagany."
     }
+  },
+  "work_item": {
+    "github": {
+      "label": "GitHub",
+      "create_branch": {
+        "trigger": "Create branch",
+        "placeholder": "Branch name",
+        "success": "Branch {branch} created.",
+        "errors": {
+          "conflict": "A branch or link already exists for this work item.",
+          "not_configured": "This project has no repository attached.",
+          "failed": "This branch could not be created. Please try again."
+        }
+      },
+      "link": {
+        "state": {
+          "open": "Open",
+          "merged": "Merged",
+          "closed": "Closed",
+          "unknown": "Unknown"
+        }
+      }
+    }
   }
 }

@@ -5,10 +5,11 @@
  */
 
 import { GitBranch, GitPullRequest } from "lucide-react";
+import { useTranslation } from "@plane/i18n";
 import { Tooltip } from "@plane/propel/tooltip";
+import type { TIssueGitLink } from "@plane/types";
 import { cn } from "@plane/utils";
 import { usePlatformOS } from "@/hooks/use-platform-os";
-import type { TIssueGitLink } from "@/services/github-sync.service";
 
 const STATE_BADGE_CLASSNAME: Record<TIssueGitLink["state"], string> = {
   open: "bg-success-subtle text-success-primary",
@@ -24,6 +25,7 @@ type Props = {
 export const GitLinkItem = (props: Props) => {
   const { link } = props;
   const { isMobile } = usePlatformOS();
+  const { t } = useTranslation();
   const Icon = link.kind === "pr" ? GitPullRequest : GitBranch;
 
   return (
@@ -47,7 +49,7 @@ export const GitLinkItem = (props: Props) => {
           STATE_BADGE_CLASSNAME[link.state]
         )}
       >
-        {link.state}
+        {t(`work_item.github.link.state.${link.state}`)}
       </span>
     </div>
   );

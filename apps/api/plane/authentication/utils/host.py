@@ -21,7 +21,7 @@ def base_host(
 ) -> str:
     """Utility function to return host / origin from the request"""
     # Calculate the base origin from request
-    base_origin = settings.WEB_URL or settings.APP_BASE_URL
+    base_origin = settings.WEB_URL or settings.APP_BASE_URL or ""
 
     # Admin redirection
     if is_admin:

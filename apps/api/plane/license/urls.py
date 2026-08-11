@@ -12,6 +12,8 @@ from plane.license.api.views import (
     InstanceConfigurationEndpoint,
     GitHubAppConfigurationEndpoint,
     GitHubAppConfigurationTestEndpoint,
+    GitHubAppManifestEndpoint,
+    GitHubAppManifestCallbackEndpoint,
     DisableEmailFeatureEndpoint,
     InstanceEndpoint,
     SignUpScreenVisitedEndpoint,
@@ -44,6 +46,12 @@ urlpatterns = [
     ),
     path("github-app/", GitHubAppConfigurationEndpoint.as_view(), name="github-app-configuration"),
     path("github-app/test/", GitHubAppConfigurationTestEndpoint.as_view(), name="github-app-configuration-test"),
+    path("github-app/manifest/", GitHubAppManifestEndpoint.as_view(), name="github-app-manifest"),
+    path(
+        "github-app/manifest/callback/",
+        GitHubAppManifestCallbackEndpoint.as_view(),
+        name="github-app-manifest-callback",
+    ),
     path(
         "configurations/disable-email-feature/",
         DisableEmailFeatureEndpoint.as_view(),

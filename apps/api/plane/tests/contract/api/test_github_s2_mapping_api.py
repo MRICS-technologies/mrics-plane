@@ -23,6 +23,23 @@ from rest_framework import status
 from plane.db.models import Project, ProjectMember, User, Workspace, WorkspaceMember
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.db.models.integration.github_sync import RepoProjectMapping
+from plane.license.models import InstanceConfiguration
+from plane.license.utils.encryption import encrypt_data
+
+
+def _configure_app(app_id="555111", private_key_pem="fake-key", app_slug="plane-app"):
+    """P1: bulk upsert validates repos against the live GitHub list, which
+    requires instance credentials -- same helper as the setup-flow tests."""
+    InstanceConfiguration.objects.update_or_create(
+        key="GITHUB_APP_ID", defaults={"value": app_id, "category": "GITHUB_APP", "is_encrypted": False}
+    )
+    InstanceConfiguration.objects.update_or_create(
+        key="GITHUB_APP_SLUG", defaults={"value": app_slug, "category": "GITHUB_APP", "is_encrypted": False}
+    )
+    InstanceConfiguration.objects.update_or_create(
+        key="GITHUB_APP_PRIVATE_KEY",
+        defaults={"value": encrypt_data(private_key_pem), "category": "GITHUB_APP", "is_encrypted": True},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -162,6 +179,32 @@ class TestInstallationGet:
         # github_installation_id must not leak in response (it isn't a field of
         # the installation serializer).
         assert "workspace" not in resp.data
+
+    @pytest.mark.django_db
+    def test_get_exposes_p1_discovery_fields_as_read_only(self, session_client, workspace, installation):
+        # P1 1.7: these are populated by the verified setup callback / webhook
+        # handlers only -- the serializer must expose but never accept them.
+        resp = session_client.get(_install_url(workspace.slug))
+        assert resp.status_code == status.HTTP_200_OK
+        for field in ("account_avatar_url", "repository_selection", "suspended_at", "last_synced_at"):
+            assert field in resp.data
+
+    @pytest.mark.django_db
+    def test_create_ignores_client_supplied_discovery_fields(self, session_client, workspace):
+        resp = session_client.post(
+            _install_url(workspace.slug),
+            {
+                "installation_id": 7770099,
+                "account_login": "acme",
+                "suspended_at": "2020-01-01T00:00:00Z",
+                "account_avatar_url": "https://attacker.example/avatar.png",
+            },
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_201_CREATED
+        created = GithubAppInstallation.objects.get(installation_id=7770099)
+        assert created.suspended_at is None
+        assert created.account_avatar_url == ""
 
     @pytest.mark.django_db
     def test_non_member_gets_403(self, api_client, workspace):
@@ -387,6 +430,107 @@ class TestRepositoryCreate:
             format="json",
         )
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.contract
+class TestRepositoryBulkUpsert:
+    """P1 1.5: the repo picker enables/disables many repositories in one POST;
+    the single-object form above (`TestRepositoryCreate`) must keep working."""
+
+    @pytest.fixture(autouse=True)
+    def _app_configured(self):
+        _configure_app()
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.github_sync.GitHubClient.list_installation_repositories")
+    def test_bulk_list_upserts_and_updates_existing(
+        self, mock_list_repos, session_client, workspace, installation, enabled_repo
+    ):
+        # I7: the endpoint cross-checks against GitHub's live list -- return
+        # both payload repos so the validation passes.
+        mock_list_repos.return_value = [
+            {
+                "id": enabled_repo.github_repository_id,
+                "full_name": enabled_repo.full_name,
+                "private": False,
+                "default_branch": "main",
+                "html_url": f"https://github.com/{enabled_repo.full_name}",
+            },
+            {
+                "id": 99777,
+                "full_name": "s2-acme/brand-new",
+                "private": True,
+                "default_branch": "main",
+                "html_url": "https://github.com/s2-acme/brand-new",
+            },
+        ]
+        resp = session_client.post(
+            _repos_url(workspace.slug),
+            [
+                {
+                    "github_repository_id": enabled_repo.github_repository_id,
+                    "full_name": enabled_repo.full_name,
+                    "is_enabled": False,
+                },
+                {
+                    "github_repository_id": 99777,
+                    "full_name": "s2-acme/brand-new",
+                    "is_enabled": True,
+                    "private": True,
+                    "default_branch": "main",
+                    "html_url": "https://github.com/s2-acme/brand-new",
+                },
+            ],
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert len(resp.data) == 2
+
+        enabled_repo.refresh_from_db()
+        assert enabled_repo.is_enabled is False
+
+        created = GithubEnabledRepository.objects.get(installation=installation, github_repository_id=99777)
+        assert created.is_enabled is True
+        assert created.private is True
+        assert created.default_branch == "main"
+
+    @pytest.mark.django_db
+    def test_bulk_list_without_installation_returns_422(self, session_client, workspace):
+        resp = session_client.post(
+            _repos_url(workspace.slug),
+            [{"github_repository_id": 1, "full_name": "a/b"}],
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    @pytest.mark.django_db
+    @patch("plane.app.views.github_sync.GitHubClient.list_installation_repositories")
+    def test_bulk_list_reports_per_item_errors_without_dropping_valid_rows(
+        self, mock_list_repos, session_client, workspace, installation
+    ):
+        # I7: only repo id 2 exists on GitHub's live list -- id 1 additionally
+        # fails the "owner/name" format, id 2 passes validation.
+        mock_list_repos.return_value = [
+            {
+                "id": 2,
+                "full_name": "s2-acme/valid-one",
+                "private": False,
+                "default_branch": "main",
+                "html_url": "https://github.com/s2-acme/valid-one",
+            },
+        ]
+        resp = session_client.post(
+            _repos_url(workspace.slug),
+            [
+                {"github_repository_id": 1, "full_name": "no-slash"},
+                {"github_repository_id": 2, "full_name": "s2-acme/valid-one"},
+            ],
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_207_MULTI_STATUS
+        assert len(resp.data["results"]) == 1
+        assert len(resp.data["errors"]) == 1
+        assert GithubEnabledRepository.objects.filter(installation=installation, github_repository_id=2).exists()
 
 
 @pytest.mark.contract

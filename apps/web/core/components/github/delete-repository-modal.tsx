@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 // plane imports
+import { useTranslation } from "@plane/i18n";
 import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import { AlertModalCore } from "@plane/ui";
 
@@ -18,6 +19,7 @@ type Props = {
 
 export function DeleteRepositoryModal(props: Props) {
   const { isOpen, onClose, onDelete, repositoryName } = props;
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
@@ -29,17 +31,21 @@ export function DeleteRepositoryModal(props: Props) {
     setIsSubmitting(true);
     try {
       await onDelete();
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "Success!", message: "Repository removed." });
+      setToast({
+        type: TOAST_TYPE.SUCCESS,
+        title: t("common.success"),
+        message: t("workspace_settings.settings.github.repositories.delete_modal.success"),
+      });
       handleClose();
     } catch (error) {
       const typedError = error as { status?: number; data?: { error?: string } };
       setToast({
         type: TOAST_TYPE.ERROR,
-        title: "Error!",
+        title: t("common.error"),
         message:
           typedError?.status === 409
-            ? (typedError?.data?.error ?? "Remove project mappings before deleting this repository.")
-            : "This repository could not be removed.",
+            ? (typedError?.data?.error ?? t("workspace_settings.settings.github.repositories.delete_modal.conflict"))
+            : t("workspace_settings.settings.github.repositories.delete_modal.failed"),
       });
       setIsSubmitting(false);
     }
@@ -51,13 +57,8 @@ export function DeleteRepositoryModal(props: Props) {
       handleClose={handleClose}
       handleSubmit={handleSubmit}
       isSubmitting={isSubmitting}
-      title="Remove repository"
-      content={
-        <>
-          Remove <span className="font-medium">{repositoryName}</span> from this workspace? Project mappings using this
-          repository must be removed first.
-        </>
-      }
+      title={t("workspace_settings.settings.github.repositories.delete_modal.title")}
+      content={t("workspace_settings.settings.github.repositories.delete_modal.content", { repo: repositoryName })}
     />
   );
 }

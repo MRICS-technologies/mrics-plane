@@ -198,7 +198,43 @@
       }
     },
     "github": {
-      "label": "GitHub"
+      "label": "GitHub",
+      "mapping": {
+        "title": "Association de dépôt",
+        "description": "Associez ce projet à un dépôt GitHub pour lier les pull requests et créer des branches depuis les éléments de travail.",
+        "label": "Libellé : {label}",
+        "base_branch": "Branche de base : {branch}",
+        "attach_button": "Associer un dépôt GitHub (recommandé)",
+        "remove_aria_label": "Retirer {repo}",
+        "empty": {
+          "title": "Aucun dépôt associé",
+          "description_ready": "Associez l'un de vos dépôts GitHub activés pour lier les pull requests et créer des branches depuis les éléments de travail.",
+          "description_no_repos": "Activez d'abord un dépôt dans les paramètres de l'espace de travail, puis associez-le ici."
+        },
+        "errors": {
+          "load_failed": "Impossible de charger l'association du dépôt. Veuillez réessayer.",
+          "create_failed": "Ce dépôt n'a pas pu être associé. Veuillez réessayer.",
+          "conflict": "Ce projet possède déjà une association pour ce dépôt.",
+          "forbidden": "Vous n'avez pas la permission d'associer un dépôt à ce projet."
+        },
+        "modal": {
+          "title": "Associer un dépôt GitHub",
+          "description": "Choisissez l'un des dépôts activés de votre espace de travail et, éventuellement, sa branche de base.",
+          "repository_label": "Dépôt",
+          "repository_placeholder": "Sélectionner un dépôt",
+          "repository_required": "Sélectionnez un dépôt.",
+          "base_branch_label": "Branche de base",
+          "base_branch_hint": "Les branches sont créées à partir de cette branche. Par défaut, la branche par défaut du dépôt.",
+          "submit": "Associer"
+        },
+        "delete_modal": {
+          "title": "Supprimer l'association du dépôt",
+          "content": "Cela cesse de lier {repo} à ce projet. Les liens de pull requests existants restent visibles.",
+          "success": "Association du dépôt supprimée.",
+          "forbidden": "Vous n'avez pas la permission de supprimer cette association.",
+          "failed": "Cette association n'a pas pu être supprimée."
+        }
+      }
     },
     "empty_state": {
       "labels": {

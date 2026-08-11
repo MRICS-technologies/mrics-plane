@@ -11,7 +11,12 @@ from .configuration import (
     DisableEmailFeatureEndpoint,
 )
 
-from .github_app import GitHubAppConfigurationEndpoint, GitHubAppConfigurationTestEndpoint
+from .github_app import (
+    GitHubAppConfigurationEndpoint,
+    GitHubAppConfigurationTestEndpoint,
+    GitHubAppManifestEndpoint,
+    GitHubAppManifestCallbackEndpoint,
+)
 
 
 from .admin import (
