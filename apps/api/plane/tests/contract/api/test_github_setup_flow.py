@@ -895,7 +895,7 @@ class TestRepoProjectMappingCreate:
         )
 
         assert resp.status_code == status.HTTP_201_CREATED, resp.data
-        assert resp.data["id"] == str(mapping.pk)
+        assert str(resp.data["id"]) == str(mapping.pk)
         revived = RepoProjectMapping.objects.get(pk=mapping.pk)
         assert revived.deleted_at is None
         assert revived.github_repo == repo.full_name
