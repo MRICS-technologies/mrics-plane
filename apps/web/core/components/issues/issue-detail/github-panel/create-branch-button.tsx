@@ -41,25 +41,25 @@ export const CreateBranchButton = observer(function CreateBranchButton(props: Pr
     if (!branchName.trim()) return;
     setIsCreating(true);
     try {
-      await githubSyncService.createBranch(workspaceSlug, projectId, issueId, {
+      const response = await githubSyncService.createBranch(workspaceSlug, projectId, issueId, {
         branch_name: branchName.trim(),
         repo: repo || undefined,
       });
       setToast({
         type: TOAST_TYPE.SUCCESS,
         title: t("common.success"),
-        message: t("work_item.github.create_branch.success", { branch: branchName.trim() }),
+        message: response.linked_existing
+          ? t("work_item.github.create_branch.linked", { branch: branchName.trim() })
+          : t("work_item.github.create_branch.success", { branch: branchName.trim() }),
       });
       setIsOpen(false);
       onCreated();
     } catch (error: any) {
       const status = error?.status;
       const message =
-        status === 409
-          ? t("work_item.github.create_branch.errors.conflict")
-          : status === 422
-            ? t("work_item.github.create_branch.errors.not_configured")
-            : (error?.data?.error ?? t("work_item.github.create_branch.errors.failed"));
+        status === 422
+          ? t("work_item.github.create_branch.errors.not_configured")
+          : (error?.data?.error ?? t("work_item.github.create_branch.errors.failed"));
       setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
     } finally {
       setIsCreating(false);

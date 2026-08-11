@@ -80,7 +80,10 @@ export type TIssueGitLink = {
 export type TCreateBranchResponse = {
   branch_name: string;
   url: string;
-  sha: string;
+  /** Absent when the branch was already linked to the issue (idempotent replay). */
+  sha?: string;
+  /** True when an already-existing GitHub branch was linked instead of a new one being created. */
+  linked_existing: boolean;
 };
 
 export type TWorkspaceGitHubInstallURLResponse = {
