@@ -427,11 +427,11 @@
     "github": {
       "label": "GitHub",
       "create_branch": {
-        "trigger": "Créer une branche",
+        "trigger": "Créer ou lier une branche",
         "placeholder": "Nom de la branche",
         "success": "Branche {branch} créée.",
+        "linked": "Branche {branch} liée à cet élément de travail.",
         "errors": {
-          "conflict": "Une branche ou un lien existe déjà pour cet élément de travail.",
           "not_configured": "Ce projet n'a aucun dépôt associé.",
           "failed": "Cette branche n'a pas pu être créée. Veuillez réessayer."
         }

@@ -167,7 +167,8 @@ class IssueGitLinkViewSet(BaseViewSet):
 
 
 # ---------------------------------------------------------------------------
-# S1: IssueCreateBranchEndpoint (unchanged)
+# S1/P16: IssueCreateBranchEndpoint -- create a branch, or link an
+# already-existing GitHub branch to the issue instead of 409ing.
 # ---------------------------------------------------------------------------
 
 
@@ -187,13 +188,17 @@ class IssueCreateBranchEndpoint(BaseAPIView):
                 status=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
 
-        if IssueGitLink.objects.filter(
-            issue_id=issue_id,
-            github_repo=mapping.github_repo,
-            kind="branch",
-            ref=branch_name,
-        ).exists():
-            return Response({"error": "Branch already exists"}, status=status.HTTP_409_CONFLICT)
+        # Repeat requests for a branch this issue is already linked to must be
+        # idempotent -- a re-click of "Create" is a success, not a 409.
+        live_link = IssueGitLink.objects.filter(
+            issue_id=issue_id, github_repo=mapping.github_repo, kind="branch", ref=branch_name
+        ).first()
+        if live_link:
+            serializer = IssueGitLinkSerializer(live_link)
+            return Response(
+                {"branch_name": live_link.ref, "url": live_link.url, "linked_existing": True, **serializer.data},
+                status=status.HTTP_200_OK,
+            )
 
         credentials = get_github_app_credentials()
         if not credentials:
@@ -208,28 +213,85 @@ class IssueCreateBranchEndpoint(BaseAPIView):
             credentials.html_base_url,
         )
         try:
-            if client.get_branch_sha(owner, name, branch_name):
-                return Response({"error": "Branch already exists"}, status=status.HTTP_409_CONFLICT)
+            existing_sha = client.get_branch_sha(owner, name, branch_name)
+            if existing_sha:
+                # The branch already exists on GitHub (eg. created manually) --
+                # link it to the issue instead of dead-ending on a conflict.
+                url = f"{client.html_base_url}/{owner}/{name}/tree/{branch_name}"
+                git_link = self._link_branch(mapping, issue_id, branch_name, url)
+                serializer = IssueGitLinkSerializer(git_link)
+                return Response(
+                    {
+                        "branch_name": branch_name,
+                        "url": url,
+                        "sha": existing_sha,
+                        "linked_existing": True,
+                        **serializer.data,
+                    },
+                    status=status.HTTP_200_OK,
+                )
             result = client.create_branch(owner, name, branch_name, mapping.base_branch)
         except NotImplementedError:
             return Response({"error": "GitHub App is not configured"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
-        git_link = IssueGitLink.objects.create(
-            workspace=mapping.workspace,
-            project=mapping.project,
-            issue_id=issue_id,
-            github_repo=mapping.github_repo,
-            kind="branch",
-            ref=result["branch_name"],
-            url=result["url"],
-            state="open",
-            detected_via="manual",
-        )
+        git_link = self._link_branch(mapping, issue_id, result["branch_name"], result["url"])
         serializer = IssueGitLinkSerializer(git_link)
         return Response(
-            {"branch_name": result["branch_name"], "url": result["url"], "sha": result["sha"], **serializer.data},
+            {
+                "branch_name": result["branch_name"],
+                "url": result["url"],
+                "sha": result["sha"],
+                "linked_existing": False,
+                **serializer.data,
+            },
             status=status.HTTP_201_CREATED,
         )
+
+    @staticmethod
+    def _link_branch(mapping, issue_id, ref, url):
+        """Create or revive the IssueGitLink(kind="branch") identifying this
+        issue/repo/ref, mirroring _upsert_pr_link's soft-delete revival so a
+        prior disconnect/reset never permanently 409s a re-link."""
+        filters = {"issue_id": issue_id, "github_repo": mapping.github_repo, "kind": "branch", "ref": ref}
+        with transaction.atomic():
+            live = IssueGitLink.objects.select_for_update().filter(**filters).first()
+            if live:
+                return live
+
+            deleted = (
+                IssueGitLink.all_objects.select_for_update()
+                .filter(deleted_at__isnull=False, **filters)
+                .order_by("-updated_at")
+                .first()
+            )
+            if deleted:
+                deleted.deleted_at = None
+                deleted.workspace = mapping.workspace
+                deleted.project = mapping.project
+                deleted.url = url
+                deleted.state = "open"
+                deleted.detected_via = "manual"
+                deleted.save(
+                    update_fields=["deleted_at", "workspace", "project", "url", "state", "detected_via", "updated_at"]
+                )
+                return deleted
+
+            try:
+                with transaction.atomic():
+                    return IssueGitLink.objects.create(
+                        workspace=mapping.workspace,
+                        project=mapping.project,
+                        issue_id=issue_id,
+                        github_repo=mapping.github_repo,
+                        kind="branch",
+                        ref=ref,
+                        url=url,
+                        state="open",
+                        detected_via="manual",
+                    )
+            except IntegrityError:
+                # A concurrent request created the live link first.
+                return IssueGitLink.objects.get(**filters)
 
 
 # ---------------------------------------------------------------------------

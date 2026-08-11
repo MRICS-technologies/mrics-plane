@@ -130,6 +130,99 @@ class TestIssueCreateBranchAPI:
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
         assert response.data["error"] == "GitHub App is not configured"
 
+    @pytest.mark.django_db
+    def test_create_branch_links_existing_github_branch_instead_of_409(
+        self, session_client, workspace, project, issue, mapping
+    ):
+        # Phase16 gap: GitHub already has this branch (eg. created manually)
+        # and Plane has no link for it yet -- the endpoint must link it to
+        # the issue and succeed instead of dead-ending on a conflict.
+        _configure_webhook_app()
+        url = _create_branch_url(workspace.slug, project.id, issue.id)
+
+        with (
+            patch("plane.app.views.github_sync.GitHubClient.get_branch_sha", return_value="deadbeef"),
+            patch("plane.app.views.github_sync.GitHubClient.create_branch") as mock_create,
+        ):
+            response = session_client.post(url, {"branch_name": "feature/TP-1-add-login"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK, response.data
+        assert response.data["linked_existing"] is True
+        assert response.data["branch_name"] == "feature/TP-1-add-login"
+        mock_create.assert_not_called()
+
+        links = IssueGitLink.objects.filter(
+            issue_id=issue.id, github_repo=mapping.github_repo, kind="branch", ref="feature/TP-1-add-login"
+        )
+        assert links.count() == 1
+        assert links.first().state == "open"
+
+    @pytest.mark.django_db
+    def test_create_branch_request_is_idempotent(self, session_client, workspace, project, issue, mapping):
+        # A repeated request for a branch this issue is already linked to
+        # must succeed without creating a duplicate IssueGitLink or 409ing.
+        _configure_webhook_app()
+        url = _create_branch_url(workspace.slug, project.id, issue.id)
+        create_result = {
+            "branch_name": "feature/TP-1-add-login",
+            "url": "https://github.example/acme/widgets/tree/feature/TP-1-add-login",
+            "sha": "cafebabe",
+        }
+
+        with (
+            patch("plane.app.views.github_sync.GitHubClient.get_branch_sha", return_value=None),
+            patch("plane.app.views.github_sync.GitHubClient.create_branch", return_value=create_result),
+        ):
+            first = session_client.post(url, {"branch_name": "feature/TP-1-add-login"}, format="json")
+
+        assert first.status_code == status.HTTP_201_CREATED, first.data
+        assert first.data["linked_existing"] is False
+
+        # The second call must not need to reach GitHub at all -- it is
+        # answered purely from the already-live IssueGitLink.
+        second = session_client.post(url, {"branch_name": "feature/TP-1-add-login"}, format="json")
+
+        assert second.status_code == status.HTTP_200_OK, second.data
+        assert second.data["linked_existing"] is True
+
+        links = IssueGitLink.objects.filter(
+            issue_id=issue.id, github_repo=mapping.github_repo, kind="branch", ref="feature/TP-1-add-login"
+        )
+        assert links.count() == 1
+
+    @pytest.mark.django_db
+    def test_create_branch_still_creates_a_new_branch_when_absent_on_github(
+        self, session_client, workspace, project, issue, mapping
+    ):
+        # Regression: a genuinely new branch name must still be created via
+        # the GitHub App exactly as before.
+        _configure_webhook_app()
+        url = _create_branch_url(workspace.slug, project.id, issue.id)
+        create_result = {
+            "branch_name": "feature/TP-2-new-thing",
+            "url": "https://github.example/acme/widgets/tree/feature/TP-2-new-thing",
+            "sha": "0123456789abcdef",
+        }
+
+        with (
+            patch("plane.app.views.github_sync.GitHubClient.get_branch_sha", return_value=None),
+            patch(
+                "plane.app.views.github_sync.GitHubClient.create_branch", return_value=create_result
+            ) as mock_create,
+        ):
+            response = session_client.post(url, {"branch_name": "feature/TP-2-new-thing"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        assert response.data["linked_existing"] is False
+        assert response.data["branch_name"] == "feature/TP-2-new-thing"
+        assert response.data["sha"] == "0123456789abcdef"
+        mock_create.assert_called_once_with("acme", "widgets", "feature/TP-2-new-thing", mapping.base_branch)
+
+        links = IssueGitLink.objects.filter(
+            issue_id=issue.id, github_repo=mapping.github_repo, kind="branch", ref="feature/TP-2-new-thing"
+        )
+        assert links.count() == 1
+
 
 def _set_github_app_webhook_secret(secret):
     InstanceConfiguration.objects.update_or_create(
