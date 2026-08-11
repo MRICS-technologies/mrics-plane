@@ -78,8 +78,8 @@ export function InstallationPanel(props: Props) {
     });
   };
 
-  const handleDisconnect = async () => {
-    await githubSyncService.deleteInstallation(workspaceSlug);
+  const handleDisconnect = async (force?: boolean) => {
+    await githubSyncService.deleteInstallation(workspaceSlug, force);
     mutate(GITHUB_INSTALLATION_KEY(workspaceSlug), null, false);
     mutate(GITHUB_REPOSITORIES_KEY(workspaceSlug), [], false);
     mutate(GITHUB_AVAILABLE_REPOSITORIES_KEY(workspaceSlug));

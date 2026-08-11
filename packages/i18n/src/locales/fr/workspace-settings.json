@@ -205,6 +205,7 @@
           "disconnect_modal": {
             "title": "Déconnecter l'installation GitHub",
             "content": "Cela supprime l'installation de cet espace de travail. Les liens de pull requests existants restent visibles, mais la création de branches et les nouveaux liens cesseront jusqu'à la reconnexion.",
+            "force_content": "{count, plural, one {Cette installation a encore # mapping de projet actif.} other {Cette installation a encore # mappings de projet actifs.}} La déconnexion supprimera également {count, plural, one {ce mapping} other {ces mappings}}. Les liens de pull requests existants restent visibles, mais la création de branches cessera jusqu'à la reconnexion et le remappage.",
             "success": "Installation GitHub déconnectée.",
             "conflict": "Cette installation n'a pas pu être déconnectée.",
             "failed": "Cette installation n'a pas pu être déconnectée."
