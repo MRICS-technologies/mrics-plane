@@ -26,7 +26,7 @@ from django.db import IntegrityError
 from django.utils import timezone
 from rest_framework import status
 
-from plane.db.models import Issue, Project, User, Workspace, WorkspaceMember
+from plane.db.models import Issue, Project, ProjectMember, User, Workspace, WorkspaceMember
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.db.models.integration.github_sync import IssueGitLink, RepoProjectMapping
 from plane.license.models import Instance, InstanceAdmin, InstanceConfiguration
@@ -828,9 +828,11 @@ class TestRepoProjectMappingCreate:
 
     @pytest.fixture
     def project(self, db, workspace, create_user):
-        return Project.objects.create(
+        project = Project.objects.create(
             name="Mapping Project", identifier="MAP", workspace=workspace, created_by=create_user
         )
+        ProjectMember.objects.create(workspace=workspace, project=project, member=create_user, role=20, is_active=True)
+        return project
 
     @pytest.mark.django_db
     def test_remap_after_soft_delete_revives_row_instead_of_409(self, session_client, workspace, project, repo):
