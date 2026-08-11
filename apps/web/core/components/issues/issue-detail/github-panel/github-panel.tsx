@@ -11,6 +11,7 @@ import { GITHUB_ISSUE_GIT_LINKS_KEY, GITHUB_PROJECT_MAPPINGS_KEY } from "@plane/
 import { useTranslation } from "@plane/i18n";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
 import { useProject } from "@/hooks/store/use-project";
+import { useUser } from "@/hooks/store/user";
 import { GithubSyncService } from "@/services/github-sync.service";
 import { CreateBranchButton } from "./create-branch-button";
 import { GitLinkItem } from "./git-link-item";
@@ -34,6 +35,7 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
   const { workspaceSlug, projectId, issueId, disabled } = props;
   const { t } = useTranslation();
   const { getProjectIdentifierById } = useProject();
+  const { data: currentUser } = useUser();
   const {
     issue: { getIssueById },
   } = useIssueDetail();
@@ -58,7 +60,10 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
       : null
   );
 
-  const suggestedBranchName = `feature/${slugify(`${issueIdentifier}-${issue?.name ?? ""}`)}`;
+  const creatorFirstName = currentUser?.first_name?.trim() || currentUser?.display_name?.trim().split(" ")[0] || "";
+  const suggestedBranchName = `feature/${slugify(
+    `${creatorFirstName ? `${creatorFirstName}-` : ""}${issueIdentifier}-${issue?.name ?? ""}`
+  )}`;
 
   const isLoading = isMappingsLoading || isGitLinksLoading;
   const hasMapping = Boolean(mappings && mappings.length > 0);
