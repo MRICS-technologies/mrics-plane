@@ -716,11 +716,13 @@ class TestGitHubAppConfigurationPatchReset:
         assert GithubAppInstallation.all_objects.get(pk=second.pk).deleted_at is not None
 
     @pytest.mark.django_db
-    def test_same_app_id_re_patch_after_delete_does_not_reset(self, instance_admin_client, workspace):
-        # F3 regression: GitHubAppConfigurationEndpoint.delete hard-deletes
-        # the persisted config but leaves installations live. Re-entering the
-        # SAME app id afterwards (e.g. to fix a bad private key) must not
-        # wipe every workspace's connection just because `old` is now missing.
+    def test_same_app_id_re_patch_after_delete_does_not_reset_again(self, instance_admin_client, workspace):
+        # F3 regression, updated for B1: DELETE is now the explicit reset
+        # point (see TestGitHubAppConfigurationDeleteReset below), so the
+        # installation is already soft-deleted by the time this re-patch
+        # runs. Re-entering the SAME app id afterwards (e.g. to fix a bad
+        # private key) must not report a SECOND reset just because `old` is
+        # now missing.
         _configure_app(app_id="333333")
         installation = GithubAppInstallation.objects.create(
             workspace=workspace, installation_id=9201, account_login="acme"
@@ -729,6 +731,7 @@ class TestGitHubAppConfigurationPatchReset:
         delete_resp = instance_admin_client.delete(GITHUB_APP_CONFIG_URL)
         assert delete_resp.status_code == status.HTTP_200_OK
         assert not InstanceConfiguration.objects.filter(key="GITHUB_APP_ID").exists()
+        assert GithubAppInstallation.all_objects.get(pk=installation.pk).deleted_at is not None
 
         resp = instance_admin_client.patch(
             GITHUB_APP_CONFIG_URL,
@@ -738,7 +741,49 @@ class TestGitHubAppConfigurationPatchReset:
 
         assert resp.status_code == status.HTTP_200_OK, resp.data
         assert resp.data["reset_count"] == 0
-        assert GithubAppInstallation.objects.filter(pk=installation.pk, deleted_at__isnull=True).exists()
+
+
+# ---------------------------------------------------------------------------
+# B1: DELETE resets every workspace connection (the app-recreation flow)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.contract
+class TestGitHubAppConfigurationDeleteReset:
+    @pytest.mark.django_db
+    def test_delete_soft_deletes_installations_and_reports_reset_count(
+        self, instance_admin_client, workspace, second_workspace
+    ):
+        # B1: the manifest callback only ever runs with no persisted
+        # GITHUB_APP_ID (it 403s otherwise), so `_reset_on_app_id_change` is
+        # always a no-op there -- DELETE is the only place left that resets
+        # existing installations when an admin recreates the app.
+        _configure_app(app_id="444444")
+        first = GithubAppInstallation.objects.create(workspace=workspace, installation_id=9401, account_login="acme")
+        repo = GithubEnabledRepository.objects.create(
+            installation=first, github_repository_id=1, full_name="acme/widgets"
+        )
+        second = GithubAppInstallation.objects.create(
+            workspace=second_workspace, installation_id=9402, account_login="beta"
+        )
+
+        resp = instance_admin_client.delete(GITHUB_APP_CONFIG_URL)
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["reset_count"] == 2
+        assert GithubAppInstallation.all_objects.get(pk=first.pk).deleted_at is not None
+        assert GithubAppInstallation.all_objects.get(pk=second.pk).deleted_at is not None
+        assert GithubEnabledRepository.all_objects.get(pk=repo.pk).deleted_at is not None
+        assert not InstanceConfiguration.objects.filter(key="GITHUB_APP_ID").exists()
+
+    @pytest.mark.django_db
+    def test_delete_with_no_installations_reports_zero_reset_count(self, instance_admin_client):
+        _configure_app(app_id="444444")
+
+        resp = instance_admin_client.delete(GITHUB_APP_CONFIG_URL)
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["reset_count"] == 0
 
 
 # ---------------------------------------------------------------------------
