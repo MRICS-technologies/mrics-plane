@@ -27,6 +27,8 @@ export const GitLinkItem = (props: Props) => {
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
   const Icon = link.kind === "pr" ? GitPullRequest : GitBranch;
+  const stateLabel =
+    link.kind === "branch" ? t("work_item.github.link.state.linked") : t(`work_item.github.link.state.${link.state}`);
 
   return (
     <div className="group flex h-10 flex-shrink-0 items-center justify-between gap-3 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-3 hover:bg-layer-1">
@@ -49,7 +51,7 @@ export const GitLinkItem = (props: Props) => {
           STATE_BADGE_CLASSNAME[link.state]
         )}
       >
-        {t(`work_item.github.link.state.${link.state}`)}
+        {stateLabel}
       </span>
     </div>
   );
