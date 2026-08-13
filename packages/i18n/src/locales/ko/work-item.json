@@ -441,7 +441,8 @@
           "open": "Open",
           "merged": "Merged",
           "closed": "Closed",
-          "unknown": "Unknown"
+          "unknown": "Unknown",
+          "linked": "Linked"
         }
       }
     }
