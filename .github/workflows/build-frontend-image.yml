@@ -57,14 +57,6 @@ jobs:
           short_sha="${GITHUB_SHA::7}"
           tags="$image:dev-${{ matrix.arch }}-latest"
           tags+=$'\n'"$image:dev-${{ matrix.arch }}-$short_sha"
-          tags+=$'\n'"$image:dev-${{ matrix.arch }}-$GITHUB_SHA"
-
-          # Compatibility tags: keep existing ARM dev deployments working while
-          # adding explicit architecture tags for x86_64/amd64 deployments.
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            tags+=$'\n'"$image:dev-latest"
-            tags+=$'\n'"$image:dev-$short_sha"
-          fi
 
           {
             echo 'tags<<EOF'
@@ -87,3 +79,38 @@ jobs:
           cache-from: type=gha,scope=frontend-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=frontend-${{ matrix.arch }}
           provenance: false
+
+  merge-manifest:
+    name: Merge multi-arch manifest (:dev)
+    needs: build-frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch :dev manifest
+        run: |
+          set -euo pipefail
+          image="ghcr.io/mrics-technologies/mrics-plane-frontend"
+          short_sha="${GITHUB_SHA::7}"
+          # Wait until both arch tags are visible to the registry
+          for i in $(seq 1 30); do
+            ok=1
+            for arch in amd64 arm64; do
+              docker manifest inspect "$image:dev-${arch}-$short_sha" >/dev/null 2>&1 || ok=0
+            done
+            [ "$ok" = 1 ] && break
+            echo "waiting for arch manifests... ($i)"; sleep 10
+          done
+          for tag in dev "dev-$short_sha"; do
+            docker manifest create "$image:$tag" \
+              "$image:dev-amd64-$short_sha" \
+              "$image:dev-arm64-$short_sha"
+            docker manifest push "$image:$tag"
+          done
+          echo "pushed $image:dev and $image:dev-$short_sha (multi-arch)"
