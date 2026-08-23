@@ -21,9 +21,19 @@ permissions:
 
 jobs:
   build-admin:
-    # Native ARM runner avoids slow/stuck QEMU arm64 Docker builds for the dev Coolify server.
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 35
+    name: Build admin (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,23 +48,42 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/mrics-technologies/mrics-plane-admin
-          tags: |
-            type=raw,value=dev-latest
-            type=sha,prefix=dev-
+      - name: Compute image tags
+        id: tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/mrics-technologies/mrics-plane-admin"
+          short_sha="${GITHUB_SHA::7}"
+          tags="$image:dev-${{ matrix.arch }}-latest"
+          tags+=$'\n'"$image:dev-${{ matrix.arch }}-$short_sha"
+          tags+=$'\n'"$image:dev-${{ matrix.arch }}-$GITHUB_SHA"
 
-      - name: Build and push admin
+          # Compatibility tags: keep existing ARM dev deployments working while
+          # adding explicit architecture tags for x86_64/amd64 deployments.
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            tags+=$'\n'"$image:dev-latest"
+            tags+=$'\n'"$image:dev-$short_sha"
+          fi
+
+          {
+            echo 'tags<<EOF'
+            printf '%s\n' "$tags"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build and push admin (${{ matrix.arch }})
         uses: docker/build-push-action@v6
         with:
           context: .
           file: apps/admin/Dockerfile.admin
-          # Dev Coolify server pulls the ARM64 image; single-platform build avoids long/stuck multi-arch exports.
-          platforms: linux/arm64
+          platforms: ${{ matrix.platform }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.tags.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.architecture=${{ matrix.arch }}
+          cache-from: type=gha,scope=admin-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=admin-${{ matrix.arch }}
           provenance: false
