@@ -1,0 +1,285 @@
+# ============================================================================
+# MRICS Plane — self-hosted deployment (any server, any architecture)
+# ============================================================================
+# Images are multi-arch (linux/amd64 + linux/arm64) from GHCR.
+# Configure everything via .env (copy from .env.example) then:
+#     docker compose up -d
+# ============================================================================
+
+services:
+  plane-db:
+    image: postgres:15-alpine
+    container_name: plane-db
+    restart: unless-stopped
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-plane}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-plane}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-plane} -d ${POSTGRES_DB:-plane}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plane-net
+
+  plane-redis:
+    image: valkey/valkey:7.2.11-alpine
+    container_name: plane-redis
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plane-net
+
+  plane-mq:
+    image: rabbitmq:3.13-alpine
+    container_name: plane-mq
+    restart: unless-stopped
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-plane}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-plane}
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plane-net
+
+  plane-minio:
+    image: minio/minio:latest
+    container_name: plane-minio
+    restart: unless-stopped
+    volumes:
+      - miniodata:/data
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:?Set AWS_ACCESS_KEY_ID in .env}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:?Set AWS_SECRET_ACCESS_KEY in .env}
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - plane-net
+
+  plane-minio-setup:
+    image: minio/mc:latest
+    container_name: plane-minio-setup
+    depends_on:
+      plane-minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY}
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://plane-minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; do sleep 1; done;
+      mc mb --ignore-existing local/${S3_BUCKET_NAME:-uploads};
+      mc anonymous set download local/${S3_BUCKET_NAME:-uploads};
+      exit 0"
+    networks:
+      - plane-net
+
+  plane-migrator:
+    image: ${PLANE_BACKEND_IMAGE:-ghcr.io/mrics-technologies/mrics-plane-backend:dev}
+    container_name: plane-migrator
+    restart: on-failure
+    depends_on:
+      plane-db:
+        condition: service_healthy
+      plane-redis:
+        condition: service_healthy
+    environment: &backend-env
+      DJANGO_SETTINGS_MODULE: plane.settings.production
+      DEBUG: '0'
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      WEB_URL: ${WEB_URL:?Set WEB_URL in .env}
+      CORS_ALLOWED_ORIGINS: ${WEB_URL}
+      # Database
+      DATABASE_URL: postgresql://${POSTGRES_USER:-plane}:${POSTGRES_PASSWORD}@plane-db/${POSTGRES_DB:-plane}
+      # Redis / RabbitMQ
+      REDIS_URL: redis://plane-redis:6379/
+      AMQP_URL: amqp://${RABBITMQ_USER:-plane}:${RABBITMQ_PASSWORD}@plane-mq:5672/${RABBITMQ_VHOST:-plane}
+      # S3 / MinIO
+      USE_MINIO: '1'
+      AWS_S3_ENDPOINT_URL: http://plane-minio:9000
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_S3_BUCKET_NAME: ${S3_BUCKET_NAME:-uploads}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      # Admin
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+    command: ./bin/docker-entrypoint-migrator.sh
+    networks:
+      - plane-net
+
+  plane-api:
+    image: ${PLANE_BACKEND_IMAGE:-ghcr.io/mrics-technologies/mrics-plane-backend:dev}
+    container_name: plane-api
+    restart: unless-stopped
+    depends_on:
+      plane-migrator:
+        condition: service_completed_successfully
+      plane-mq:
+        condition: service_healthy
+    environment: *backend-env
+    command: ./bin/docker-entrypoint-api.sh
+    networks:
+      - plane-net
+      - proxy
+    labels:
+      traefik.enable: ${PLANE_TRAEFIK_ENABLE:-true}
+      # NOTE: no trailing slash in the api rule would break nothing, but keep exact prefixes.
+      traefik.http.routers.plane-api.rule: Host(`${PLANE_PUBLIC_DOMAIN:?Set PLANE_PUBLIC_DOMAIN in .env}`) && (PathPrefix(`/api/`) || PathPrefix(`/auth/`) || PathPrefix(`/god-mode/api/`))
+      traefik.http.routers.plane-api.entrypoints: ${PLANE_TRAEFIK_ENTRYPOINT:-https}
+      traefik.http.routers.plane-api.tls: ${PLANE_TRAEFIK_TLS:-true}
+      traefik.http.routers.plane-api.tls.certresolver: ${PLANE_TLS_RESOLVER:-letsencrypt}
+      traefik.http.routers.plane-api.priority: 10
+      traefik.http.services.plane-api.loadbalancer.server.port: 8000
+      # Plain HTTP variant for local/simple setups (no TLS resolver)
+      traefik.http.routers.plane-api-http.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && (PathPrefix(`/api/`) || PathPrefix(`/auth/`) || PathPrefix(`/god-mode/api/`))
+      traefik.http.routers.plane-api-http.entrypoints: http
+
+  plane-worker:
+    image: ${PLANE_BACKEND_IMAGE:-ghcr.io/mrics-technologies/mrics-plane-backend:dev}
+    container_name: plane-worker
+    restart: unless-stopped
+    depends_on:
+      plane-api:
+        condition: service_started
+    environment: *backend-env
+    command: ./bin/docker-entrypoint-worker.sh
+    networks:
+      - plane-net
+
+  plane-beat-worker:
+    image: ${PLANE_BACKEND_IMAGE:-ghcr.io/mrics-technologies/mrics-plane-backend:dev}
+    container_name: plane-beat-worker
+    restart: unless-stopped
+    depends_on:
+      plane-api:
+        condition: service_started
+    environment: *backend-env
+    command: ./bin/docker-entrypoint-beat.sh
+    networks:
+      - plane-net
+
+  plane-live:
+    image: makeplane/plane-live:v1.4.1
+    container_name: plane-live
+    restart: unless-stopped
+    depends_on:
+      plane-api:
+        condition: service_started
+    environment:
+      API_BASE_URL: http://plane-api:8000
+      LIVE_TOKEN: ${LIVE_TOKEN:?Set LIVE_TOKEN in .env}
+    networks:
+      - plane-net
+      - proxy
+    labels:
+      traefik.enable: ${PLANE_TRAEFIK_ENABLE:-true}
+      traefik.http.routers.plane-live.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && PathPrefix(`/live/`)
+      traefik.http.routers.plane-live.entrypoints: ${PLANE_TRAEFIK_ENTRYPOINT:-https}
+      traefik.http.routers.plane-live.tls: ${PLANE_TRAEFIK_TLS:-true}
+      traefik.http.routers.plane-live.tls.certresolver: ${PLANE_TLS_RESOLVER:-letsencrypt}
+      traefik.http.routers.plane-live.priority: 10
+      traefik.http.services.plane-live.loadbalancer.server.port: 3000
+      traefik.http.routers.plane-live-http.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && PathPrefix(`/live/`)
+      traefik.http.routers.plane-live-http.entrypoints: http
+
+  plane-web:
+    image: ${PLANE_FRONTEND_IMAGE:-ghcr.io/mrics-technologies/mrics-plane-frontend:dev}
+    container_name: plane-web
+    restart: unless-stopped
+    depends_on:
+      plane-api:
+        condition: service_started
+    environment:
+      WEB_URL: ${WEB_URL}
+      # Send API calls to the same public host (reverse proxy routes /api, /auth, /spaces, /god-mode)
+      NEXT_PUBLIC_API_BASE_URL: ${WEB_URL}
+    networks:
+      - proxy
+    labels:
+      traefik.enable: ${PLANE_TRAEFIK_ENABLE:-true}
+      traefik.http.routers.plane-web.rule: Host(`${PLANE_PUBLIC_DOMAIN}`)
+      traefik.http.routers.plane-web.entrypoints: ${PLANE_TRAEFIK_ENTRYPOINT:-https}
+      traefik.http.routers.plane-web.tls: ${PLANE_TRAEFIK_TLS:-true}
+      traefik.http.routers.plane-web.tls.certresolver: ${PLANE_TLS_RESOLVER:-letsencrypt}
+      traefik.http.routers.plane-web.priority: 1
+      traefik.http.services.plane-web.loadbalancer.server.port: 3000
+      traefik.http.routers.plane-web-http.rule: Host(`${PLANE_PUBLIC_DOMAIN}`)
+      traefik.http.routers.plane-web-http.entrypoints: http
+
+  plane-space:
+    image: makeplane/plane-space:v1.4.1
+    container_name: plane-space
+    restart: unless-stopped
+    depends_on:
+      plane-api:
+        condition: service_started
+    environment:
+      WEB_URL: ${WEB_URL}
+      SPACE_SERVE_ROOT: /spaces
+    networks:
+      - proxy
+    labels:
+      traefik.enable: ${PLANE_TRAEFIK_ENABLE:-true}
+      traefik.http.routers.plane-space.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && PathPrefix(`/spaces/`)
+      traefik.http.routers.plane-space.entrypoints: ${PLANE_TRAEFIK_ENTRYPOINT:-https}
+      traefik.http.routers.plane-space.tls: ${PLANE_TRAEFIK_TLS:-true}
+      traefik.http.routers.plane-space.tls.certresolver: ${PLANE_TLS_RESOLVER:-letsencrypt}
+      traefik.http.routers.plane-space.priority: 10
+      traefik.http.services.plane-space.loadbalancer.server.port: 3000
+      traefik.http.routers.plane-space-http.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && PathPrefix(`/spaces/`)
+      traefik.http.routers.plane-space-http.entrypoints: http
+
+  plane-admin:
+    image: ${PLANE_ADMIN_IMAGE:-ghcr.io/mrics-technologies/mrics-plane-admin:dev}
+    container_name: plane-admin
+    restart: unless-stopped
+    depends_on:
+      plane-api:
+        condition: service_started
+    networks:
+      - proxy
+    labels:
+      traefik.enable: ${PLANE_TRAEFIK_ENABLE:-true}
+      # IMPORTANT: no trailing slash — must match both /god-mode and /god-mode/*
+      # (admin nginx config in this repo emits relative redirects, so the
+      # /god-mode -> /god-mode/ 301 never leaks the internal :3000 port)
+      traefik.http.routers.plane-admin.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && PathPrefix(`/god-mode`)
+      traefik.http.routers.plane-admin.entrypoints: ${PLANE_TRAEFIK_ENTRYPOINT:-https}
+      traefik.http.routers.plane-admin.tls: ${PLANE_TRAEFIK_TLS:-true}
+      traefik.http.routers.plane-admin.tls.certresolver: ${PLANE_TLS_RESOLVER:-letsencrypt}
+      traefik.http.routers.plane-admin.priority: 10
+      traefik.http.services.plane-admin.loadbalancer.server.port: 3000
+      traefik.http.routers.plane-admin-http.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && PathPrefix(`/god-mode`)
+      traefik.http.routers.plane-admin-http.entrypoints: http
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitmqdata:
+  miniodata:
+
+networks:
+  plane-net:
+  proxy:
+    name: ${PLANE_PROXY_NETWORK:-coolify}
+    external: true
