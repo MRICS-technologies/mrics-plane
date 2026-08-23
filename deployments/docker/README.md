@@ -1,11 +1,15 @@
-# MRICS Plane — Self-Hosted Deployment (Docker Compose)
+# MRICS Plane — Self-Hosted Deployment
 
-Deploy the full MRICS Plane stack (web, admin/god-mode, API, workers, live, space,
-PostgreSQL, Redis, RabbitMQ, MinIO) on **any server, any architecture** (amd64 / arm64),
-behind an existing Traefik reverse proxy.
+**Primary method: [Coolify (Qualify)](coolify/README.md)** — deploy as a Docker
+Compose resource from the Coolify UI. That is how all our environments ship.
 
-All images are pulled from GHCR as **multi-arch manifests** — Docker automatically
-selects the right architecture for your host. No builds on the server.
+This directory (`deployments/docker/`) holds the **engine** both flows share:
+the compose file, the `.env.example` contract, and the hardening notes.
+Coolify users: point your Compose resource at `deployments/docker/docker-compose.yml`
+and follow `deployments/coolify/README.md` for the step-by-step UI flow.
+
+The plain-Docker flow below is for environments without Coolify (bare VMs,
+on-prem clusters). Same compose, same variables.
 
 ## Prerequisites
 
