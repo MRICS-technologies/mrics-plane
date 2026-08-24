@@ -32,7 +32,7 @@ the same questions.
 | Question | Default |
 |---|---|
 | Reset staging from production every feature release? | **Yes** — before every production candidate. |
-| Keep staging always online? | **Yes** — e.g. `plane-staging.scalezy.com`. |
+| Keep staging always online? | **Yes** — e.g. `stage.plane.mrics.art`. |
 | Staging email behavior | Use a test inbox/sink only. Never email real users from staging. |
 | GitHub App for staging | Use a **separate staging GitHub App**. |
 | GitHub repos for staging | Use **test repos by default**. Real-repo testing is allowed only as an explicit, controlled final acceptance test. |
