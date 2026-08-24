@@ -1,0 +1,266 @@
+name: Deploy MRICS Plane to Coolify
+
+on:
+  push:
+    branches:
+      - staging
+      - production
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: plane-coolify-${{ github.event_name == 'workflow_dispatch' && inputs.target || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: mrics-technologies
+  PLANE_SERVER_UUID: r2ix4e1vuuqzsa3nuktg7bpg
+  PLANE_SERVER_IP: 16.16.240.94
+  PLANE_PRODUCTION_SERVICE_UUID: hcv0zmd079m0w5a74riditzj
+  PLANE_STAGING_SERVICE_UUID: pkckgrcxk5v3iyydfjpdqyvx
+
+jobs:
+  plan:
+    name: Resolve deployment target
+    if: github.event_name != 'push' || github.event.created != true
+    runs-on: ubuntu-24.04
+    outputs:
+      target: ${{ steps.plan.outputs.target }}
+      channel: ${{ steps.plan.outputs.channel }}
+      service_uuid: ${{ steps.plan.outputs.service_uuid }}
+      public_host: ${{ steps.plan.outputs.public_host }}
+      short_sha: ${{ steps.plan.outputs.short_sha }}
+    steps:
+      - id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="${{ github.event_name == 'workflow_dispatch' && inputs.target || github.ref_name }}"
+          case "$target" in
+            staging)
+              service_uuid="$PLANE_STAGING_SERVICE_UUID"
+              public_host="plane-staging.scalezy.com"
+              ;;
+            production)
+              service_uuid="$PLANE_PRODUCTION_SERVICE_UUID"
+              public_host="plane.scalezy.com"
+              ;;
+            *)
+              echo "Unsupported branch/target: $target" >&2
+              exit 1
+              ;;
+          esac
+          short_sha="${GITHUB_SHA::7}"
+          {
+            echo "target=$target"
+            echo "channel=$target"
+            echo "service_uuid=$service_uuid"
+            echo "public_host=$public_host"
+            echo "short_sha=$short_sha"
+          } >> "$GITHUB_OUTPUT"
+
+  build-backend:
+    name: Build backend image
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    outputs:
+      image: ghcr.io/mrics-technologies/mrics-plane-backend@${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push backend
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/api
+          file: apps/api/Dockerfile.api
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/mrics-technologies/mrics-plane-backend:${{ needs.plan.outputs.channel }}
+            ghcr.io/mrics-technologies/mrics-plane-backend:${{ needs.plan.outputs.channel }}-${{ needs.plan.outputs.short_sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=backend-${{ needs.plan.outputs.channel }}
+          cache-to: type=gha,mode=max,scope=backend-${{ needs.plan.outputs.channel }}
+          provenance: false
+
+  build-web-admin:
+    name: Build ${{ matrix.component }} image (${{ matrix.arch }})
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: frontend
+            dockerfile: apps/web/Dockerfile.web
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - component: frontend
+            dockerfile: apps/web/Dockerfile.web
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - component: admin
+            dockerfile: apps/admin/Dockerfile.admin
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - component: admin
+            dockerfile: apps/admin/Dockerfile.admin
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push ${{ matrix.component }} ${{ matrix.arch }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: |
+            ghcr.io/mrics-technologies/mrics-plane-${{ matrix.component }}:${{ needs.plan.outputs.channel }}-${{ matrix.arch }}-${{ needs.plan.outputs.short_sha }}
+            ghcr.io/mrics-technologies/mrics-plane-${{ matrix.component }}:${{ needs.plan.outputs.channel }}-${{ matrix.arch }}-latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.architecture=${{ matrix.arch }}
+          cache-from: type=gha,scope=${{ matrix.component }}-${{ matrix.arch }}-${{ needs.plan.outputs.channel }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}-${{ matrix.arch }}-${{ needs.plan.outputs.channel }}
+          provenance: false
+
+  merge-web-admin:
+    name: Merge ${{ matrix.component }} multi-arch manifest
+    needs:
+      - plan
+      - build-web-admin
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+          - frontend
+          - admin
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      frontend_image: ${{ steps.out.outputs.frontend_image }}
+      admin_image: ${{ steps.out.outputs.admin_image }}
+    steps:
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create manifest
+        id: manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="ghcr.io/mrics-technologies/mrics-plane-${{ matrix.component }}"
+          tag="${{ needs.plan.outputs.channel }}-${{ needs.plan.outputs.short_sha }}"
+          for i in $(seq 1 30); do
+            docker buildx imagetools inspect "$image:${{ needs.plan.outputs.channel }}-amd64-${{ needs.plan.outputs.short_sha }}" >/dev/null 2>&1 && \
+            docker buildx imagetools inspect "$image:${{ needs.plan.outputs.channel }}-arm64-${{ needs.plan.outputs.short_sha }}" >/dev/null 2>&1 && break
+            echo "waiting for arch image visibility ($i)"
+            sleep 10
+          done
+          docker buildx imagetools create \
+            -t "$image:${{ needs.plan.outputs.channel }}" \
+            -t "$image:$tag" \
+            "$image:${{ needs.plan.outputs.channel }}-amd64-${{ needs.plan.outputs.short_sha }}" \
+            "$image:${{ needs.plan.outputs.channel }}-arm64-${{ needs.plan.outputs.short_sha }}"
+          digest="$(docker buildx imagetools inspect "$image:$tag" | awk '/^Digest:/ {print $2; exit}')"
+          test -n "$digest"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Expose component image output
+        id: out
+        shell: bash
+        run: |
+          set -euo pipefail
+          ref="ghcr.io/mrics-technologies/mrics-plane-${{ matrix.component }}@${{ steps.manifest.outputs.digest }}"
+          if [ "${{ matrix.component }}" = frontend ]; then
+            echo "frontend_image=$ref" >> "$GITHUB_OUTPUT"
+            echo "admin_image=" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend_image=" >> "$GITHUB_OUTPUT"
+            echo "admin_image=$ref" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Deploy ${{ needs.plan.outputs.target }} through Coolify
+    needs:
+      - plan
+      - build-backend
+      - merge-web-admin
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: ${{ needs.plan.outputs.target }}
+      url: https://${{ needs.plan.outputs.public_host }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve frontend/admin manifest refs
+        id: refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_frontend="ghcr.io/mrics-technologies/mrics-plane-frontend:${{ needs.plan.outputs.channel }}-${{ needs.plan.outputs.short_sha }}"
+          image_admin="ghcr.io/mrics-technologies/mrics-plane-admin:${{ needs.plan.outputs.channel }}-${{ needs.plan.outputs.short_sha }}"
+          docker buildx imagetools inspect "$image_frontend" >/tmp/frontend.inspect
+          docker buildx imagetools inspect "$image_admin" >/tmp/admin.inspect
+          frontend_digest="$(awk '/^Digest:/ {print $2; exit}' /tmp/frontend.inspect)"
+          admin_digest="$(awk '/^Digest:/ {print $2; exit}' /tmp/admin.inspect)"
+          test -n "$frontend_digest"
+          test -n "$admin_digest"
+          echo "frontend_image=ghcr.io/mrics-technologies/mrics-plane-frontend@$frontend_digest" >> "$GITHUB_OUTPUT"
+          echo "admin_image=ghcr.io/mrics-technologies/mrics-plane-admin@$admin_digest" >> "$GITHUB_OUTPUT"
+      - name: Deploy via Coolify
+        env:
+          COOLIFY_BASE_URL: ${{ secrets.COOLIFY_BASE_URL }}
+          COOLIFY_ACCESS_TOKEN: ${{ secrets.COOLIFY_ACCESS_TOKEN }}
+          PLANE_TARGET_ENV: ${{ needs.plan.outputs.target }}
+          PLANE_SERVICE_UUID: ${{ needs.plan.outputs.service_uuid }}
+          PLANE_SERVER_UUID: ${{ env.PLANE_SERVER_UUID }}
+          PLANE_SERVER_IP: ${{ env.PLANE_SERVER_IP }}
+          PLANE_PUBLIC_HOST: ${{ needs.plan.outputs.public_host }}
+          PLANE_PRODUCTION_SERVICE_UUID: ${{ env.PLANE_PRODUCTION_SERVICE_UUID }}
+          PLANE_BACKEND_IMAGE: ${{ needs.build-backend.outputs.image }}
+          PLANE_FRONTEND_IMAGE: ${{ steps.refs.outputs.frontend_image }}
+          PLANE_ADMIN_IMAGE: ${{ steps.refs.outputs.admin_image }}
+        run: python3 .github/scripts/coolify_plane_deploy.py
