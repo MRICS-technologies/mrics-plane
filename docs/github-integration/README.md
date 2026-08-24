@@ -14,7 +14,7 @@ The MRICS Plane fork includes a native GitHub App integration for connecting a P
 | Signed `pull_request` webhook → Plane PR links     | Available; shared branches fan out to all linked issues |
 | PR action → Plane workflow-state automation        | Not implemented                                         |
 
-The current implementation is merged in `mrics/dev` and staged as `mrics-v1.4.2.5` on `https://plane-staging.scalezy.com`. Production promotion remains a separate backup + approval step.
+The current implementation is merged in `mrics/dev` and staged as `mrics-v1.4.2.5` on `https://stage.plane.mrics.art`. Production promotion remains a separate backup + approval step.
 
 ## Documentation map
 
