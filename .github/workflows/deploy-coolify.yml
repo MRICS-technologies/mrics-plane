@@ -51,7 +51,7 @@ jobs:
           case "$target" in
             staging)
               service_uuid="$PLANE_STAGING_SERVICE_UUID"
-              public_host="plane-staging.scalezy.com"
+              public_host="stage.plane.mrics.art"
               ;;
             production)
               service_uuid="$PLANE_PRODUCTION_SERVICE_UUID"
