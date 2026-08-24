@@ -5,6 +5,11 @@ This is the **primary deployment method**. The stack is deployed as a Coolify
 Multi-arch images are pulled from GHCR automatically (amd64 or arm64, whatever
 the Coolify server runs).
 
+For feature releases, staging refreshes, and production promotion, follow
+[`STAGING_AND_PROMOTION.md`](STAGING_AND_PROMOTION.md). It defines the canonical
+Scalezy workflow: local development → PR/CI images → Coolify staging with a fresh
+production clone → user approval → Coolify production promotion.
+
 Total time on a fresh Coolify project: **~5 minutes**.
 
 ---
