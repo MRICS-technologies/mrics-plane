@@ -101,9 +101,20 @@ def state_entered_at(issue_id, state_id):
 
 def started_group_entered_at(issue_id, *, fallback_to_issue_created=False):
     """Timestamp the current STARTED-group session began from existing state activity."""
+    started_at, _actor_id = started_group_entry(issue_id, fallback_to_issue_created=fallback_to_issue_created)
+    return started_at
+
+
+def started_group_entry(issue_id, *, fallback_to_issue_created=False):
+    """Return ``(started_at, actor_id)`` for the current STARTED-group session.
+
+    ``actor_id`` is the user whose state change moved the issue into the
+    STARTED group, i.e. the person who began the work. It is ``None`` when the
+    session start is only inferred from the issue creation time.
+    """
     issue = Issue.objects.filter(pk=issue_id).only("id", "project_id", "created_at").first()
     if issue is None:
-        return None
+        return None, None
 
     started_state_ids = {
         str(state_id)
@@ -114,6 +125,7 @@ def started_group_entered_at(issue_id, *, fallback_to_issue_created=False):
     }
 
     active_started_at = None
+    active_actor_id = None
     has_state_activity = False
     activities = IssueActivity.objects.filter(issue_id=issue_id, field="state").order_by("epoch", "created_at")
     for activity in activities:
@@ -122,16 +134,20 @@ def started_group_entered_at(issue_id, *, fallback_to_issue_created=False):
         new_started = str(activity.new_identifier) in started_state_ids if activity.new_identifier else False
         if not old_started and new_started:
             active_started_at = activity_instant(activity)
+            active_actor_id = activity.actor_id
         elif old_started and new_started:
-            active_started_at = active_started_at or activity_instant(activity)
+            if active_started_at is None:
+                active_started_at = activity_instant(activity)
+                active_actor_id = activity.actor_id
         elif old_started and not new_started:
             active_started_at = None
+            active_actor_id = None
 
     if active_started_at is not None:
-        return active_started_at
+        return active_started_at, active_actor_id
     if fallback_to_issue_created and not has_state_activity:
-        return issue.created_at
-    return None
+        return issue.created_at, None
+    return None, None
 
 
 def _is_started_state(project_id, state_id):
@@ -223,7 +239,7 @@ def stop_auto_state_worklog(*, issue, user_id, stopped_at):
             .order_by("started_at", "created_at")
         )
         if not open_worklogs:
-            recovered_started_at = started_group_entered_at(issue.id, fallback_to_issue_created=True)
+            recovered_started_at, starter_id = started_group_entry(issue.id, fallback_to_issue_created=True)
             if recovered_started_at is None or stopped_at <= recovered_started_at:
                 return None
 
@@ -246,7 +262,9 @@ def stop_auto_state_worklog(*, issue, user_id, stopped_at):
             ):
                 return latest_completed_worklog
 
-            fallback_user_id = auto_state_actor_id(issue, user_id)
+            # Attribute recovered time to whoever moved the issue into STARTED,
+            # not to whoever is closing it now.
+            fallback_user_id = auto_state_actor_id(issue, starter_id or user_id)
             if fallback_user_id is None:
                 return None
             return WorkItemWorklog.objects.create(
@@ -266,9 +284,11 @@ def stop_auto_state_worklog(*, issue, user_id, stopped_at):
         for worklog in open_worklogs:
             if stopped_at <= worklog.started_at:
                 continue
-            actor_id = auto_state_actor_id(issue, user_id)
-            if actor_id is not None:
-                worklog.logged_by_id = actor_id
+            # The session belongs to the user who started it (logged_by was set
+            # on entry). The user who moves the issue out of STARTED only ends
+            # the session; they must not take over its time.
+            if worklog.logged_by_id is None:
+                worklog.logged_by_id = auto_state_actor_id(issue, user_id)
             worklog.stopped_at = stopped_at
             worklog.date = timezone.localdate(stopped_at)
             worklog.duration = worklog_duration_hours(worklog.started_at, stopped_at)

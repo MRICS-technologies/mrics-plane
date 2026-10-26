@@ -305,3 +305,128 @@ def test_auto_state_actor_falls_back_to_issue_creator(issue, states, create_user
 
     worklog = WorkItemWorklog.objects.get(issue=issue, source=WorkItemWorklog.Source.AUTO_STATE)
     assert worklog.logged_by_id == create_user.id
+
+
+@pytest.fixture
+def other_user(db):
+    from plane.db.models import User
+
+    return User.objects.create(email="closer@example.com", first_name="Close", last_name="R")
+
+
+def _state_activity(issue, actor, old_state, new_state, at):
+    from plane.db.models import IssueActivity
+
+    return IssueActivity.objects.create(
+        issue=issue,
+        project=issue.project,
+        workspace=issue.workspace,
+        actor=actor,
+        verb="updated",
+        field="state",
+        old_value=old_state.name if old_state else None,
+        new_value=new_state.name,
+        old_identifier=old_state.id if old_state else None,
+        new_identifier=new_state.id,
+        epoch=at.timestamp(),
+    )
+
+
+@pytest.mark.django_db
+def test_session_stays_with_starter_when_another_user_closes_it(issue, states, create_user, other_user):
+    started_at = timezone.now() - timedelta(hours=3)
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=create_user.id,
+        old_state_id=states["todo"].id,
+        new_state_id=states["started"].id,
+        transition_at=started_at,
+    )
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=other_user.id,
+        old_state_id=states["started"].id,
+        new_state_id=states["done"].id,
+        transition_at=timezone.now(),
+    )
+
+    worklog = WorkItemWorklog.objects.get(issue=issue, source=WorkItemWorklog.Source.AUTO_STATE)
+    assert worklog.logged_by_id == create_user.id
+    assert worklog.stopped_at is not None
+
+
+@pytest.mark.django_db
+def test_recovered_session_is_attributed_to_starter_not_closer(issue, states, create_user, other_user):
+    entered_at = timezone.now() - timedelta(minutes=40)
+    _state_activity(issue, create_user, states["todo"], states["started"], entered_at)
+
+    sync_auto_state_worklog(
+        issue=issue,
+        user_id=other_user.id,
+        old_state_id=states["started"].id,
+        new_state_id=states["done"].id,
+        transition_at=timezone.now(),
+    )
+
+    worklog = WorkItemWorklog.objects.get(issue=issue, source=WorkItemWorklog.Source.AUTO_STATE)
+    assert worklog.logged_by_id == create_user.id
+    assert abs((worklog.started_at - entered_at).total_seconds()) < 1
+
+
+@pytest.mark.django_db
+def test_fix_command_reattributes_closed_sessions(issue, states, create_user, other_user):
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    entered_at = timezone.now() - timedelta(hours=5)
+    _state_activity(issue, create_user, states["todo"], states["started"], entered_at)
+    worklog = WorkItemWorklog.objects.create(
+        workspace=issue.workspace,
+        project=issue.project,
+        issue=issue,
+        logged_by=other_user,
+        date=timezone.localdate(),
+        duration=Decimal("5"),
+        source=WorkItemWorklog.Source.AUTO_STATE,
+        started_at=entered_at,
+        stopped_at=timezone.now(),
+    )
+
+    out = StringIO()
+    call_command("fix_auto_state_worklog_owners", stdout=out)
+    worklog.refresh_from_db()
+    assert worklog.logged_by_id == other_user.id
+    assert "1 to re-attribute" in out.getvalue()
+
+    call_command("fix_auto_state_worklog_owners", "--apply", stdout=StringIO())
+    worklog.refresh_from_db()
+    assert worklog.logged_by_id == create_user.id
+
+    out = StringIO()
+    call_command("fix_auto_state_worklog_owners", "--apply", stdout=out)
+    assert "0 to re-attribute" in out.getvalue()
+
+
+@pytest.mark.django_db
+def test_fix_command_leaves_sessions_without_matching_state_change(issue, states, create_user, other_user):
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    _state_activity(issue, create_user, states["todo"], states["started"], timezone.now() - timedelta(days=2))
+    worklog = WorkItemWorklog.objects.create(
+        workspace=issue.workspace,
+        project=issue.project,
+        issue=issue,
+        logged_by=other_user,
+        date=timezone.localdate(),
+        duration=Decimal("1"),
+        source=WorkItemWorklog.Source.AUTO_STATE,
+        started_at=timezone.now() - timedelta(hours=1),
+        stopped_at=timezone.now(),
+    )
+
+    call_command("fix_auto_state_worklog_owners", "--apply", stdout=StringIO())
+    worklog.refresh_from_db()
+    assert worklog.logged_by_id == other_user.id
