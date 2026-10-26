@@ -265,7 +265,9 @@ def stop_auto_state_worklog(*, issue, user_id, stopped_at):
 
             # Attribute recovered time to whoever moved the issue into STARTED,
             # not to whoever is closing it now.
-            fallback_user_id = auto_state_actor_id(issue, starter_id or user_id)
+            fallback_user_id = auto_state_actor_id(issue, starter_id) if starter_id else None
+            if fallback_user_id is None:
+                fallback_user_id = auto_state_actor_id(issue, user_id)
             if fallback_user_id is None:
                 return None
             return WorkItemWorklog.objects.create(

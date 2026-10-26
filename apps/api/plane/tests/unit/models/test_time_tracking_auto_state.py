@@ -475,7 +475,8 @@ def test_fix_command_gives_created_in_progress_sessions_to_creator(issue, states
 
     from django.core.management import call_command
 
-    issue.refresh_from_db(fields=["created_at"])
+    Issue.objects.filter(pk=issue.id).update(created_by=create_user, state=states["started"])
+    issue.refresh_from_db(fields=["created_at", "created_by", "state"])
     worklog = _closed_auto_worklog(issue, other_user, issue.created_at, issue.created_at + timedelta(hours=2))
 
     call_command(

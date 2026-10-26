@@ -70,7 +70,7 @@ class Command(BaseCommand):
         project_ids = {w.project_id for w in worklogs}
         issue_ids = {w.issue_id for w in worklogs}
         started_state_ids = defaultdict(set)
-        for state_id, project_id in State.objects.filter(
+        for state_id, project_id in State.all_objects.filter(
             project_id__in=project_ids, group=StateGroup.STARTED.value
         ).values_list("id", "project_id"):
             started_state_ids[project_id].add(str(state_id))
@@ -78,25 +78,36 @@ class Command(BaseCommand):
         # Candidate session starts: (instant, actor_id, source). Deleted users keep
         # their entry (actor_id None) so a neighbour cannot win by default.
         entries_by_issue = defaultdict(list)
-        activities = IssueActivity.objects.filter(issue_id__in=issue_ids, field="state").only(
-            "id", "issue_id", "project_id", "actor_id", "old_identifier", "new_identifier", "epoch", "created_at"
+        first_state_change = {}
+        activities = (
+            IssueActivity.objects.filter(issue_id__in=issue_ids, field="state")
+            .order_by("epoch", "created_at")
+            .only("id", "issue_id", "project_id", "actor_id", "old_identifier", "new_identifier", "epoch", "created_at")
         )
         for activity in activities:
             started = started_state_ids.get(activity.project_id, set())
             new_started = activity.new_identifier is not None and str(activity.new_identifier) in started
             old_started = activity.old_identifier is not None and str(activity.old_identifier) in started
+            first_state_change.setdefault(activity.issue_id, old_started)
             if new_started and not old_started:
                 entries_by_issue[activity.issue_id].append(
                     (activity_instant(activity), activity.actor_id, f"activity:{activity.id}")
                 )
-        # Issues created directly in a STARTED state log no state activity; the
-        # creator started that session.
-        for issue_id, created_at, created_by_id in Issue.all_objects.filter(id__in=issue_ids).values_list(
-            "id", "created_at", "created_by_id"
-        ):
-            entries_by_issue[issue_id].append((created_at, created_by_id, "issue_created"))
+        # Issues created directly in a STARTED state log no state activity for that
+        # start; the creator started the session. Only add the creator when the
+        # issue really began in STARTED (first change leaves STARTED, or no change
+        # yet and it is still in STARTED).
+        for issue_id, project_id, state_id, created_at, created_by_id in Issue.all_objects.filter(
+            id__in=issue_ids
+        ).values_list("id", "project_id", "state_id", "created_at", "created_by_id"):
+            if issue_id in first_state_change:
+                created_in_started = first_state_change[issue_id]
+            else:
+                created_in_started = state_id is not None and str(state_id) in started_state_ids.get(project_id, set())
+            if created_in_started:
+                entries_by_issue[issue_id].append((created_at, created_by_id, "issue_created"))
 
-        active_users = set(User.objects.filter(is_active=True).values_list("id", flat=True))
+        active_users = set(User.objects.filter(is_active=True, is_bot=False).values_list("id", flat=True))
         changes = []
         skipped = defaultdict(list)
         for worklog in worklogs:
@@ -121,7 +132,7 @@ class Command(BaseCommand):
             if starter_id == worklog.logged_by_id:
                 continue
             if starter_id not in active_users:
-                skipped["starter user inactive"].append(worklog)
+                skipped["starter user inactive or bot"].append(worklog)
                 continue
             changes.append((worklog, starter_id, gap, source))
 
