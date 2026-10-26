@@ -26,10 +26,11 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   IMAGE_OWNER: mrics-technologies
-  PLANE_SERVER_UUID: r2ix4e1vuuqzsa3nuktg7bpg
+  # CoolifyVBSManagement Hub (coolify.mrics.art) since 2026-10-07; same host 16.16.240.94.
+  PLANE_SERVER_UUID: ytofgz18fk0rzcreebfzu8aw
   PLANE_SERVER_IP: 16.16.240.94
-  PLANE_PRODUCTION_SERVICE_UUID: hcv0zmd079m0w5a74riditzj
-  PLANE_STAGING_SERVICE_UUID: pkckgrcxk5v3iyydfjpdqyvx
+  PLANE_PRODUCTION_SERVICE_UUID: 2yztifszbnrzrkorwciqp63m
+  PLANE_STAGING_SERVICE_UUID: 6sghhofxq40eiicqezzznkte
 
 jobs:
   plan:
