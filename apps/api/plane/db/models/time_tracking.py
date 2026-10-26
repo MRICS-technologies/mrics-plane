@@ -109,10 +109,10 @@ def started_group_entry(issue_id, *, fallback_to_issue_created=False):
     """Return ``(started_at, actor_id)`` for the current STARTED-group session.
 
     ``actor_id`` is the user whose state change moved the issue into the
-    STARTED group, i.e. the person who began the work. It is ``None`` when the
-    session start is only inferred from the issue creation time.
+    STARTED group, i.e. the person who began the work. When the start is
+    inferred from the issue creation time it is the issue's creator.
     """
-    issue = Issue.objects.filter(pk=issue_id).only("id", "project_id", "created_at").first()
+    issue = Issue.objects.filter(pk=issue_id).only("id", "project_id", "created_at", "created_by_id").first()
     if issue is None:
         return None, None
 
@@ -146,7 +146,8 @@ def started_group_entry(issue_id, *, fallback_to_issue_created=False):
     if active_started_at is not None:
         return active_started_at, active_actor_id
     if fallback_to_issue_created and not has_state_activity:
-        return issue.created_at, None
+        # Created directly in a STARTED state: the creator started the session.
+        return issue.created_at, issue.created_by_id
     return None, None
 
 
@@ -287,13 +288,11 @@ def stop_auto_state_worklog(*, issue, user_id, stopped_at):
             # The session belongs to the user who started it (logged_by was set
             # on entry). The user who moves the issue out of STARTED only ends
             # the session; they must not take over its time.
-            if worklog.logged_by_id is None:
-                worklog.logged_by_id = auto_state_actor_id(issue, user_id)
             worklog.stopped_at = stopped_at
             worklog.date = timezone.localdate(stopped_at)
             worklog.duration = worklog_duration_hours(worklog.started_at, stopped_at)
             worklog.description = "Auto tracked from Started/In Progress state changes"
-            worklog.save(update_fields=["logged_by", "stopped_at", "date", "duration", "description", "updated_at"])
+            worklog.save(update_fields=["stopped_at", "date", "duration", "description", "updated_at"])
             closed_worklog = closed_worklog or worklog
         return closed_worklog
 

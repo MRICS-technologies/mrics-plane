@@ -374,7 +374,7 @@ def test_recovered_session_is_attributed_to_starter_not_closer(issue, states, cr
 
 
 @pytest.mark.django_db
-def test_fix_command_reattributes_closed_sessions(issue, states, create_user, other_user):
+def test_fix_command_reattributes_closed_sessions(issue, states, create_user, other_user, tmp_path):
     from io import StringIO
 
     from django.core.management import call_command
@@ -399,17 +399,19 @@ def test_fix_command_reattributes_closed_sessions(issue, states, create_user, ot
     assert worklog.logged_by_id == other_user.id
     assert "1 to re-attribute" in out.getvalue()
 
-    call_command("fix_auto_state_worklog_owners", "--apply", stdout=StringIO())
+    backup = tmp_path / "rollback.csv"
+    call_command("fix_auto_state_worklog_owners", "--apply", "--backup-csv", str(backup), stdout=StringIO())
     worklog.refresh_from_db()
     assert worklog.logged_by_id == create_user.id
+    assert str(worklog.id) in backup.read_text()
 
     out = StringIO()
-    call_command("fix_auto_state_worklog_owners", "--apply", stdout=out)
+    call_command("fix_auto_state_worklog_owners", "--apply", "--backup-csv", str(backup), stdout=out)
     assert "0 to re-attribute" in out.getvalue()
 
 
 @pytest.mark.django_db
-def test_fix_command_leaves_sessions_without_matching_state_change(issue, states, create_user, other_user):
+def test_fix_command_leaves_sessions_without_matching_state_change(issue, states, create_user, other_user, tmp_path):
     from io import StringIO
 
     from django.core.management import call_command
@@ -427,6 +429,96 @@ def test_fix_command_leaves_sessions_without_matching_state_change(issue, states
         stopped_at=timezone.now(),
     )
 
-    call_command("fix_auto_state_worklog_owners", "--apply", stdout=StringIO())
+    call_command(
+        "fix_auto_state_worklog_owners", "--apply", "--backup-csv", str(tmp_path / "b.csv"), stdout=StringIO()
+    )
     worklog.refresh_from_db()
     assert worklog.logged_by_id == other_user.id
+
+
+def _closed_auto_worklog(issue, owner, started_at, stopped_at):
+    return WorkItemWorklog.objects.create(
+        workspace=issue.workspace,
+        project=issue.project,
+        issue=issue,
+        logged_by=owner,
+        date=timezone.localdate(),
+        duration=Decimal("1"),
+        source=WorkItemWorklog.Source.AUTO_STATE,
+        started_at=started_at,
+        stopped_at=stopped_at,
+    )
+
+
+@pytest.mark.django_db
+def test_fix_command_ignores_entries_after_the_session_ended(issue, states, create_user, other_user, tmp_path):
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    started_at = timezone.now() - timedelta(hours=1)
+    Issue.objects.filter(pk=issue.id).update(created_at=started_at - timedelta(days=1))
+    worklog = _closed_auto_worklog(issue, other_user, started_at, started_at + timedelta(seconds=5))
+    # Someone else re-enters In Progress after the session already stopped.
+    _state_activity(issue, create_user, states["done"], states["started"], started_at + timedelta(seconds=10))
+
+    call_command(
+        "fix_auto_state_worklog_owners", "--apply", "--backup-csv", str(tmp_path / "b.csv"), stdout=StringIO()
+    )
+    worklog.refresh_from_db()
+    assert worklog.logged_by_id == other_user.id
+
+
+@pytest.mark.django_db
+def test_fix_command_gives_created_in_progress_sessions_to_creator(issue, states, create_user, other_user, tmp_path):
+    from io import StringIO
+
+    from django.core.management import call_command
+
+    issue.refresh_from_db(fields=["created_at"])
+    worklog = _closed_auto_worklog(issue, other_user, issue.created_at, issue.created_at + timedelta(hours=2))
+
+    call_command(
+        "fix_auto_state_worklog_owners", "--apply", "--backup-csv", str(tmp_path / "b.csv"), stdout=StringIO()
+    )
+    worklog.refresh_from_db()
+    assert worklog.logged_by_id == create_user.id
+
+
+@pytest.mark.django_db
+def test_fix_command_skips_ambiguous_starts(issue, states, create_user, other_user, tmp_path):
+    from io import StringIO
+
+    from django.core.management import call_command
+    from plane.db.models import User
+
+    third = User.objects.create(email="third@example.com", username="third", first_name="T", last_name="H")
+    started_at = timezone.now() - timedelta(hours=1)
+    Issue.objects.filter(pk=issue.id).update(created_at=started_at - timedelta(days=1))
+    _state_activity(issue, create_user, states["todo"], states["started"], started_at)
+    _state_activity(issue, third, states["todo"], states["started"], started_at + timedelta(seconds=3))
+    worklog = _closed_auto_worklog(issue, other_user, started_at, started_at + timedelta(hours=1))
+
+    out = StringIO()
+    call_command(
+        "fix_auto_state_worklog_owners", "--apply", "--backup-csv", str(tmp_path / "b.csv"), stdout=out
+    )
+    worklog.refresh_from_db()
+    assert worklog.logged_by_id == other_user.id
+    assert "ambiguous" in out.getvalue()
+
+
+@pytest.mark.django_db
+def test_fix_command_apply_requires_backup(issue, states, create_user, other_user):
+    from io import StringIO
+
+    from django.core.management import call_command
+    from django.core.management.base import CommandError
+
+    entered_at = timezone.now() - timedelta(hours=5)
+    Issue.objects.filter(pk=issue.id).update(created_at=entered_at - timedelta(days=1))
+    _state_activity(issue, create_user, states["todo"], states["started"], entered_at)
+    _closed_auto_worklog(issue, other_user, entered_at, timezone.now())
+
+    with pytest.raises(CommandError):
+        call_command("fix_auto_state_worklog_owners", "--apply", stdout=StringIO())
