@@ -311,7 +311,7 @@ def test_auto_state_actor_falls_back_to_issue_creator(issue, states, create_user
 def other_user(db):
     from plane.db.models import User
 
-    return User.objects.create(email="closer@example.com", first_name="Close", last_name="R")
+    return User.objects.create(email="closer@example.com", username="closer", first_name="Close", last_name="R")
 
 
 def _state_activity(issue, actor, old_state, new_state, at):
