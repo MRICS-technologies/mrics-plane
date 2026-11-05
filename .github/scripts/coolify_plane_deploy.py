@@ -250,7 +250,25 @@ show_images() {{
     echo "$s image=$(sudo docker inspect "$c" --format '{{{{.Config.Image}}}}') id=$(sudo docker inspect "$c" --format '{{{{.Image}}}}') state=$(sudo docker inspect "$c" --format '{{{{.State.Status}}}}:{{{{.State.ExitCode}}}}')"
   done
 }}
+wait_api() {{
+  # plane-api runs migrations/collectstatic before gunicorn binds :8000; first boot after a
+  # refresh took ~80s on 2026-10-27, so a fixed sleep is not enough. Wait up to 5 minutes.
+  for i in $(seq 1 60); do
+    if $DC exec -T plane-api python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/api/instances/', timeout=5)" >/dev/null 2>&1; then
+      echo "api_ready after ~$((i * 5))s"; sleep 5; return 0
+    fi
+    sleep 5
+  done
+  echo "api not ready after 300s"; $DC logs --tail=80 plane-api || true; return 3
+}}
 probe_routes() {{
+  for attempt in 1 2 3 4 5 6; do
+    if probe_routes_once "$1"; then return 0; fi
+    echo "route probe attempt $attempt failed; retrying in 10s"; sleep 10
+  done
+  echo route_probe_failed; return 3
+}}
+probe_routes_once() {{
   bad=0
   for p in / /god-mode /god-mode/ /api/instances/ /api/v1/users/me/ /auth/get-csrf-token/; do
     printf '%-24s ' "$p"
@@ -258,7 +276,7 @@ probe_routes() {{
     echo "$line"
     case "$line" in http=5*|http=000*) bad=1 ;; esac
   done
-  [ "$bad" = 0 ] || {{ echo route_probe_failed; return 3; }}
+  [ "$bad" = 0 ]
 }}
 """
 
@@ -316,7 +334,7 @@ wait_migrator
 
 echo start_staging_apps
 $DC up -d --no-deps --force-recreate plane-api plane-worker plane-beat-worker plane-web plane-admin plane-space plane-live
-sleep 45
+wait_api
 
 echo migration_gate
 $DC exec -T plane-api sh -lc 'cd /code && python manage.py migrate --check && python manage.py makemigrations --check --dry-run'
@@ -365,7 +383,7 @@ $DC up -d --no-deps --force-recreate plane-migrator
 wait_migrator
 
 $DC up -d --no-deps --force-recreate plane-api plane-worker plane-beat-worker plane-web plane-admin plane-space plane-live
-sleep 60
+wait_api
 
 echo migration_gate
 $DC exec -T plane-api sh -lc 'cd /code && python manage.py migrate --check && python manage.py makemigrations --check --dry-run'
