@@ -51,6 +51,9 @@ TARGET = env("PLANE_TARGET_ENV")
 SERVICE = env("PLANE_SERVICE_UUID")
 SERVER = env("PLANE_SERVER_UUID")
 PROD_SERVICE = env("PLANE_PRODUCTION_SERVICE_UUID")
+# Every production instance that receives production releases (Scalezy + MRICS). PROD_SERVICE stays
+# Scalezy: the only source for the prod->staging refresh.
+PROD_SERVICES = {s for s in env("PLANE_PRODUCTION_SERVICE_UUIDS", PROD_SERVICE).split(",") if s}
 SERVER_IP = env("PLANE_SERVER_IP")
 PUBLIC_HOST = env("PLANE_PUBLIC_HOST")
 BACKEND_IMAGE = env("PLANE_BACKEND_IMAGE")
@@ -373,9 +376,9 @@ def production_script(encoded_compose: str) -> str:
     return remote_common(encoded_compose) + f"""
 echo backup_production_db
 mkdir -p /home/ubuntu/plane-backups
-$DC exec -T plane-db sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > /home/ubuntu/plane-backups/plane-prod-pre-deploy-{ts}-{SHA}.sql.gz
-chmod 600 /home/ubuntu/plane-backups/plane-prod-pre-deploy-{ts}-{SHA}.sql.gz
-ls -l /home/ubuntu/plane-backups/plane-prod-pre-deploy-{ts}-{SHA}.sql.gz | awk '{{print "backup_size="$5}}'
+$DC exec -T plane-db sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump --clean --if-exists -U "$POSTGRES_USER" -d "$POSTGRES_DB"' | gzip > /home/ubuntu/plane-backups/plane-prod-pre-deploy-{SERVICE}-{ts}-{SHA}.sql.gz
+chmod 600 /home/ubuntu/plane-backups/plane-prod-pre-deploy-{SERVICE}-{ts}-{SHA}.sql.gz
+ls -l /home/ubuntu/plane-backups/plane-prod-pre-deploy-{SERVICE}-{ts}-{SHA}.sql.gz | awk '{{print "backup_size="$5}}'
 
 echo deploy_production_images
 $DC pull plane-api plane-worker plane-beat-worker plane-migrator plane-web plane-admin
@@ -399,10 +402,10 @@ probe_routes ""
 def main() -> None:
     if TARGET not in {"staging", "production"}:
         raise SystemExit("PLANE_TARGET_ENV must be staging or production")
-    if TARGET == "staging" and SERVICE == PROD_SERVICE:
+    if TARGET == "staging" and SERVICE in PROD_SERVICES:
         raise SystemExit("refusing: staging target resolves to the production service uuid")
-    if TARGET == "production" and SERVICE != PROD_SERVICE:
-        raise SystemExit("refusing: production target does not match PLANE_PRODUCTION_SERVICE_UUID")
+    if TARGET == "production" and SERVICE not in PROD_SERVICES:
+        raise SystemExit("refusing: production target is not in PLANE_PRODUCTION_SERVICE_UUIDS")
     preflight()
     encoded = rendered_compose()
     update_coolify_compose()
