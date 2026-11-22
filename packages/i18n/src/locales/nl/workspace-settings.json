@@ -154,6 +154,123 @@
           }
         }
       },
+      "github": {
+        "title": "GitHub",
+        "retry": "Opnieuw proberen",
+        "installation": {
+          "title": "GitHub App-installatie",
+          "description": "Verbind deze werkruimte met een GitHub App-installatie om repositories te ontdekken en pull requests automatisch te koppelen.",
+          "connect_button": "GitHub verbinden",
+          "disconnect_button": "Verbinding verbreken",
+          "installation_id": "Installatie-ID: {id}",
+          "status": {
+            "active": "Actief",
+            "inactive": "Inactief",
+            "suspended": "Opgeschort"
+          },
+          "empty": {
+            "title": "Geen GitHub-installatie verbonden",
+            "description": "Verbind een GitHub App-installatie om repositories te ontdekken en pull requests automatisch te koppelen."
+          },
+          "errors": {
+            "load_failed": "We konden de GitHub-installatie niet laden. Probeer het opnieuw.",
+            "not_configured": "De GitHub App is niet geconfigureerd op deze instantie. Neem contact op met je instantiebeheerder.",
+            "connect_failed": "We konden de verbinding met GitHub niet starten. Probeer het opnieuw."
+          },
+          "callback": {
+            "connected": "GitHub-installatie succesvol verbonden.",
+            "failed": "We konden de GitHub-installatie niet verifiëren. Probeer het opnieuw.",
+            "stale": "De app is al geïnstalleerd op dit GitHub-account. Verwijder de installatie op GitHub en maak daarna opnieuw verbinding."
+          },
+          "manual": {
+            "trigger": "Handmatig toevoegen",
+            "success": "GitHub-installatie geregistreerd.",
+            "modal": {
+              "title": "Installatie handmatig toevoegen",
+              "description": "Gebruik dit alleen als de automatische verbindingsprocedure niet beschikbaar is – voer de installatiegegevens exact zo in als ze op GitHub worden weergegeven.",
+              "installation_id_label": "Installatie-ID",
+              "installation_id_placeholder": "bijv. 12345678",
+              "installation_id_required": "Installatie-ID is verplicht.",
+              "installation_id_invalid": "Installatie-ID moet een positief getal zijn.",
+              "account_login_label": "Accountnaam",
+              "account_login_placeholder": "bijv. mijn-org",
+              "account_login_required": "Accountnaam is verplicht.",
+              "account_type_label": "Accounttype",
+              "account_type_optional": "(optioneel)",
+              "account_type_placeholder": "Organisatie of gebruiker",
+              "submit": "Registreren",
+              "submitting": "Registreren...",
+              "errors": {
+                "conflict": "Deze werkruimte heeft al een actieve GitHub-installatie.",
+                "register_failed": "Deze installatie kon niet worden geregistreerd."
+              }
+            }
+          },
+          "disconnect_modal": {
+            "title": "Verbinding met GitHub-installatie verbreken",
+            "content": "Hiermee wordt de installatie uit deze werkruimte verwijderd. Bestaande koppelingen met pull requests blijven zichtbaar, maar het aanmaken van branches en nieuwe koppelingen werken pas weer als je opnieuw verbinding maakt.",
+            "force_content": "{count, plural, one {Deze installatie heeft # actieve projecttoewijzing.} other {Deze installatie heeft # actieve projecttoewijzingen.}} Als je nu de verbinding verbreekt, {count, plural, one {wordt deze} other {worden deze}} ook verwijderd. Bestaande koppelingen met pull requests blijven zichtbaar, maar het aanmaken van branches werkt pas weer als je opnieuw verbinding maakt en de toewijzingen opnieuw instelt.",
+            "success": "Verbinding met GitHub-installatie verbroken.",
+            "conflict": "De verbinding met deze installatie kon niet worden verbroken.",
+            "failed": "De verbinding met deze installatie kon niet worden verbroken."
+          }
+        },
+        "repositories": {
+          "title": "Repositories",
+          "description": "Kies welke repositories uit je GitHub-installatie beschikbaar zijn om aan projecten toe te wijzen.",
+          "search_placeholder": "Repositories zoeken",
+          "no_search_results": "Geen repositories gevonden die overeenkomen met je zoekopdracht.",
+          "repository_id": "Repository-ID: {id}",
+          "save_success": "{count, plural, one {# repository bijgewerkt.} other {# repositories bijgewerkt.}}",
+          "save_failed": "We konden je wijzigingen aan de repositories niet opslaan. Probeer het opnieuw.",
+          "update_failed": "We konden deze repository niet bijwerken. Probeer het opnieuw.",
+          "remove_aria_label": "{repo} verwijderen",
+          "empty": {
+            "no_installation": {
+              "title": "Verbind eerst GitHub",
+              "description": "Verbind een GitHub App-installatie om repositories te ontdekken en in te schakelen."
+            },
+            "no_repositories": {
+              "title": "Geen repositories gevonden",
+              "description": "Het verbonden GitHub-account heeft nog geen toegang tot repositories."
+            }
+          },
+          "errors": {
+            "load_failed": "We konden GitHub niet bereiken om je repositories te laden.",
+            "fallback_list": "Al ingeschakelde repositories worden weergegeven."
+          },
+          "manual": {
+            "trigger": "Repository handmatig toevoegen",
+            "success": "Repository toegevoegd.",
+            "modal": {
+              "title": "Repository handmatig toevoegen",
+              "description": "Gebruik dit alleen als de repository niet in de lijst met ontdekte repositories staat – voer de gegevens exact zo in als ze op GitHub worden weergegeven.",
+              "repository_id_label": "GitHub-repository-ID",
+              "repository_id_placeholder": "bijv. 123456789",
+              "repository_id_required": "GitHub-repository-ID is verplicht.",
+              "repository_id_invalid": "GitHub-repository-ID moet een positief getal zijn.",
+              "full_name_label": "Volledige naam",
+              "full_name_placeholder": "eigenaar/repository",
+              "full_name_required": "Volledige naam is verplicht.",
+              "full_name_invalid": "Volledige naam moet exact \"eigenaar/repository\" zijn, zonder spaties of extra schuine strepen.",
+              "submit": "Repository toevoegen",
+              "submitting": "Toevoegen...",
+              "errors": {
+                "register_failed": "Deze repository kon niet worden geregistreerd.",
+                "conflict": "Deze repository is al ingeschakeld voor deze installatie.",
+                "not_configured": "Deze werkruimte heeft geen actieve GitHub-installatie."
+              }
+            }
+          },
+          "delete_modal": {
+            "title": "Repository verwijderen",
+            "content": "Hierdoor is {repo} niet langer beschikbaar voor projecttoewijzingen. Bestaande toewijzingen en koppelingen met pull requests blijven behouden.",
+            "success": "Repository verwijderd.",
+            "conflict": "Deze repository kon niet worden verwijderd.",
+            "failed": "Deze repository kon niet worden verwijderd."
+          }
+        }
+      },
       "api_tokens": {
         "heading": "Toegangstokens",
         "description": "Genereer veilige API-tokens om je gegevens te integreren met externe systemen en applicaties.",

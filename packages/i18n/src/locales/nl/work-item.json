@@ -1,4 +1,28 @@
 {
+  "work_item": {
+    "github": {
+      "label": "GitHub",
+      "create_branch": {
+        "trigger": "Branch aanmaken of koppelen",
+        "placeholder": "Branchnaam",
+        "success": "Branch {branch} aangemaakt.",
+        "linked": "Branch {branch} gekoppeld aan dit werkitem.",
+        "errors": {
+          "not_configured": "Aan dit project is geen repository gekoppeld.",
+          "failed": "Deze branch kon niet worden aangemaakt. Probeer het opnieuw."
+        }
+      },
+      "link": {
+        "state": {
+          "open": "Open",
+          "merged": "Gemerged",
+          "closed": "Gesloten",
+          "unknown": "Onbekend",
+          "linked": "Gekoppeld"
+        }
+      }
+    }
+  },
   "issue": {
     "label": "{count, plural, one {Werkitem} other {Werkitems}}",
     "all": "Alle werkitems",
