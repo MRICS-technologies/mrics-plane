@@ -307,29 +307,38 @@ export const IssueBlock = observer(function IssueBlock(props: IssueBlockProps) {
                 overflowBudgetPx={budgetPx}
                 isRowDragging={isCurrentBlockDragging}
               />
-              {workspaceSlug && issue.project_id && (
-                <IssueStateDurationBadge
-                  workspaceSlug={workspaceSlug}
-                  projectId={issue.project_id}
-                  issueId={issue.id}
-                />
-              )}
-              {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
+              {/* Badge + quick actions are measured together for the width budget; `contents` keeps the
+                  stacked (mobile) layout exactly as if this wrapper weren't there. */}
               <div
                 ref={quickActionsRef}
-                className={cn("hidden", {
+                className={cn("contents items-center gap-2", {
                   "md:flex": isSidebarCollapsed,
                   "lg:flex": !isSidebarCollapsed,
                 })}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
               >
-                {quickActions({
-                  issue,
-                  parentRef: issueRef,
-                })}
+                {workspaceSlug && issue.project_id && (
+                  <IssueStateDurationBadge
+                    workspaceSlug={workspaceSlug}
+                    projectId={issue.project_id}
+                    issueId={issue.id}
+                  />
+                )}
+                {/* oxlint-disable-next-line jsx_a11y/click-events-have-key-events oxlint-disable-next-line jsx_a11y/no-static-element-interactions */}
+                <div
+                  className={cn("hidden", {
+                    "md:flex": isSidebarCollapsed,
+                    "lg:flex": !isSidebarCollapsed,
+                  })}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  {quickActions({
+                    issue,
+                    parentRef: issueRef,
+                  })}
+                </div>
               </div>
             </>
           ) : (
