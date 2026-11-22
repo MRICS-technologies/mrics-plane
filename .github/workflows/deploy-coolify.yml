@@ -33,6 +33,13 @@ env:
   # MRICS internal Plane (plane.mrics.art), same server, created 2026-11-14 (t_496cf747).
   PLANE_MRICS_SERVICE_UUID: lo01cadmgzdrahu71kfhoq34
   PLANE_STAGING_SERVICE_UUID: 6sghhofxq40eiicqezzznkte
+  # Upstream images the fork does not build. Keep on the same Plane release as the merged upstream
+  # tag (v1.5.0: live calls the API's new pages/<id>/live-access/ check). Tag + index digest
+  # (amd64 + arm64), verified on Docker Hub 2026-11-23.
+  PLANE_LIVE_IMAGE: makeplane/plane-live:v1.5.0@sha256:f285e6979ed213b39207fcdf62abee9b5bde5dcc3731b4346d71e3a4f595810f
+  PLANE_SPACE_IMAGE: makeplane/plane-space:v1.5.0@sha256:e7fd925a61796c4e37c2c42b39bf0c660dd0d4ca220705df70bee9f5e28e9273
+  # Traefik is the only proxy in front of plane-api (DNS is not Cloudflare-proxied). Use 2 behind a CDN.
+  PLANE_NUM_PROXIES: "1"
 
 jobs:
   plan:
@@ -270,4 +277,7 @@ jobs:
           PLANE_BACKEND_IMAGE: ${{ needs.build-backend.outputs.image }}
           PLANE_FRONTEND_IMAGE: ${{ steps.refs.outputs.frontend_image }}
           PLANE_ADMIN_IMAGE: ${{ steps.refs.outputs.admin_image }}
+          PLANE_LIVE_IMAGE: ${{ env.PLANE_LIVE_IMAGE }}
+          PLANE_SPACE_IMAGE: ${{ env.PLANE_SPACE_IMAGE }}
+          PLANE_NUM_PROXIES: ${{ env.PLANE_NUM_PROXIES }}
         run: python3 .github/scripts/coolify_plane_deploy.py

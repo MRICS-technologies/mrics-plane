@@ -156,6 +156,35 @@ Rollback must be prepared before production mutation.
   restoring the pre-deploy Postgres + MinIO snapshots and previous image refs.
 - If a migration has no safe reverse path, treat snapshot restore as the rollback.
 
+### v1.5.0 upstream sync (one-way)
+
+`0123` drops `apitoken.is_service` / `allowed_rate_limit` and `0125` repoints or
+unpublishes deploy boards with no reverse. Rolling back v1.5.0 = restore the
+`plane-prod-pre-deploy-<service>-<ts>-<sha>.sql.gz` dump that the production deploy
+takes (it refuses to migrate unless that dump passes `gzip -t`, is >100 KB and ends
+with pg_dump's footer) **and** put back the previous image refs, including
+`makeplane/plane-live` / `plane-space` v1.4.1. Older images alone are not enough.
+If the migrator dies at `0124` (index built `CONCURRENTLY`):
+`DROP INDEX CONCURRENTLY IF EXISTS intake_issue_snoozed_till_idx`, then rerun it.
+
+### Runtime config the deploy converges on
+
+`.github/scripts/coolify_plane_deploy.py` brings both the authored
+(`docker_compose_raw`) and the Coolify-rendered compose to the same state on every
+deploy, idempotently:
+
+| What | Why |
+|---|---|
+| `makeplane/plane-live` / `plane-space` pinned to `PLANE_LIVE_IMAGE` / `PLANE_SPACE_IMAGE` (workflow env, tag + digest) | upstream images, not built by the fork; must match the merged Plane release |
+| `<router>-hsts` Traefik headers middleware (`stsSeconds=31536000`, `stsIncludeSubdomains`) on the https web + admin routers | the Caddy web/admin images (v1.5.0+) leave HSTS to the TLS terminator |
+| `NUM_PROXIES` on plane-api (workflow `PLANE_NUM_PROXIES`, default 1) | DRF throttles key on the real client IP; use 2 if a CDN is put in front |
+
+It also refuses to deploy if the Coolify service env has no `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY` (no defaults since v1.5.0) or a non-https `WEB_URL`
+(cookie `Secure` follows it), and waits for the web/admin/space Docker healthchecks
+(web `/`, admin `/god-mode`, space `/spaces/`) before probing routes. The route
+probe fails if `/` or `/god-mode/` comes back without HSTS.
+
 ---
 
 ## Required report format per release
