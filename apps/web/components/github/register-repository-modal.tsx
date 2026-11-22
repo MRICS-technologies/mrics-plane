@@ -6,10 +6,21 @@
 
 import { useForm } from "react-hook-form";
 // plane imports
+import { Button } from "@makeplane/propel/components/button";
+import {
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHeading,
+  DialogMain,
+  DialogTitle,
+} from "@makeplane/propel/components/dialog";
+import { InputField } from "@makeplane/propel/components/input-field";
+import { setToast } from "@plane/blocks/toast";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
 
 const FULL_NAME_PATTERN = /^[^\s/]+\/[^\s/]+$/;
 
@@ -74,69 +85,73 @@ export function RegisterRepositoryModal(props: Props) {
           message = t("workspace_settings.settings.github.repositories.manual.modal.errors.conflict");
         if (error?.status === 422)
           message = t("workspace_settings.settings.github.repositories.manual.modal.errors.not_configured");
-        setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
+        setToast({ type: "error", title: t("common.error"), message });
       });
   };
 
   return (
-    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <div className="flex flex-col gap-4 p-5">
-          <h3 className="text-lg font-medium">
-            {t("workspace_settings.settings.github.repositories.manual.modal.title")}
-          </h3>
-          <p className="text-13 text-tertiary">
-            {t("workspace_settings.settings.github.repositories.manual.modal.description")}
-          </p>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="github_repository_id" className="text-13 font-medium">
-              GitHub repository ID
-            </label>
-            <Input
-              id="github_repository_id"
-              type="number"
-              min={1}
-              hasError={Boolean(errors.github_repository_id)}
-              placeholder="e.g. 123456789"
-              {...register("github_repository_id", {
-                required: "GitHub repository ID is required.",
-                validate: (value) => Number(value) > 0 || "GitHub repository ID must be a positive number.",
-              })}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <DialogContent size="sm">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <DialogMain>
+            <DialogHeader>
+              <DialogHeading>
+                <DialogTitle>{t("workspace_settings.settings.github.repositories.manual.modal.title")}</DialogTitle>
+                <DialogDescription>
+                  {t("workspace_settings.settings.github.repositories.manual.modal.description")}
+                </DialogDescription>
+              </DialogHeading>
+            </DialogHeader>
+            <DialogBody render={<div className="flex flex-col gap-4" />}>
+              <InputField
+                size="lg"
+                orientation="vertical"
+                id="github_repository_id"
+                type="number"
+                min={1}
+                label="GitHub repository ID"
+                placeholder="e.g. 123456789"
+                error={errors.github_repository_id?.message}
+                {...register("github_repository_id", {
+                  required: "GitHub repository ID is required.",
+                  validate: (value) => Number(value) > 0 || "GitHub repository ID must be a positive number.",
+                })}
+              />
+              <InputField
+                size="lg"
+                orientation="vertical"
+                id="full_name"
+                type="text"
+                label="Full name"
+                placeholder="owner/repository"
+                error={errors.full_name?.message}
+                {...register("full_name", {
+                  required: "Full name is required.",
+                  validate: (value) =>
+                    FULL_NAME_PATTERN.test(value) ||
+                    "Full name must be exactly 'owner/repository' with no whitespace or extra slashes.",
+                })}
+              />
+            </DialogBody>
+          </DialogMain>
+          <DialogActions>
+            <Button variant="secondary" size="md" stretch="auto" label="Cancel" onClick={handleClose} />
+            <Button
+              variant="primary"
+              size="md"
+              stretch="auto"
+              type="submit"
+              loading={isSubmitting}
+              label={isSubmitting ? "Adding..." : "Add repository"}
             />
-            {errors.github_repository_id && (
-              <span className="text-11 text-danger-primary">{errors.github_repository_id.message}</span>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="full_name" className="text-13 font-medium">
-              Full name
-            </label>
-            <Input
-              id="full_name"
-              type="text"
-              hasError={Boolean(errors.full_name)}
-              placeholder="owner/repository"
-              {...register("full_name", {
-                required: "Full name is required.",
-                validate: (value) =>
-                  FULL_NAME_PATTERN.test(value) ||
-                  "Full name must be exactly 'owner/repository' with no whitespace or extra slashes.",
-              })}
-            />
-            {errors.full_name && <span className="text-11 text-danger-primary">{errors.full_name.message}</span>}
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t border-subtle p-4">
-          <Button variant="secondary" size="sm" onClick={handleClose} type="button">
-            Cancel
-          </Button>
-          <Button variant="primary" size="sm" type="submit" loading={isSubmitting}>
-            {isSubmitting ? "Adding..." : "Add repository"}
-          </Button>
-        </div>
-      </form>
-    </ModalCore>
+          </DialogActions>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

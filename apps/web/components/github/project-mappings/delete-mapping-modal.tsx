@@ -7,8 +7,8 @@
 import { useState } from "react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore } from "@plane/ui";
+import { setToast } from "@plane/blocks/toast";
+import { ConfirmDialog } from "@plane/blocks/dialog";
 
 type Props = {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export function DeleteMappingModal(props: Props) {
     try {
       await onDelete();
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: "success",
         title: t("common.success"),
         message: t("project_settings.github.mapping.delete_modal.success"),
       });
@@ -43,13 +43,13 @@ export function DeleteMappingModal(props: Props) {
         typedError?.status === 403
           ? t("project_settings.github.mapping.delete_modal.forbidden")
           : t("project_settings.github.mapping.delete_modal.failed");
-      setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
+      setToast({ type: "error", title: t("common.error"), message });
       setIsSubmitting(false);
     }
   };
 
   return (
-    <AlertModalCore
+    <ConfirmDialog
       isOpen={isOpen}
       handleClose={handleClose}
       handleSubmit={handleSubmit}

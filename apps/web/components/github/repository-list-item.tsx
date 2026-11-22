@@ -5,12 +5,12 @@
  */
 
 import { useState } from "react";
-import { XCircle } from "lucide-react";
+import { CloseCircleOutline } from "@makeplane/propel/icons";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { setToast } from "@plane/blocks/toast";
 import type { TGithubEnabledRepository } from "@plane/types";
-import { ToggleSwitch } from "@plane/ui";
+import { Switch } from "@makeplane/propel/components/switch";
 // local imports
 import { DeleteRepositoryModal } from "./delete-repository-modal";
 
@@ -30,7 +30,7 @@ export function RepositoryListItem(props: Props) {
     setIsToggling(true);
     await onToggle(repository, value).catch(() => {
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: t("common.error"),
         message: t("workspace_settings.settings.github.repositories.update_failed"),
       });
@@ -55,7 +55,12 @@ export function RepositoryListItem(props: Props) {
         </span>
       </div>
       <div className="flex items-center gap-4">
-        <ToggleSwitch value={repository.is_enabled} onChange={handleToggle} disabled={isToggling} />
+        <Switch
+          size="sm"
+          checked={repository.is_enabled}
+          onCheckedChange={(checked) => void handleToggle(checked)}
+          disabled={isToggling}
+        />
         <button
           type="button"
           onClick={() => setIsDeleteModalOpen(true)}
@@ -64,7 +69,7 @@ export function RepositoryListItem(props: Props) {
           })}
           className="grid place-items-center text-danger-primary"
         >
-          <XCircle className="h-4 w-4" />
+          <CloseCircleOutline className="h-4 w-4" />
         </button>
       </div>
     </div>

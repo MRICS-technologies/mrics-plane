@@ -7,8 +7,8 @@
 import { useState } from "react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore } from "@plane/ui";
+import { setToast } from "@plane/blocks/toast";
+import { ConfirmDialog } from "@plane/blocks/dialog";
 
 type Props = {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export function DeleteRepositoryModal(props: Props) {
     try {
       await onDelete();
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: "success",
         title: t("common.success"),
         message: t("workspace_settings.settings.github.repositories.delete_modal.success"),
       });
@@ -40,7 +40,7 @@ export function DeleteRepositoryModal(props: Props) {
     } catch (error) {
       const typedError = error as { status?: number; data?: { error?: string } };
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: t("common.error"),
         message:
           typedError?.status === 409
@@ -52,7 +52,7 @@ export function DeleteRepositoryModal(props: Props) {
   };
 
   return (
-    <AlertModalCore
+    <ConfirmDialog
       isOpen={isOpen}
       handleClose={handleClose}
       handleSubmit={handleSubmit}

@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { XCircle } from "lucide-react";
+import { CloseCircleOutline } from "@makeplane/propel/icons";
 // plane imports
 import { useTranslation } from "@plane/i18n";
 import type { TRepoProjectMapping } from "@plane/types";
@@ -45,7 +45,7 @@ export function MappingListItem(props: Props) {
         aria-label={t("project_settings.github.mapping.remove_aria_label", { repo: repoLabel })}
         className="grid place-items-center text-danger-primary"
       >
-        <XCircle className="h-4 w-4" />
+        <CloseCircleOutline className="h-4 w-4" />
       </button>
     </div>
   );

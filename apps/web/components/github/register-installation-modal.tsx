@@ -6,10 +6,21 @@
 
 import { useForm } from "react-hook-form";
 // plane imports
+import { Button } from "@makeplane/propel/components/button";
+import {
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHeading,
+  DialogMain,
+  DialogTitle,
+} from "@makeplane/propel/components/dialog";
+import { InputField } from "@makeplane/propel/components/input-field";
+import { setToast } from "@plane/blocks/toast";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
 
 type TFormValues = {
   installation_id: string;
@@ -75,7 +86,7 @@ export function RegisterInstallationModal(props: Props) {
         }
 
         setToast({
-          type: TOAST_TYPE.ERROR,
+          type: "error",
           title: t("common.error"),
           message:
             error?.status === 409
@@ -86,84 +97,86 @@ export function RegisterInstallationModal(props: Props) {
   };
 
   return (
-    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <div className="flex flex-col gap-4 p-5">
-          <h3 className="text-lg font-medium">
-            {t("workspace_settings.settings.github.installation.manual.modal.title")}
-          </h3>
-          <p className="text-13 text-tertiary">
-            {t("workspace_settings.settings.github.installation.manual.modal.description")}
-          </p>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="installation_id" className="text-13 font-medium">
-              {t("workspace_settings.settings.github.installation.manual.modal.installation_id_label")}
-            </label>
-            <Input
-              id="installation_id"
-              type="number"
-              min={1}
-              hasError={Boolean(errors.installation_id)}
-              placeholder={t(
-                "workspace_settings.settings.github.installation.manual.modal.installation_id_placeholder"
-              )}
-              {...register("installation_id", {
-                required: t("workspace_settings.settings.github.installation.manual.modal.installation_id_required"),
-                validate: (value) =>
-                  Number(value) > 0 ||
-                  t("workspace_settings.settings.github.installation.manual.modal.installation_id_invalid"),
-              })}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <DialogContent size="sm">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <DialogMain>
+            <DialogHeader>
+              <DialogHeading>
+                <DialogTitle>{t("workspace_settings.settings.github.installation.manual.modal.title")}</DialogTitle>
+                <DialogDescription>
+                  {t("workspace_settings.settings.github.installation.manual.modal.description")}
+                </DialogDescription>
+              </DialogHeading>
+            </DialogHeader>
+            <DialogBody render={<div className="flex flex-col gap-4" />}>
+              <InputField
+                size="lg"
+                orientation="vertical"
+                id="installation_id"
+                type="number"
+                min={1}
+                label={t("workspace_settings.settings.github.installation.manual.modal.installation_id_label")}
+                placeholder={t(
+                  "workspace_settings.settings.github.installation.manual.modal.installation_id_placeholder"
+                )}
+                error={errors.installation_id?.message}
+                {...register("installation_id", {
+                  required: t("workspace_settings.settings.github.installation.manual.modal.installation_id_required"),
+                  validate: (value) =>
+                    Number(value) > 0 ||
+                    t("workspace_settings.settings.github.installation.manual.modal.installation_id_invalid"),
+                })}
+              />
+              <InputField
+                size="lg"
+                orientation="vertical"
+                id="account_login"
+                type="text"
+                label={t("workspace_settings.settings.github.installation.manual.modal.account_login_label")}
+                placeholder={t(
+                  "workspace_settings.settings.github.installation.manual.modal.account_login_placeholder"
+                )}
+                error={errors.account_login?.message}
+                {...register("account_login", {
+                  required: t("workspace_settings.settings.github.installation.manual.modal.account_login_required"),
+                })}
+              />
+              <InputField
+                size="lg"
+                orientation="vertical"
+                id="account_type"
+                type="text"
+                label={`${t("workspace_settings.settings.github.installation.manual.modal.account_type_label")} ${t(
+                  "workspace_settings.settings.github.installation.manual.modal.account_type_optional"
+                )}`}
+                placeholder={t("workspace_settings.settings.github.installation.manual.modal.account_type_placeholder")}
+                {...register("account_type")}
+              />
+            </DialogBody>
+          </DialogMain>
+          <DialogActions>
+            <Button variant="secondary" size="md" stretch="auto" label={t("common.cancel")} onClick={handleClose} />
+            <Button
+              variant="primary"
+              size="md"
+              stretch="auto"
+              type="submit"
+              loading={isSubmitting}
+              label={
+                isSubmitting
+                  ? t("workspace_settings.settings.github.installation.manual.modal.submitting")
+                  : t("workspace_settings.settings.github.installation.manual.modal.submit")
+              }
             />
-            {errors.installation_id && (
-              <span className="text-11 text-danger-primary">{errors.installation_id.message}</span>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="account_login" className="text-13 font-medium">
-              {t("workspace_settings.settings.github.installation.manual.modal.account_login_label")}
-            </label>
-            <Input
-              id="account_login"
-              type="text"
-              hasError={Boolean(errors.account_login)}
-              placeholder={t("workspace_settings.settings.github.installation.manual.modal.account_login_placeholder")}
-              {...register("account_login", {
-                required: t("workspace_settings.settings.github.installation.manual.modal.account_login_required"),
-              })}
-            />
-            {errors.account_login && (
-              <span className="text-11 text-danger-primary">{errors.account_login.message}</span>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="account_type" className="text-13 font-medium">
-              {t("workspace_settings.settings.github.installation.manual.modal.account_type_label")}{" "}
-              <span className="text-tertiary">
-                {t("workspace_settings.settings.github.installation.manual.modal.account_type_optional")}
-              </span>
-            </label>
-            <Input
-              id="account_type"
-              type="text"
-              placeholder={t("workspace_settings.settings.github.installation.manual.modal.account_type_placeholder")}
-              {...register("account_type")}
-            />
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t border-subtle p-4">
-          <Button variant="secondary" size="sm" onClick={handleClose} type="button">
-            {t("common.cancel")}
-          </Button>
-          <Button variant="primary" size="sm" type="submit" loading={isSubmitting}>
-            {isSubmitting
-              ? t("workspace_settings.settings.github.installation.manual.modal.submitting")
-              : t("workspace_settings.settings.github.installation.manual.modal.submit")}
-          </Button>
-        </div>
-      </form>
-    </ModalCore>
+          </DialogActions>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

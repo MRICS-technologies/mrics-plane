@@ -5,15 +5,15 @@
  */
 
 import { useState } from "react";
-import { TriangleAlert } from "lucide-react";
+import { WarningTriangleOutline } from "@makeplane/propel/icons";
 import useSWR, { mutate } from "swr";
 // plane imports
+import { Button } from "@makeplane/propel/components/button";
+import { EmptyStateCompact } from "@plane/blocks/empty-state";
+import { Loader } from "@plane/blocks/skeleton";
 import { GITHUB_PROJECT_MAPPINGS_KEY, GITHUB_REPOSITORIES_KEY } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EmptyStateCompact } from "@plane/propel/empty-state";
 import type { TCreateMappingPayload, TRepoProjectMapping } from "@plane/types";
-import { Loader } from "@plane/ui";
 // components
 import { SettingsHeading } from "@/components/settings/heading";
 // services
@@ -95,12 +95,12 @@ export function MappingPanel(props: Props) {
           !hasMapping ? (
             <Button
               variant="primary"
-              size="sm"
+              size="xs"
+              stretch="auto"
+              label={t("project_settings.github.mapping.attach_button")}
               onClick={() => setIsAddModalOpen(true)}
               disabled={enabledRepositories.length === 0}
-            >
-              {t("project_settings.github.mapping.attach_button")}
-            </Button>
+            />
           ) : undefined
         }
       />
@@ -112,15 +112,20 @@ export function MappingPanel(props: Props) {
       ) : hasError ? (
         <div className="flex flex-col items-center gap-3 rounded-md border border-subtle py-10 text-center">
           <span className="grid size-11 place-items-center text-tertiary">
-            <TriangleAlert className="size-8" />
+            <WarningTriangleOutline className="size-8" />
           </span>
           <div>
             <h6 className="text-14 font-medium">{t("common.something_went_wrong")}</h6>
             <p className="text-13 text-tertiary">{t("project_settings.github.mapping.errors.load_failed")}</p>
           </div>
-          <Button variant="link" onClick={handleRetry} loading={isRetrying}>
-            {t("workspace_settings.settings.github.retry")}
-          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            stretch="auto"
+            label={t("workspace_settings.settings.github.retry")}
+            onClick={() => void handleRetry()}
+            loading={isRetrying}
+          />
         </div>
       ) : hasMapping ? (
         <div>

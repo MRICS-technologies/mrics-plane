@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { Lock } from "lucide-react";
+import { LockOutline } from "@makeplane/propel/icons";
 // plane imports
-import { Checkbox } from "@plane/ui";
+import { Checkbox } from "@makeplane/propel/components/checkbox";
 import type { TAvailableGithubRepository } from "@plane/types";
 
 type Props = {
@@ -25,7 +25,7 @@ export function AvailableRepositoryListItem(props: Props) {
       className="flex cursor-pointer items-center justify-between gap-3 border-b border-subtle px-1 py-2.5 hover:bg-layer-1"
     >
       <div className="flex min-w-0 items-center gap-2.5">
-        <Checkbox id={inputId} checked={isEnabled} onChange={(e) => onToggle(repository, e.target.checked)} />
+        <Checkbox id={inputId} checked={isEnabled} onCheckedChange={(checked) => onToggle(repository, checked)} />
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-13 font-medium">{repository.full_name}</span>
           <span className="text-11 text-tertiary">{repository.default_branch}</span>
@@ -33,7 +33,7 @@ export function AvailableRepositoryListItem(props: Props) {
       </div>
       {repository.private && (
         <span className="flex flex-shrink-0 items-center gap-1 rounded-xs bg-layer-1 px-2 py-0.5 text-11 text-tertiary">
-          <Lock className="size-3" />
+          <LockOutline className="size-3" />
         </span>
       )}
     </label>

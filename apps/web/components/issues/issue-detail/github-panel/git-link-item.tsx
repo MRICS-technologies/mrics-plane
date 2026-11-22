@@ -4,9 +4,9 @@
  * See the LICENSE file for details.
  */
 
-import { GitBranch, GitPullRequest } from "lucide-react";
+import { Tooltip } from "@makeplane/propel/components/tooltip";
+import { GitBranchOutline, GitPullRequestOutline } from "@makeplane/propel/icons";
 import { useTranslation } from "@plane/i18n";
-import { Tooltip } from "@plane/propel/tooltip";
 import type { TIssueGitLink } from "@plane/types";
 import { cn } from "@plane/utils";
 import { usePlatformOS } from "@/hooks/use-platform-os";
@@ -26,7 +26,7 @@ export const GitLinkItem = (props: Props) => {
   const { link } = props;
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
-  const Icon = link.kind === "pr" ? GitPullRequest : GitBranch;
+  const Icon = link.kind === "pr" ? GitPullRequestOutline : GitBranchOutline;
   const stateLabel =
     link.kind === "branch" ? t("work_item.github.link.state.linked") : t(`work_item.github.link.state.${link.state}`);
 
@@ -34,7 +34,7 @@ export const GitLinkItem = (props: Props) => {
     <div className="group flex h-10 flex-shrink-0 items-center justify-between gap-3 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-3 hover:bg-layer-1">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <Icon className="size-4 flex-shrink-0 text-tertiary group-hover:text-primary" />
-        <Tooltip tooltipContent={link.url} isMobile={isMobile}>
+        <Tooltip label={link.url} disabled={isMobile}>
           <a
             href={link.url}
             target="_blank"

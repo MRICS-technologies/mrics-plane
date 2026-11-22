@@ -5,16 +5,16 @@
  */
 
 import { useMemo, useState } from "react";
-import { Search, TriangleAlert } from "lucide-react";
+import { SearchOutline, WarningTriangleOutline } from "@makeplane/propel/icons";
 import useSWR, { mutate } from "swr";
 // plane imports
+import { Button } from "@makeplane/propel/components/button";
+import { EmptyStateCompact } from "@plane/blocks/empty-state";
+import { Loader } from "@plane/blocks/skeleton";
+import { setToast } from "@plane/blocks/toast";
 import { GITHUB_AVAILABLE_REPOSITORIES_KEY, GITHUB_REPOSITORIES_KEY } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { EmptyStateCompact } from "@plane/propel/empty-state";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TAvailableGithubRepository, TGithubEnabledRepository } from "@plane/types";
-import { Loader } from "@plane/ui";
 // components
 import { SettingsHeading } from "@/components/settings/heading";
 // services
@@ -118,13 +118,13 @@ export function RepositoriesPanel(props: Props) {
         const first = itemErrors ? Object.values(itemErrors)[0] : undefined;
         const firstMessage = Array.isArray(first) ? first[0] : first;
         setToast({
-          type: TOAST_TYPE.ERROR,
+          type: "error",
           title: t("common.error"),
           message: firstMessage ?? t("workspace_settings.settings.github.repositories.save_failed"),
         });
       } else {
         setToast({
-          type: TOAST_TYPE.SUCCESS,
+          type: "success",
           title: t("common.success"),
           message: t("workspace_settings.settings.github.repositories.save_success", { count: updated.length }),
         });
@@ -144,7 +144,7 @@ export function RepositoriesPanel(props: Props) {
       const first = serverErrors?.[0]?.errors ? Object.values(serverErrors[0].errors)[0] : undefined;
       const firstMessage = Array.isArray(first) ? first[0] : first;
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: t("common.error"),
         message: firstMessage ?? t("workspace_settings.settings.github.repositories.save_failed"),
       });
@@ -162,7 +162,7 @@ export function RepositoriesPanel(props: Props) {
     );
     mutateAvailable();
     setToast({
-      type: TOAST_TYPE.SUCCESS,
+      type: "success",
       title: t("common.success"),
       message: t("workspace_settings.settings.github.repositories.manual.success"),
     });
@@ -199,9 +199,14 @@ export function RepositoriesPanel(props: Props) {
         description={t("workspace_settings.settings.github.repositories.description")}
         control={
           hasPendingChanges ? (
-            <Button variant="primary" size="sm" onClick={handleSave} loading={isSaving}>
-              {t("common.save_changes")}
-            </Button>
+            <Button
+              variant="primary"
+              size="xs"
+              stretch="auto"
+              label={t("common.save_changes")}
+              onClick={() => void handleSave()}
+              loading={isSaving}
+            />
           ) : undefined
         }
       />
@@ -223,7 +228,7 @@ export function RepositoriesPanel(props: Props) {
         <div className="flex flex-col gap-4">
           <div className="flex flex-col items-center gap-3 rounded-md border border-subtle py-10 text-center">
             <span className="grid size-11 place-items-center text-tertiary">
-              <TriangleAlert className="size-8" />
+              <WarningTriangleOutline className="size-8" />
             </span>
             <div>
               <h6 className="text-14 font-medium">{t("common.something_went_wrong")}</h6>
@@ -231,9 +236,14 @@ export function RepositoriesPanel(props: Props) {
                 {t("workspace_settings.settings.github.repositories.errors.load_failed")}
               </p>
             </div>
-            <Button variant="link" onClick={handleRetry} loading={isRetrying}>
-              {t("workspace_settings.settings.github.retry")}
-            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              stretch="auto"
+              label={t("workspace_settings.settings.github.retry")}
+              onClick={() => void handleRetry()}
+              loading={isRetrying}
+            />
           </div>
           {enabledRepositories && enabledRepositories.length > 0 && (
             <div>
@@ -254,7 +264,7 @@ export function RepositoriesPanel(props: Props) {
       ) : (availableRepositories ?? []).length > 0 ? (
         <div className="flex flex-col gap-3">
           <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-tertiary" />
+            <SearchOutline className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-tertiary" />
             <input
               type="text"
               value={search}
@@ -291,9 +301,14 @@ export function RepositoriesPanel(props: Props) {
       )}
 
       <div>
-        <Button variant="link" size="sm" onClick={() => setIsAddModalOpen(true)} disabled={!hasInstallation}>
-          {t("workspace_settings.settings.github.repositories.manual.trigger")}
-        </Button>
+        <Button
+          variant="ghost"
+          size="xs"
+          stretch="auto"
+          label={t("workspace_settings.settings.github.repositories.manual.trigger")}
+          onClick={() => setIsAddModalOpen(true)}
+          disabled={!hasInstallation}
+        />
       </div>
     </div>
   );

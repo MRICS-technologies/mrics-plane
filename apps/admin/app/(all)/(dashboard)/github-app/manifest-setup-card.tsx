@@ -6,11 +6,11 @@
 
 import { useState } from "react";
 // plane internal packages
+import { Button } from "@makeplane/propel/components/button";
+import { InputField } from "@makeplane/propel/components/input-field";
+import { setToast } from "@plane/blocks/toast";
 import { InstanceService } from "@plane/services";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { IInstanceGitHubAppConfiguration } from "@plane/types";
-import { Input } from "@plane/ui";
 
 type Props = {
   config: IInstanceGitHubAppConfiguration;
@@ -63,7 +63,7 @@ export function GitHubAppManifestSetupCard(props: Props) {
       // i.e. `{ error, detail }` -- not `{ status, data }` like github-sync.service.ts.
       const typedError = error as { error?: string; detail?: string };
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: "Error",
         message:
           typedError?.error === "already_configured"
@@ -91,9 +91,16 @@ export function GitHubAppManifestSetupCard(props: Props) {
         </p>
       ) : (
         <>
-          <Button variant="primary" size="lg" onClick={handleAutomatedSetup} loading={isCreating} className="w-fit">
-            {isCreating ? "Redirecting to GitHub..." : "Create GitHub App"}
-          </Button>
+          <div>
+            <Button
+              variant="primary"
+              size="md"
+              stretch="auto"
+              label={isCreating ? "Redirecting to GitHub..." : "Create GitHub App"}
+              onClick={() => void handleAutomatedSetup()}
+              loading={isCreating}
+            />
+          </div>
 
           <button
             type="button"
@@ -105,34 +112,27 @@ export function GitHubAppManifestSetupCard(props: Props) {
 
           {showAdvanced && (
             <div className="flex flex-col gap-3">
-              <div className="flex flex-col gap-1">
-                <label htmlFor="manifest_organization" className="text-13 font-medium">
-                  Organization <span className="text-tertiary">(optional)</span>
-                </label>
-                <Input
-                  id="manifest_organization"
-                  type="text"
-                  value={organization}
-                  onChange={(e) => setOrganization(e.target.value)}
-                  placeholder="Create the app under this GitHub organization instead of your personal account"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label htmlFor="manifest_public_base_url" className="text-13 font-medium">
-                  Public base URL <span className="text-tertiary">(optional)</span>
-                </label>
-                <Input
-                  id="manifest_public_base_url"
-                  type="text"
-                  value={publicBaseUrl}
-                  onChange={(e) => setPublicBaseUrl(e.target.value)}
-                  placeholder="https://plane.example.com"
-                />
-                <span className="text-11 text-tertiary">
-                  Override the URL GitHub uses for webhooks and callbacks -- needed when this instance is behind a
-                  tunnel or reverse proxy.
-                </span>
-              </div>
+              <InputField
+                size="lg"
+                orientation="vertical"
+                id="manifest_organization"
+                type="text"
+                label="Organization (optional)"
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                placeholder="Create the app under this GitHub organization instead of your personal account"
+              />
+              <InputField
+                size="lg"
+                orientation="vertical"
+                id="manifest_public_base_url"
+                type="text"
+                label="Public base URL (optional)"
+                value={publicBaseUrl}
+                onChange={(e) => setPublicBaseUrl(e.target.value)}
+                placeholder="https://plane.example.com"
+                hint="Override the URL GitHub uses for webhooks and callbacks -- needed when this instance is behind a tunnel or reverse proxy."
+              />
             </div>
           )}
         </>

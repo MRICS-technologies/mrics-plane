@@ -7,11 +7,24 @@
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 // plane imports
+import { Button } from "@makeplane/propel/components/button";
+import {
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogHeading,
+  DialogMain,
+  DialogTitle,
+} from "@makeplane/propel/components/dialog";
+import { InputField } from "@makeplane/propel/components/input-field";
+import { FieldLabel } from "@makeplane/propel/elements/field";
+import { Select } from "@plane/blocks/select";
+import { setToast } from "@plane/blocks/toast";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TCreateMappingPayload, TGithubEnabledRepository } from "@plane/types";
-import { CustomSearchSelect, EModalPosition, EModalWidth, Input, ModalCore } from "@plane/ui";
 
 type TFormValues = {
   repository_id: string;
@@ -66,69 +79,87 @@ export function CreateMappingModal(props: Props) {
         let message = t("project_settings.github.mapping.errors.create_failed");
         if (error?.status === 409) message = t("project_settings.github.mapping.errors.conflict");
         if (error?.status === 403) message = t("project_settings.github.mapping.errors.forbidden");
-        setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
+        setToast({ type: "error", title: t("common.error"), message });
       });
   };
 
-  const repositoryOptions = enabledRepositories.map((repository) => ({
-    value: repository.id,
-    query: repository.full_name,
-    content: <p>{repository.full_name}</p>,
-  }));
-
   return (
-    <ModalCore isOpen={isOpen} handleClose={handleClose} position={EModalPosition.TOP} width={EModalWidth.XL}>
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <div className="flex flex-col gap-4 p-5">
-          <h3 className="text-lg font-medium">{t("project_settings.github.mapping.modal.title")}</h3>
-          <p className="text-13 text-tertiary">{t("project_settings.github.mapping.modal.description")}</p>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="repository_id" className="text-13 font-medium">
-              {t("project_settings.github.mapping.modal.repository_label")}
-            </label>
-            <Controller
-              name="repository_id"
-              control={control}
-              rules={{ required: t("project_settings.github.mapping.modal.repository_required") }}
-              render={({ field: { value, onChange } }) => (
-                <CustomSearchSelect
-                  value={value}
-                  options={repositoryOptions}
-                  onChange={onChange}
-                  label={
-                    repositoryOptions.find((option) => option.value === value)?.query ??
-                    t("project_settings.github.mapping.modal.repository_placeholder")
-                  }
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
+      <DialogContent size="sm">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <DialogMain>
+            <DialogHeader>
+              <DialogHeading>
+                <DialogTitle>{t("project_settings.github.mapping.modal.title")}</DialogTitle>
+                <DialogDescription>{t("project_settings.github.mapping.modal.description")}</DialogDescription>
+              </DialogHeading>
+            </DialogHeader>
+            <DialogBody render={<div className="flex flex-col gap-4" />}>
+              <div className="flex flex-col gap-1.5">
+                <FieldLabel size="lg" inset={false} htmlFor="repository_id">
+                  {t("project_settings.github.mapping.modal.repository_label")}
+                </FieldLabel>
+                <Controller
+                  name="repository_id"
+                  control={control}
+                  rules={{ required: t("project_settings.github.mapping.modal.repository_required") }}
+                  render={({ field: { value, onChange } }) => (
+                    <Select<TGithubEnabledRepository>
+                      getValues={() => enabledRepositories}
+                      value={enabledRepositories.find((repository) => repository.id === value) ?? null}
+                      onChange={onChange}
+                      getOptionValue={(repository) => repository.id}
+                      getOptionLabel={(repository) => repository.full_name}
+                      placeholder={t("project_settings.github.mapping.modal.repository_placeholder")}
+                      contentSizing="anchor"
+                    >
+                      <Select.Trigger<TGithubEnabledRepository> id="repository_id" variant="select-lg">
+                        <Select.Value />
+                      </Select.Trigger>
+                    </Select>
+                  )}
                 />
-              )}
-            />
-            {errors.repository_id && (
-              <span className="text-11 text-danger-primary">{errors.repository_id.message}</span>
-            )}
-          </div>
+                {errors.repository_id && (
+                  <span className="text-11 text-danger-primary">{errors.repository_id.message}</span>
+                )}
+              </div>
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="base_branch" className="text-13 font-medium">
-              {t("project_settings.github.mapping.modal.base_branch_label")}
-            </label>
-            <Controller
-              name="base_branch"
-              control={control}
-              render={({ field }) => <Input id="base_branch" type="text" placeholder="main" {...field} />}
+              <Controller
+                name="base_branch"
+                control={control}
+                render={({ field }) => (
+                  <InputField
+                    size="lg"
+                    orientation="vertical"
+                    id="base_branch"
+                    type="text"
+                    placeholder="main"
+                    label={t("project_settings.github.mapping.modal.base_branch_label")}
+                    hint={t("project_settings.github.mapping.modal.base_branch_hint")}
+                    {...field}
+                  />
+                )}
+              />
+            </DialogBody>
+          </DialogMain>
+          <DialogActions>
+            <Button variant="secondary" size="md" stretch="auto" label={t("common.cancel")} onClick={handleClose} />
+            <Button
+              variant="primary"
+              size="md"
+              stretch="auto"
+              type="submit"
+              loading={isSubmitting}
+              label={isSubmitting ? t("common.adding") : t("project_settings.github.mapping.modal.submit")}
             />
-            <span className="text-11 text-tertiary">{t("project_settings.github.mapping.modal.base_branch_hint")}</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 border-t border-subtle p-4">
-          <Button variant="secondary" size="sm" onClick={handleClose} type="button">
-            {t("common.cancel")}
-          </Button>
-          <Button variant="primary" size="sm" type="submit" loading={isSubmitting}>
-            {isSubmitting ? t("common.adding") : t("project_settings.github.mapping.modal.submit")}
-          </Button>
-        </div>
-      </form>
-    </ModalCore>
+          </DialogActions>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

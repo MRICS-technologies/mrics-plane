@@ -6,7 +6,7 @@
  */
 
 import useSWR from "swr";
-import { Clock } from "lucide-react";
+import { ClockOutline } from "@makeplane/propel/icons";
 // ui
 import { cn } from "@plane/utils";
 // components
@@ -90,7 +90,7 @@ export const IssueStateDurationBadge = (props: TStateDurationProps) => {
       className={cn("inline-flex items-center gap-1 text-11 text-tertiary", { "text-green-600": isActive }, className)}
       title={`Auto-tracked time in progress states: ${formatDuration(data.total_started_seconds)}`}
     >
-      <Clock className="size-3 flex-shrink-0" />
+      <ClockOutline className="size-3 flex-shrink-0" />
       <span>{formatDuration(data.total_started_seconds)}</span>
     </div>
   );
@@ -105,7 +105,7 @@ export const IssueStateDurationProperty = (props: TStateDurationProps) => {
   const isActive = data.current_state?.group === "started";
 
   return (
-    <SidebarPropertyListItem icon={Clock} label="Time in Progress">
+    <SidebarPropertyListItem icon={ClockOutline} label="Time in Progress">
       <div
         className={cn(
           "flex h-7.5 w-full items-center gap-1.5 rounded-sm px-2 text-body-xs-medium text-secondary",

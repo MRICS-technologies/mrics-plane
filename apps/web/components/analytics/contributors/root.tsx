@@ -9,9 +9,11 @@ import type { ColumnDef, Row } from "@tanstack/react-table";
 import { observer } from "mobx-react";
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { UserRound } from "lucide-react";
+import { Avatar } from "@makeplane/propel/components/avatar";
+import { Button } from "@makeplane/propel/components/button";
+import { InputField } from "@makeplane/propel/components/input-field";
+import { UserOutline } from "@makeplane/propel/icons";
 import type { AnalyticsTableDataMap, IContributorAnalyticsResponse, IContributorAnalyticsRow } from "@plane/types";
-import { Avatar, Button, Input } from "@plane/ui";
 import { getFileURL } from "@plane/utils";
 import { useAnalytics } from "@/hooks/store/use-analytics";
 import { useUser } from "@/hooks/store/user";
@@ -124,14 +126,14 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
           <div className="flex items-center gap-2 text-left">
             {row.original.avatar_url ? (
               <Avatar
-                name={row.original.display_name}
+                alt={row.original.display_name}
+                fallback={row.original.display_name?.[0]?.toUpperCase()}
                 src={getFileURL(row.original.avatar_url)}
-                size={24}
-                shape="circle"
+                size="sm"
               />
             ) : (
               <div className="flex size-6 items-center justify-center rounded-full bg-layer-1">
-                <UserRound className="size-3.5 text-secondary" />
+                <UserOutline className="size-3.5 text-secondary" />
               </div>
             )}
             <div className="min-w-0">
@@ -206,33 +208,40 @@ export const ContributorAnalyticsSection = observer(function ContributorAnalytic
         {RANGE_PRESETS.map((preset) => (
           <Button
             key={preset.key}
-            variant={rangePreset === preset.key ? "primary" : "neutral-primary"}
-            size="sm"
+            variant={rangePreset === preset.key ? "primary" : "secondary"}
+            size="md"
+            stretch="auto"
+            label={preset.label}
             onClick={() => handleSelectPreset(preset.key)}
-          >
-            {preset.label}
-          </Button>
+          />
         ))}
         {rangePreset === "custom" && (
           <div className="flex flex-wrap items-center gap-2">
-            <Input
+            <InputField
+              size="md"
+              orientation="vertical"
               type="date"
-              inputSize="xs"
               value={customStart}
               max={customEnd || undefined}
               onChange={(e) => setCustomStart(e.target.value)}
             />
             <span className="text-12 text-tertiary">to</span>
-            <Input
+            <InputField
+              size="md"
+              orientation="vertical"
               type="date"
-              inputSize="xs"
               value={customEnd}
               min={customStart || undefined}
               onChange={(e) => setCustomEnd(e.target.value)}
             />
-            <Button variant="primary" size="sm" onClick={handleApplyCustomRange} disabled={!isCustomRangeValid}>
-              Apply
-            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              stretch="auto"
+              label="Apply"
+              onClick={handleApplyCustomRange}
+              disabled={!isCustomRangeValid}
+            />
             {customStart && customEnd && !isCustomRangeValid && (
               <span className="text-danger text-12">Start date must be on or before end date.</span>
             )}

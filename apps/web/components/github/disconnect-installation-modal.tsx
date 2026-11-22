@@ -7,8 +7,8 @@
 import { useState } from "react";
 // plane imports
 import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { AlertModalCore } from "@plane/ui";
+import { setToast } from "@plane/blocks/toast";
+import { ConfirmDialog } from "@plane/blocks/dialog";
 
 type Props = {
   isOpen: boolean;
@@ -36,7 +36,7 @@ export function DisconnectInstallationModal(props: Props) {
     try {
       await onDisconnect(mappingCount !== null);
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: "success",
         title: t("common.success"),
         message: t("workspace_settings.settings.github.installation.disconnect_modal.success"),
       });
@@ -49,7 +49,7 @@ export function DisconnectInstallationModal(props: Props) {
         return;
       }
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: t("common.error"),
         message:
           typedError?.status === 409
@@ -62,7 +62,7 @@ export function DisconnectInstallationModal(props: Props) {
   };
 
   return (
-    <AlertModalCore
+    <ConfirmDialog
       isOpen={isOpen}
       handleClose={handleClose}
       handleSubmit={handleSubmit}

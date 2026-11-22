@@ -6,13 +6,14 @@
 
 import { useRef, useState } from "react";
 import { observer } from "mobx-react";
-import { GitBranch } from "lucide-react";
+import { Button } from "@makeplane/propel/components/button";
+import { Icon } from "@makeplane/propel/components/icon";
+import { InputField } from "@makeplane/propel/components/input-field";
+import { GitBranchOutline } from "@makeplane/propel/icons";
+import { setToast } from "@plane/blocks/toast";
 import { useOutsideClickDetector } from "@plane/hooks";
 import { useTranslation } from "@plane/i18n";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
 import type { TRepoProjectMapping } from "@plane/types";
-import { Input } from "@plane/ui";
 import { GithubSyncService } from "@/services/github-sync.service";
 
 const githubSyncService = new GithubSyncService();
@@ -46,7 +47,7 @@ export const CreateBranchButton = observer(function CreateBranchButton(props: Pr
         repo: repo || undefined,
       });
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: "success",
         title: t("common.success"),
         message: response.linked_existing
           ? t("work_item.github.create_branch.linked", { branch: branchName.trim() })
@@ -60,7 +61,7 @@ export const CreateBranchButton = observer(function CreateBranchButton(props: Pr
         status === 422
           ? t("work_item.github.create_branch.errors.not_configured")
           : (error?.data?.error ?? t("work_item.github.create_branch.errors.failed"));
-      setToast({ type: TOAST_TYPE.ERROR, title: t("common.error"), message });
+      setToast({ type: "error", title: t("common.error"), message });
     } finally {
       setIsCreating(false);
     }
@@ -68,19 +69,25 @@ export const CreateBranchButton = observer(function CreateBranchButton(props: Pr
 
   if (!isOpen)
     return (
-      <Button variant="secondary" size="sm" prependIcon={<GitBranch />} onClick={() => setIsOpen(true)}>
-        {t("work_item.github.create_branch.trigger")}
-      </Button>
+      <Button
+        variant="secondary"
+        size="xs"
+        stretch="auto"
+        icon={<Icon icon={GitBranchOutline} />}
+        label={t("work_item.github.create_branch.trigger")}
+        onClick={() => setIsOpen(true)}
+      />
     );
 
   return (
     <div ref={containerRef} className="flex flex-col gap-2 rounded-sm border-[0.5px] border-subtle bg-surface-2 p-2">
-      <Input
+      <InputField
+        size="md"
+        orientation="vertical"
         type="text"
         value={branchName}
         onChange={(e) => setBranchName(e.target.value)}
         placeholder={t("work_item.github.create_branch.placeholder")}
-        className="w-full text-body-xs-regular"
       />
       {mappings.length > 1 && (
         <select
@@ -96,12 +103,23 @@ export const CreateBranchButton = observer(function CreateBranchButton(props: Pr
         </select>
       )}
       <div className="flex items-center justify-end gap-2">
-        <Button variant="secondary" size="sm" onClick={() => setIsOpen(false)} disabled={isCreating}>
-          {t("common.cancel")}
-        </Button>
-        <Button variant="primary" size="sm" onClick={handleCreate} loading={isCreating} disabled={!branchName.trim()}>
-          {t("common.create")}
-        </Button>
+        <Button
+          variant="secondary"
+          size="xs"
+          stretch="auto"
+          label={t("common.cancel")}
+          onClick={() => setIsOpen(false)}
+          disabled={isCreating}
+        />
+        <Button
+          variant="primary"
+          size="xs"
+          stretch="auto"
+          label={t("common.create")}
+          onClick={() => void handleCreate()}
+          loading={isCreating}
+          disabled={!branchName.trim()}
+        />
       </div>
     </div>
   );

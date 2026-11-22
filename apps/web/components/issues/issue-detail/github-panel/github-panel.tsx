@@ -6,7 +6,7 @@
 
 import { observer } from "mobx-react";
 import useSWR from "swr";
-import { Github } from "lucide-react";
+import { Github } from "@makeplane/propel/icons";
 import { GITHUB_ISSUE_GIT_LINKS_KEY, GITHUB_PROJECT_MAPPINGS_KEY } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import { useIssueDetail } from "@/hooks/store/use-issue-detail";
