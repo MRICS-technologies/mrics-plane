@@ -176,6 +176,7 @@ deploy, idempotently:
 | What | Why |
 |---|---|
 | `makeplane/plane-live` / `plane-space` pinned to `PLANE_LIVE_IMAGE` / `PLANE_SPACE_IMAGE` (workflow env, tag + digest) | upstream images, not built by the fork; must match the merged Plane release |
+| `plane-minio` + `plane-minio-setup` pinned to `PLANE_MINIO_IMAGE` (`ghcr.io/mrics-technologies/minio`, tag + digest) | MinIO deleted `minio/minio` and `minio/mc` from Docker Hub (2026-09-11); the mirror is the exact build the stacks run (it ships `mc`, so it also runs the bucket-setup job). Private package: the host's existing `ghcr.io` login pulls it |
 | `<router>-hsts` Traefik headers middleware (`stsSeconds=31536000`, `stsIncludeSubdomains`) on the https web + admin routers | the Caddy web/admin images (v1.5.0+) leave HSTS to the TLS terminator |
 | `NUM_PROXIES` on plane-api (workflow `PLANE_NUM_PROXIES`, default 1) | DRF throttles key on the real client IP; use 2 if a CDN is put in front |
 
@@ -184,6 +185,16 @@ It also refuses to deploy if the Coolify service env has no `AWS_ACCESS_KEY_ID` 
 (cookie `Secure` follows it), and waits for the web/admin/space Docker healthchecks
 (web `/`, admin `/god-mode`, space `/spaces/`) before probing routes. The route
 probe fails if `/` or `/god-mode/` comes back without HSTS.
+
+**Write order.** The script only dry-runs the converge on Coolify's authored
+compose before touching the host. It writes `docker_compose_raw` back **after** the
+host step succeeded (3 tries, read-back checked). So if the host step fails, Coolify
+still describes the previous, still-running images, and a Coolify UI redeploy can't
+roll a half-done release forward. The failed run prints the previous rendered compose
+(`docker-compose.yml.pre-github-actions-<sha>-<ts>`) and the running images; fix and
+re-run (every step is idempotent). If the host step succeeded but the Coolify write
+failed, the job fails with `HOST IS ON THE NEW RELEASE`: re-run it before anyone
+redeploys the service from the Coolify UI.
 
 ---
 
