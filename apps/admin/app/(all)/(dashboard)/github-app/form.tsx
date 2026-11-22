@@ -7,15 +7,16 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 // plane internal packages
+import { Button } from "@makeplane/propel/components/button";
+import { Switch } from "@makeplane/propel/components/switch";
+import { ConfirmDialog } from "@plane/blocks/dialog";
+import { setToast } from "@plane/blocks/toast";
 import { InstanceService } from "@plane/services";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Button } from "@plane/propel/button";
 import type {
   IInstanceGitHubAppConfiguration,
   TInstanceGitHubAppConfigurationKeys,
   TInstanceGitHubAppSecretMeta,
 } from "@plane/types";
-import { AlertModalCore, ToggleSwitch } from "@plane/ui";
 // components
 import type { TControllerInputFormField } from "@/components/common/controller-input";
 import { ControllerInput } from "@/components/common/controller-input";
@@ -93,7 +94,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
     },
   });
 
-  const FORM_FIELDS: TControllerInputFormField[] = [
+  const FORM_FIELDS: TControllerInputFormField<TFormValues>[] = [
     {
       key: "GITHUB_APP_ID",
       type: "text",
@@ -136,7 +137,10 @@ export function InstanceGitHubAppConfigForm(props: Props) {
     },
   ];
 
-  const SECRET_FIELDS: { field: TControllerInputFormField; meta: IInstanceGitHubAppConfiguration["private_key"] }[] = [
+  const SECRET_FIELDS: {
+    field: TControllerInputFormField<TFormValues>;
+    meta: IInstanceGitHubAppConfiguration["private_key"];
+  }[] = [
     {
       field: {
         key: "GITHUB_APP_PRIVATE_KEY",
@@ -180,13 +184,13 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       });
       onChange(updated);
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: "success",
         title: "Configuration saved",
         message: `GitHub App is now ${updated.enabled ? "enabled" : "disabled"}.`,
       });
     } catch {
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: "Error",
         message: "Failed to update the GitHub App configuration. Please try again.",
       });
@@ -209,13 +213,13 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       onChange(updated);
       if (updated.reset_count) {
         setToast({
-          type: TOAST_TYPE.SUCCESS,
+          type: "success",
           title: "GitHub App configuration saved",
           message: `App ID changed — ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? " was" : "s were"} reset. Each workspace must reconnect.`,
         });
       } else {
         setToast({
-          type: TOAST_TYPE.SUCCESS,
+          type: "success",
           title: "Done!",
           message: "GitHub App configuration saved. You should test it now.",
         });
@@ -232,7 +236,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       });
     } catch {
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: "Error",
         message: "Failed to save the GitHub App configuration. Please check your input and try again.",
       });
@@ -246,20 +250,20 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       if (result?.valid && isValidConfiguration(result.configuration)) {
         onChange(result.configuration);
         setToast({
-          type: TOAST_TYPE.SUCCESS,
+          type: "success",
           title: "Connection valid",
           message: "The stored GitHub App credentials can sign requests locally.",
         });
       } else {
         setToast({
-          type: TOAST_TYPE.ERROR,
+          type: "error",
           title: "Connection failed",
           message: "Failed to validate the GitHub App configuration.",
         });
       }
     } catch {
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: "Connection failed",
         message: "Failed to validate the GitHub App configuration.",
       });
@@ -274,7 +278,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       const updated = await instanceService.deleteGitHubAppConfiguration();
       onChange(updated);
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: "success",
         title: "Configuration removed",
         message: updated.reset_count
           ? `The GitHub App configuration has been removed from this instance. ${updated.reset_count} workspace GitHub connection${updated.reset_count === 1 ? " was" : "s were"} reset.`
@@ -293,7 +297,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
       setIsDeleteModalOpen(false);
     } catch {
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: "Error",
         message: "Failed to remove the GitHub App configuration. Please try again.",
       });
@@ -304,7 +308,7 @@ export function InstanceGitHubAppConfigForm(props: Props) {
 
   return (
     <div className="flex flex-col gap-8">
-      <AlertModalCore
+      <ConfirmDialog
         variant="danger"
         isOpen={isDeleteModalOpen}
         handleClose={() => setIsDeleteModalOpen(false)}
@@ -326,7 +330,13 @@ export function InstanceGitHubAppConfigForm(props: Props) {
               : "Configure the App ID and private key below before enabling."}
           </div>
         </div>
-        <ToggleSwitch value={config.enabled} onChange={handleToggleEnabled} size="sm" disabled={isEnabling} />
+        <Switch
+          aria-label="Enable GitHub App"
+          checked={config.enabled}
+          onCheckedChange={() => void handleToggleEnabled()}
+          size="sm"
+          disabled={isEnabling}
+        />
       </div>
 
       <button
@@ -376,30 +386,30 @@ export function InstanceGitHubAppConfigForm(props: Props) {
           <div className="flex items-center gap-4">
             <Button
               variant="primary"
-              size="lg"
+              size="md"
+              stretch="auto"
+              label={isSubmitting ? "Saving" : "Save changes"}
               onClick={(e) => void handleSubmit(onSubmit)(e)}
               loading={isSubmitting}
               disabled={!isDirty}
-            >
-              {isSubmitting ? "Saving" : "Save changes"}
-            </Button>
+            />
             <Button
               variant="secondary"
-              size="lg"
-              onClick={handleTestConnection}
+              size="md"
+              stretch="auto"
+              label={isTesting ? "Testing" : "Test connection"}
+              onClick={() => void handleTestConnection()}
               loading={isTesting}
               disabled={!config.configured || isTesting}
-            >
-              {isTesting ? "Testing" : "Test connection"}
-            </Button>
+            />
             <Button
-              variant="error-fill"
-              size="lg"
+              variant="danger"
+              size="md"
+              stretch="auto"
+              label="Remove configuration"
               onClick={() => setIsDeleteModalOpen(true)}
               disabled={!hasAnyConfiguration(config)}
-            >
-              Remove configuration
-            </Button>
+            />
           </div>
         </>
       )}

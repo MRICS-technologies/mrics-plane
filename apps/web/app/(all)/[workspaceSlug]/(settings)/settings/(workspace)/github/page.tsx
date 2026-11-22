@@ -11,7 +11,7 @@ import useSWR from "swr";
 // plane imports
 import { EUserPermissions, EUserPermissionsLevel, GITHUB_INSTALLATION_KEY } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
+import { setToast } from "@plane/blocks/toast";
 // components
 import { NotAuthorizedView } from "@/components/auth-screens/not-authorized-view";
 import { PageHead } from "@/components/core/page-title";
@@ -52,7 +52,7 @@ function WorkspaceGithubSettingsPage({ params }: Route.ComponentProps) {
     if (!status) return;
     if (status === "connected") {
       setToast({
-        type: TOAST_TYPE.SUCCESS,
+        type: "success",
         title: t("common.success"),
         message: t("workspace_settings.settings.github.installation.callback.connected"),
       });
@@ -61,13 +61,13 @@ function WorkspaceGithubSettingsPage({ params }: Route.ComponentProps) {
       // D5: this GitHub account already has the App installed from before --
       // the only recovery is to uninstall it on GitHub and Connect again.
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: t("common.error"),
         message: t("workspace_settings.settings.github.installation.callback.stale"),
       });
     } else {
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: t("common.error"),
         message: t("workspace_settings.settings.github.installation.callback.failed"),
       });

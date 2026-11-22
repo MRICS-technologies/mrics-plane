@@ -8,10 +8,10 @@ import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 // plane internal packages
+import { Button } from "@makeplane/propel/components/button";
+import { Loader } from "@plane/blocks/skeleton";
+import { setToast } from "@plane/blocks/toast";
 import { InstanceService } from "@plane/services";
-import { Button } from "@plane/propel/button";
-import { TOAST_TYPE, setToast } from "@plane/propel/toast";
-import { Loader } from "@plane/ui";
 // components
 import { PageWrapper } from "@/components/common/page-wrapper";
 // types
@@ -43,11 +43,11 @@ const InstanceGithubAppPage = (_props: Route.ComponentProps) => {
     const status = searchParams.get("github_app");
     if (!status) return;
     if (status === "connected") {
-      setToast({ type: TOAST_TYPE.SUCCESS, title: "GitHub App connected", message: "The GitHub App is ready to use." });
+      setToast({ type: "success", title: "GitHub App connected", message: "The GitHub App is ready to use." });
       mutate();
     } else {
       setToast({
-        type: TOAST_TYPE.ERROR,
+        type: "error",
         title: "Automated setup failed",
         message: MANIFEST_CALLBACK_MESSAGES[status] ?? "The automated GitHub App setup could not be completed.",
       });
@@ -68,9 +68,7 @@ const InstanceGithubAppPage = (_props: Route.ComponentProps) => {
       ) : error ? (
         <div className="flex flex-col items-center gap-3 py-12 text-center">
           <div className="text-14 text-tertiary">Failed to load the GitHub App configuration.</div>
-          <Button variant="secondary" size="sm" onClick={() => mutate()}>
-            Retry
-          </Button>
+          <Button variant="secondary" size="xs" stretch="auto" label="Retry" onClick={() => void mutate()} />
         </div>
       ) : (
         <Loader className="space-y-8">

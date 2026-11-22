@@ -4,14 +4,14 @@ This page documents the Django/API architecture as verified from `apps/api` sour
 
 ## Project entry points
 
-| Entry | Path | Role |
-| --- | --- | --- |
-| Django project root | [`apps/api/plane/`](../../apps/api/plane/) | The `plane` Django project package |
-| Management entry | [`manage.py`](../../apps/api/manage.py) | Defaults `DJANGO_SETTINGS_MODULE` to `plane.settings.production` |
-| WSGI/ASGI | [`wsgi.py`](../../apps/api/plane/wsgi.py), [`asgi.py`](../../apps/api/plane/asgi.py) | Both default to `plane.settings.production`; ASGI uses `channels` `ProtocolTypeRouter` with HTTP only |
-| Celery | [`celery.py`](../../apps/api/plane/celery.py) | `Celery("plane")` app, `config_from_object("django.conf:settings", namespace="CELERY")`, `autodiscover_tasks()`, `django_celery_beat.schedulers.DatabaseScheduler`, and a `beat_schedule` of recurring jobs |
-| Requirements | [`requirements/base.txt`](../../apps/api/requirements/base.txt) (Django 4.2, DRF 3.15, celery 5.4, channels, uvicorn, drf-spectacular, etc.), `local.txt`, `test.txt`, `production.txt` | Split by environment; `requirements.txt` is a PaaS-compat shim to `production.txt` |
-| Runtime entry scripts | [`apps/api/bin/`](../../apps/api/bin/) | `docker-entrypoint-api.sh` (gunicorn + `plane.asgi`), `worker.sh`, `beat.sh`, `migrator.sh`, `api-local.sh` |
+| Entry                 | Path                                                                                                                                                                          | Role                                                                                                                                                                                                        |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Django project root   | [`apps/api/plane/`](../../apps/api/plane/)                                                                                                                                    | The `plane` Django project package                                                                                                                                                                          |
+| Management entry      | [`manage.py`](../../apps/api/manage.py)                                                                                                                                       | Defaults `DJANGO_SETTINGS_MODULE` to `plane.settings.production`                                                                                                                                            |
+| WSGI/ASGI             | [`wsgi.py`](../../apps/api/plane/wsgi.py), [`asgi.py`](../../apps/api/plane/asgi.py)                                                                                          | Both default to `plane.settings.production`; ASGI uses `channels` `ProtocolTypeRouter` with HTTP only                                                                                                       |
+| Celery                | [`celery.py`](../../apps/api/plane/celery.py)                                                                                                                                 | `Celery("plane")` app, `config_from_object("django.conf:settings", namespace="CELERY")`, `autodiscover_tasks()`, `django_celery_beat.schedulers.DatabaseScheduler`, and a `beat_schedule` of recurring jobs |
+| Dependencies          | [`pyproject.toml`](../../apps/api/pyproject.toml) (Django 5.2, DRF 3.18, celery 5.5, channels, uvicorn, drf-spectacular, etc.), pinned in [`uv.lock`](../../apps/api/uv.lock) | Managed with uv (exact version in `[tool.uv] required-version`); groups `dev` and `test` install by default, `production` (gunicorn, `psycopg-c`) only in the production image; no `requirements/*.txt`     |
+| Runtime entry scripts | [`apps/api/bin/`](../../apps/api/bin/)                                                                                                                                        | `docker-entrypoint-api.sh` (gunicorn + `plane.asgi`), `worker.sh`, `beat.sh`, `migrator.sh`, `api-local.sh`                                                                                                 |
 
 ## Settings topology
 
@@ -27,16 +27,16 @@ This page documents the Django/API architecture as verified from `apps/api` sour
 
 [`plane/urls.py`](../../apps/api/plane/urls.py) is the root URLconf. It includes:
 
-| Mount | Included module | Domain |
-| --- | --- | --- |
-| `api/` | `plane.app.urls` | Main application API (work items, projects, workspaces, cycles, modules, pages, views, webhooks, GitHub sync, …) |
-| `api/public/` | `plane.space.urls` | Public project-space API (`apps/api/plane/space/urls/`) |
-| `api/instances/` | `plane.license.urls` | Instance/god-mode administration incl. GitHub App configuration |
-| `api/v1/` | `plane.api.urls` | Versioned API (`apps/api/plane/api/urls/`) |
-| `auth/` | `plane.authentication.urls` | Sign-in/up, OAuth (Google/GitHub/GitLab/Gitea), magic link, passwords |
-| `""` | `plane.web.urls` | `robots.txt` and a health-check view |
-| `api/schema/` (+ swagger/redoc) | drf-spectacular | Only when `ENABLE_DRF_SPECTACULAR=1` |
-| `__debug__/` | debug-toolbar | Only when `DEBUG` and toolbar importable |
+| Mount                           | Included module             | Domain                                                                                                           |
+| ------------------------------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `api/`                          | `plane.app.urls`            | Main application API (work items, projects, workspaces, cycles, modules, pages, views, webhooks, GitHub sync, …) |
+| `api/public/`                   | `plane.space.urls`          | Public project-space API (`apps/api/plane/space/urls/`)                                                          |
+| `api/instances/`                | `plane.license.urls`        | Instance/god-mode administration incl. GitHub App configuration                                                  |
+| `api/v1/`                       | `plane.api.urls`            | Versioned API (`apps/api/plane/api/urls/`)                                                                       |
+| `auth/`                         | `plane.authentication.urls` | Sign-in/up, OAuth (Google/GitHub/GitLab/Gitea), magic link, passwords                                            |
+| `""`                            | `plane.web.urls`            | `robots.txt` and a health-check view                                                                             |
+| `api/schema/` (+ swagger/redoc) | drf-spectacular             | Only when `ENABLE_DRF_SPECTACULAR=1`                                                                             |
+| `__debug__/`                    | debug-toolbar               | Only when `DEBUG` and toolbar importable                                                                         |
 
 ### The URL Routing Pilot
 
@@ -52,19 +52,19 @@ This is a **bounded subsystem graph**, not a whole-codebase graph. The `plane.ap
 
 `INSTALLED_APPS` in [`settings/common.py`](../../apps/api/plane/settings/common.py) registers the in-house apps below:
 
-| Django app | Source dir | Verified responsibility |
-| --- | --- | --- |
-| `plane.app` | [`plane/app/`](../../apps/api/plane/app/) | Main API: `views/` (issue, project, workspace, cycle, module, page, state, view, search, asset, webhook, notification, intake, estimate, exporter, analytic, external, github_sync, user, timezone, api), `serializers/`, `urls/`, `permissions/`, `middleware/` |
-| `plane.api` | [`plane/api/`](../../apps/api/plane/api/) | Versioned v1 API: `urls/` (asset, cycle, estimate, intake, invite, label, member, module, project, schema, state, sticky, time_tracking, user, work_item), `views/`, `serializers/`, `middleware/`, `rate_limit.py` |
-| `plane.space` | [`plane/space/`](../../apps/api/plane/space/) | Public space API: `urls/` (asset, intake, issue, project) |
-| `plane.license` | [`plane/license/`](../../apps/api/plane/license/) | Instance administration: `urls.py` + `api/views/` (admin, base, configuration, github_app, instance, workspace) |
-| `plane.authentication` | [`plane/authentication/`](../../apps/api/plane/authentication/) | Authentication endpoints, `session.py`, `rate_limit.py`, `urls.py` |
-| `plane.db` | [`plane/db/`](../../apps/api/plane/db/) | Models (`db/models/`: user, workspace, project, issue, cycle, module, state, label, estimate, view, page, webhook, api, intake, integration/* incl. `github_app.py` and `github_sync.py`, time_tracking, …), `mixins.py`, and the session model used by `SESSION_ENGINE` |
-| `plane.bgtasks` | [`plane/bgtasks/`](../../apps/api/plane/bgtasks/) | Celery background tasks: notification, email, exporter, file asset, issue automation, webhook, cleanup, deletion, page/issue version sync, workspace seed, etc. |
-| `plane.utils` | [`plane/utils/`](../../apps/api/plane/utils/) | Helpers: email, cache, CSV, markdown, pagination, grouper, URL/security helpers, error codes, logging, etc. |
-| `plane.middleware` | [`plane/middleware/`](../../apps/api/plane/middleware/) | `db_routing.py`, `logger.py`, `request_body_size.py` |
-| `plane.analytics` | [`plane/analytics/`](../../apps/api/plane/analytics/) | Analytics app |
-| `plane.web` | [`plane/web/`](../../apps/api/plane/web/) | `robots.txt` + health-check views (`views.py`, `urls.py`) |
+| Django app             | Source dir                                                      | Verified responsibility                                                                                                                                                                                                                                                   |
+| ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plane.app`            | [`plane/app/`](../../apps/api/plane/app/)                       | Main API: `views/` (issue, project, workspace, cycle, module, page, state, view, search, asset, webhook, notification, intake, estimate, exporter, analytic, external, github_sync, user, timezone, api), `serializers/`, `urls/`, `permissions/`, `middleware/`          |
+| `plane.api`            | [`plane/api/`](../../apps/api/plane/api/)                       | Versioned v1 API: `urls/` (asset, cycle, estimate, intake, invite, label, member, module, project, schema, state, sticky, time_tracking, user, work_item), `views/`, `serializers/`, `middleware/`, `rate_limit.py`                                                       |
+| `plane.space`          | [`plane/space/`](../../apps/api/plane/space/)                   | Public space API: `urls/` (asset, intake, issue, project)                                                                                                                                                                                                                 |
+| `plane.license`        | [`plane/license/`](../../apps/api/plane/license/)               | Instance administration: `urls.py` + `api/views/` (admin, base, configuration, github_app, instance, workspace)                                                                                                                                                           |
+| `plane.authentication` | [`plane/authentication/`](../../apps/api/plane/authentication/) | Authentication endpoints, `session.py`, `rate_limit.py`, `urls.py`                                                                                                                                                                                                        |
+| `plane.db`             | [`plane/db/`](../../apps/api/plane/db/)                         | Models (`db/models/`: user, workspace, project, issue, cycle, module, state, label, estimate, view, page, webhook, api, intake, integration/\* incl. `github_app.py` and `github_sync.py`, time_tracking, …), `mixins.py`, and the session model used by `SESSION_ENGINE` |
+| `plane.bgtasks`        | [`plane/bgtasks/`](../../apps/api/plane/bgtasks/)               | Celery background tasks: notification, email, exporter, file asset, issue automation, webhook, cleanup, deletion, page/issue version sync, workspace seed, etc.                                                                                                           |
+| `plane.utils`          | [`plane/utils/`](../../apps/api/plane/utils/)                   | Helpers: email, cache, CSV, markdown, pagination, grouper, URL/security helpers, error codes, logging, etc.                                                                                                                                                               |
+| `plane.middleware`     | [`plane/middleware/`](../../apps/api/plane/middleware/)         | `db_routing.py`, `logger.py`, `request_body_size.py`                                                                                                                                                                                                                      |
+| `plane.analytics`      | [`plane/analytics/`](../../apps/api/plane/analytics/)           | Analytics app                                                                                                                                                                                                                                                             |
+| `plane.web`            | [`plane/web/`](../../apps/api/plane/web/)                       | `robots.txt` + health-check views (`views.py`, `urls.py`)                                                                                                                                                                                                                 |
 
 Note: `plane.tests` is not in `common.INSTALLED_APPS`; it is added by [`settings/test.py`](../../apps/api/plane/settings/test.py).
 
