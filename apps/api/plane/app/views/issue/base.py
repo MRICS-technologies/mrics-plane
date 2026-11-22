@@ -71,6 +71,7 @@ from plane.utils.grouper import (
     issue_queryset_grouper,
 )
 from plane.utils.host import base_host
+from plane.utils.serializers import writable_data
 from plane.utils.issue_filters import issue_filters
 from plane.utils.order_queryset import order_issue_queryset
 from plane.utils.paginator import GroupedOffsetPaginator, SubGroupedOffsetPaginator
@@ -693,7 +694,6 @@ class IssueViewSet(BaseViewSet):
 
         current_instance = json.dumps(IssueDetailSerializer(issue).data, cls=DjangoJSONEncoder)
 
-        requested_data = json.dumps(self.request.data, cls=DjangoJSONEncoder)
         serializer = IssueCreateSerializer(issue, data=request.data, partial=True, context={"project_id": project_id})
         if serializer.is_valid():
             with transaction.atomic():
@@ -710,13 +710,15 @@ class IssueViewSet(BaseViewSet):
                     new_state_id=issue.state_id,
                     transition_at=transition_at,
                 )
+            # Read-only fields are ignored on save, so they are not reported as changes either.
+            accepted_data = writable_data(serializer, request.data)
             # Check if the update is a migration description update
             is_migration_description_update = skip_activity and is_description_update
             # Log all the updates
             if not is_migration_description_update:
                 issue_activity.delay(
                     type="issue.activity.updated",
-                    requested_data=requested_data,
+                    requested_data=json.dumps(accepted_data, cls=DjangoJSONEncoder),
                     actor_id=str(request.user.id),
                     issue_id=str(pk),
                     project_id=str(project_id),
@@ -728,7 +730,7 @@ class IssueViewSet(BaseViewSet):
                 model_activity.delay(
                     model_name="issue",
                     model_id=str(serializer.data.get("id", None)),
-                    requested_data=request.data,
+                    requested_data=accepted_data,
                     current_instance=current_instance,
                     actor_id=request.user.id,
                     slug=slug,

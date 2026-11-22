@@ -261,8 +261,8 @@ services:
     labels:
       traefik.enable: ${PLANE_TRAEFIK_ENABLE:-true}
       # IMPORTANT: no trailing slash — must match both /god-mode and /god-mode/*
-      # (admin nginx config in this repo emits relative redirects, so the
-      # /god-mode -> /god-mode/ 301 never leaks the internal :3000 port)
+      # (admin is served by Caddy since v1.5.0; it serves /god-mode without a
+      # redirect, so the internal :3000 port never leaks)
       traefik.http.routers.plane-admin.rule: Host(`${PLANE_PUBLIC_DOMAIN}`) && PathPrefix(`/god-mode`)
       traefik.http.routers.plane-admin.entrypoints: ${PLANE_TRAEFIK_ENTRYPOINT:-https}
       traefik.http.routers.plane-admin.tls: ${PLANE_TRAEFIK_TLS:-true}

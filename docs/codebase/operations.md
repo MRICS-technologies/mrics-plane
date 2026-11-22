@@ -1,24 +1,24 @@
 # Operations
 
-A *configuration map* of the developer, CI, container, and deployment surface of the repository, based on compose files, root scripts, `deployments/`, and `.github/`. It describes what is configured and where — it does not describe live environments, credentials, or production state, and it does not include operational commands that require secrets.
+A _configuration map_ of the developer, CI, container, and deployment surface of the repository, based on compose files, root scripts, `deployments/`, and `.github/`. It describes what is configured and where — it does not describe live environments, credentials, or production state, and it does not include operational commands that require secrets.
 
 ## Local development stack
 
 - **`setup.sh`** ([`setup.sh`](../../setup.sh)) — copies `.env.example` → `.env` for root, web, api, space, admin, and live; generates a Django `SECRET_KEY` into `apps/api/.env`; enables corepack pnpm and runs `pnpm install`.
-- **`docker-compose-local.yml`** ([`docker-compose-local.yml`](../../docker-compose-local.yml)) — the local *dependencies* stack: `plane-db` (Postgres 15.7-alpine), `plane-redis` (Valkey 7.2.11-alpine), `plane-mq` (RabbitMQ 3.13.6), `plane-minio` (MinIO with a bootstrap bucket), plus the `api` service (built from `apps/api/Dockerfile.dev`, runs `docker-entrypoint-api-local.sh` → `runserver` on 8000), `worker`, `beat-worker`, and `migrator`. Ports exposed: 5432, 6379, 8000, 9000, 9090. Web/admin/space run via `pnpm dev` on the host (see [testing-and-contributing.md](./testing-and-contributing.md#setup)).
+- **`docker-compose-local.yml`** ([`docker-compose-local.yml`](../../docker-compose-local.yml)) — the local _dependencies_ stack: `plane-db` (Postgres 15.7-alpine), `plane-redis` (Valkey 7.2.11-alpine), `plane-mq` (RabbitMQ 3.13.6), `plane-minio` (MinIO with a bootstrap bucket), plus the `api` service (built from `apps/api/Dockerfile.dev`, runs `docker-entrypoint-api-local.sh` → `runserver` on 8000), `worker`, `beat-worker`, and `migrator`. Ports exposed: 5432, 6379, 8000, 9000, 9090. Web/admin/space run via `pnpm dev` on the host (see [testing-and-contributing.md](./testing-and-contributing.md#setup)).
 - **`docker-compose.yml`** ([`docker-compose.yml`](../../docker-compose.yml)) — the full service stack used for a production-style deployment: web, admin, space, api, worker, beat-worker, migrator, live, plane-db, plane-redis, plane-mq, plane-minio, and `proxy` (Caddy, publishing `${LISTEN_HTTP_PORT}:80` and `${LISTEN_HTTPS_PORT}:443`). The API/worker/beat/migrator share `Dockerfile.api` with different entry scripts; frontends use their own Dockerfiles.
 - **`docker-compose-test.yml`** ([`docker-compose-test.yml`](../../docker-compose-test.yml)) — isolated API test stack (`test-db`, `test-redis`, `test-mq`, `test-minio`, `api-tests` with health-check gates and tmpfs data dirs). See [testing-and-contributing.md](./testing-and-contributing.md#api-tests).
 
 ## Container images
 
-| Image | Dockerfile | Runtime entry |
-| --- | --- | --- |
-| web | [`apps/web/Dockerfile.web`](../../apps/web/Dockerfile.web) | nginx on 3000 serving the static client |
-| admin | [`apps/admin/Dockerfile.admin`](../../apps/admin/Dockerfile.admin) | nginx on 3000 serving `/god-mode` |
-| space | [`apps/space/Dockerfile.space`](../../apps/space/Dockerfile.space) | `react-router-serve` on 3000 (SSR) |
-| live | [`apps/live/Dockerfile.live`](../../apps/live/Dockerfile.live) | `node apps/live` (dist build) |
-| api | [`apps/api/Dockerfile.api`](../../apps/api/Dockerfile.api) | entry scripts in `apps/api/bin/` (api/worker/beat/migrator) |
-| proxy | [`apps/proxy/Dockerfile.ce`](../../apps/proxy/Dockerfile.ce) | Caddy with [`Caddyfile.ce`](../../apps/proxy/Caddyfile.ce) |
+| Image | Dockerfile                                                         | Runtime entry                                                                                 |
+| ----- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| web   | [`apps/web/Dockerfile.web`](../../apps/web/Dockerfile.web)         | Caddy on 3000 serving the static client ([`caddy/Caddyfile`](../../apps/web/caddy/Caddyfile)) |
+| admin | [`apps/admin/Dockerfile.admin`](../../apps/admin/Dockerfile.admin) | Caddy on 3000 serving `/god-mode` ([`caddy/Caddyfile`](../../apps/admin/caddy/Caddyfile))     |
+| space | [`apps/space/Dockerfile.space`](../../apps/space/Dockerfile.space) | `react-router-serve` on 3000 (SSR)                                                            |
+| live  | [`apps/live/Dockerfile.live`](../../apps/live/Dockerfile.live)     | `node apps/live` (dist build)                                                                 |
+| api   | [`apps/api/Dockerfile.api`](../../apps/api/Dockerfile.api)         | entry scripts in `apps/api/bin/` (api/worker/beat/migrator)                                   |
+| proxy | [`apps/proxy/Dockerfile.ce`](../../apps/proxy/Dockerfile.ce)       | Caddy with [`Caddyfile.ce`](../../apps/proxy/Caddyfile.ce)                                    |
 
 All frontend Dockerfiles follow the same multi-stage pattern: `turbo prune --scope=<app> --docker` → `pnpm fetch`/`install --offline --frozen-lockfile` → `turbo run build --filter=<app>`, with build-time `VITE_*` args.
 
@@ -35,21 +35,21 @@ The root graph records `deployments/` as a single module with `deploys` edges to
 
 ## CI/CD pipelines (`.github/workflows/`)
 
-| Workflow | Trigger | What it does |
-| --- | --- | --- |
-| [`pull-request-build-lint-web-apps.yml`](../../.github/workflows/pull-request-build-lint-web-apps.yml) | PR to `preview` (non-draft, review requested) | Turbo `check:format`, `build --affected`, `check:lint`, `check:types --affected` for the web apps/workspace |
-| [`pull-request-build-lint-api.yml`](../../.github/workflows/pull-request-build-lint-api.yml) | PR to `preview` touching `apps/api/**` | `pip install -r requirements.txt` + `ruff check --fix apps/api` |
-| [`copyright-check.yml`](../../.github/workflows/copyright-check.yml) | PR to `preview` | `addlicense -check -f COPYRIGHT.txt` on tracked `.py`/`.ts`/`.tsx` files |
-| [`i18n-sync-check.yml`](../../.github/workflows/i18n-sync-check.yml) | PR/push touching `packages/i18n/**` | `pnpm dlx tsx packages/i18n/scripts/sync-check.ts --ci` |
-| [`react-doctor.yml`](../../.github/workflows/react-doctor.yml) | PR (opened/synchronize/reopened/ready) + push to `main` | React Doctor scan with sticky PR summary comment |
-| [`codeql.yml`](../../.github/workflows/codeql.yml) | push/PR to `preview`, `canary`, `master` | CodeQL analysis for python and javascript |
-| [`check-version.yml`](../../.github/workflows/check-version.yml) | PR to `master` | Fails if the PR did not bump the root `package.json` version |
-| [`test-auto-state-duration.yml`](../../.github/workflows/test-auto-state-duration.yml) | push to `feat/time-tracking-spike`, `mrics/dev` (path-filtered) | Runs time-tracking + contributor-analytics pytest subset with hosted Postgres/Redis |
-| [`test-github-app-configuration.yml`](../../.github/workflows/test-github-app-configuration.yml) | push to GitHub-integration branches (path-filtered) | Runs GitHub App configuration/sync contract pytest subset |
-| [`build-frontend-image.yml`](../../.github/workflows/build-frontend-image.yml) | push to `mrics/dev` (path-filtered) + dispatch | Builds `ghcr.io/mrics-technologies/mrics-plane-frontend` (ARM64) |
-| [`build-backend-image.yml`](../../.github/workflows/build-backend-image.yml) | push to `mrics/dev` (path-filtered) + dispatch | Builds `ghcr.io/mrics-technologies/mrics-plane-backend` (amd64+arm64) |
-| [`build-branch.yml`](../../.github/workflows/build-branch.yml) | push to `preview`/`canary`, or manual dispatch (Build/Release) | Builds + pushes admin/web/space/live/api/proxy (+ optional AIO) Docker images to Docker Hub; publishes release assets and GitHub releases |
-| [`feature-deployment.yml`](../../.github/workflows/feature-deployment.yml) | manual dispatch | Builds an AIO feature image to Docker Hub and deploys it to a Kubernetes feature-preview namespace via Helm (over Tailscale) |
+| Workflow                                                                                               | Trigger                                                         | What it does                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| [`pull-request-build-lint-web-apps.yml`](../../.github/workflows/pull-request-build-lint-web-apps.yml) | PR to `preview` (non-draft, review requested)                   | Turbo `check:format`, `build --affected`, `check:lint`, `check:types --affected` for the web apps/workspace                               |
+| [`pull-request-build-lint-api.yml`](../../.github/workflows/pull-request-build-lint-api.yml)           | PR to `preview` touching `apps/api/**`                          | uv (version from `apps/api/pyproject.toml`): `uv sync --locked --only-group dev` + `uv run --no-sync ruff check .` in `apps/api`          |
+| [`copyright-check.yml`](../../.github/workflows/copyright-check.yml)                                   | PR to `preview`                                                 | `addlicense -check -f COPYRIGHT.txt` on tracked `.py`/`.ts`/`.tsx` files                                                                  |
+| [`i18n-sync-check.yml`](../../.github/workflows/i18n-sync-check.yml)                                   | PR/push touching `packages/i18n/**`                             | `pnpm dlx tsx packages/i18n/scripts/sync-check.ts --ci`                                                                                   |
+| [`react-doctor.yml`](../../.github/workflows/react-doctor.yml)                                         | PR (opened/synchronize/reopened/ready) + push to `main`         | React Doctor scan with sticky PR summary comment                                                                                          |
+| [`codeql.yml`](../../.github/workflows/codeql.yml)                                                     | push/PR to `preview`, `canary`, `master`                        | CodeQL analysis for python and javascript                                                                                                 |
+| [`check-version.yml`](../../.github/workflows/check-version.yml)                                       | PR to `master`                                                  | Fails if the PR did not bump the root `package.json` version                                                                              |
+| [`test-auto-state-duration.yml`](../../.github/workflows/test-auto-state-duration.yml)                 | push to `feat/time-tracking-spike`, `mrics/dev` (path-filtered) | Runs time-tracking + contributor-analytics pytest subset with hosted Postgres/Redis                                                       |
+| [`test-github-app-configuration.yml`](../../.github/workflows/test-github-app-configuration.yml)       | push to GitHub-integration branches (path-filtered)             | Runs GitHub App configuration/sync contract pytest subset                                                                                 |
+| [`build-frontend-image.yml`](../../.github/workflows/build-frontend-image.yml)                         | push to `mrics/dev` (path-filtered) + dispatch                  | Builds `ghcr.io/mrics-technologies/mrics-plane-frontend` (ARM64)                                                                          |
+| [`build-backend-image.yml`](../../.github/workflows/build-backend-image.yml)                           | push to `mrics/dev` (path-filtered) + dispatch                  | Builds `ghcr.io/mrics-technologies/mrics-plane-backend` (amd64+arm64)                                                                     |
+| [`build-branch.yml`](../../.github/workflows/build-branch.yml)                                         | push to `preview`/`canary`, or manual dispatch (Build/Release)  | Builds + pushes admin/web/space/live/api/proxy (+ optional AIO) Docker images to Docker Hub; publishes release assets and GitHub releases |
+| [`feature-deployment.yml`](../../.github/workflows/feature-deployment.yml)                             | manual dispatch                                                 | Builds an AIO feature image to Docker Hub and deploys it to a Kubernetes feature-preview namespace via Helm (over Tailscale)              |
 
 ## Environment configuration surface
 

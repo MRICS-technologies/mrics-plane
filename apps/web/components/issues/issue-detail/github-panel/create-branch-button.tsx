@@ -1,0 +1,126 @@
+/**
+ * Copyright (c) 2023-present Plane Software, Inc. and contributors
+ * SPDX-License-Identifier: AGPL-3.0-only
+ * See the LICENSE file for details.
+ */
+
+import { useRef, useState } from "react";
+import { observer } from "mobx-react";
+import { Button } from "@makeplane/propel/components/button";
+import { Icon } from "@makeplane/propel/components/icon";
+import { InputField } from "@makeplane/propel/components/input-field";
+import { GitBranchOutline } from "@makeplane/propel/icons";
+import { setToast } from "@plane/blocks/toast";
+import { useOutsideClickDetector } from "@plane/hooks";
+import { useTranslation } from "@plane/i18n";
+import type { TRepoProjectMapping } from "@plane/types";
+import { GithubSyncService } from "@/services/github-sync.service";
+
+const githubSyncService = new GithubSyncService();
+
+type Props = {
+  workspaceSlug: string;
+  projectId: string;
+  issueId: string;
+  suggestedBranchName: string;
+  mappings: TRepoProjectMapping[];
+  onCreated: () => void;
+};
+
+export const CreateBranchButton = observer(function CreateBranchButton(props: Props) {
+  const { workspaceSlug, projectId, issueId, suggestedBranchName, mappings, onCreated } = props;
+  const { t } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [branchName, setBranchName] = useState(suggestedBranchName);
+  const [repo, setRepo] = useState(mappings.find((mapping) => mapping.is_default)?.github_repo ?? "");
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useOutsideClickDetector(containerRef, () => setIsOpen(false));
+
+  const handleCreate = async () => {
+    if (!branchName.trim()) return;
+    setIsCreating(true);
+    try {
+      const response = await githubSyncService.createBranch(workspaceSlug, projectId, issueId, {
+        branch_name: branchName.trim(),
+        repo: repo || undefined,
+      });
+      setToast({
+        type: "success",
+        title: t("common.success"),
+        message: response.linked_existing
+          ? t("work_item.github.create_branch.linked", { branch: branchName.trim() })
+          : t("work_item.github.create_branch.success", { branch: branchName.trim() }),
+      });
+      setIsOpen(false);
+      onCreated();
+    } catch (error: any) {
+      const status = error?.status;
+      const message =
+        status === 422
+          ? t("work_item.github.create_branch.errors.not_configured")
+          : (error?.data?.error ?? t("work_item.github.create_branch.errors.failed"));
+      setToast({ type: "error", title: t("common.error"), message });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  if (!isOpen)
+    return (
+      <Button
+        variant="secondary"
+        size="xs"
+        stretch="auto"
+        icon={<Icon icon={GitBranchOutline} />}
+        label={t("work_item.github.create_branch.trigger")}
+        onClick={() => setIsOpen(true)}
+      />
+    );
+
+  return (
+    <div ref={containerRef} className="flex flex-col gap-2 rounded-sm border-[0.5px] border-subtle bg-surface-2 p-2">
+      <InputField
+        size="md"
+        orientation="vertical"
+        type="text"
+        value={branchName}
+        onChange={(e) => setBranchName(e.target.value)}
+        placeholder={t("work_item.github.create_branch.placeholder")}
+      />
+      {mappings.length > 1 && (
+        <select
+          value={repo}
+          onChange={(e) => setRepo(e.target.value)}
+          className="w-full rounded-sm border-[0.5px] border-subtle bg-surface-1 px-2 py-1 text-body-xs-regular"
+        >
+          {mappings.map((mapping) => (
+            <option key={mapping.id} value={mapping.github_repo}>
+              {mapping.repo_label || mapping.github_repo}
+            </option>
+          ))}
+        </select>
+      )}
+      <div className="flex items-center justify-end gap-2">
+        <Button
+          variant="secondary"
+          size="xs"
+          stretch="auto"
+          label={t("common.cancel")}
+          onClick={() => setIsOpen(false)}
+          disabled={isCreating}
+        />
+        <Button
+          variant="primary"
+          size="xs"
+          stretch="auto"
+          label={t("common.create")}
+          onClick={() => void handleCreate()}
+          loading={isCreating}
+          disabled={!branchName.trim()}
+        />
+      </div>
+    </div>
+  );
+});

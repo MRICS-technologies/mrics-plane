@@ -63,9 +63,8 @@ These fix real production bugs found during deployment — do not "simplify" the
 1. **`PathPrefix(`/god-mode`)` without trailing slash.** With a trailing slash,
    `/god-mode` (no slash) misses the rule, falls into plane-web, whose SPA bounces
    users to `/?next_path=/god-mode`. If you rename routes, keep both forms matching.
-2. **`absolute_redirect off; port_in_redirect off;` in `apps/admin/nginx/nginx.conf`.**
-   Without it, nginx 301s `/god-mode` → `http://host:3000/god-mode/`, leaking the
-   internal port. Already in the repo image; kept correct here.
+2. **Admin and web are served by Caddy since v1.5.0** (`apps/{web,admin}/caddy/Caddyfile`,
+   port 3000). Caddy serves `/god-mode` without redirecting, so the internal port never leaks.
 3. **Unique router names.** If you run more than one Plane stack behind the same
    Traefik (e.g. dev + prod), suffix every `traefik.http.routers.*` /
    `traefik.http.services.*` name per stack or Traefik will error with
@@ -121,7 +120,7 @@ A1) or x86 requires no changes — Docker picks the matching manifest.
 | Symptom | Cause / fix |
 |---|---|
 | `/?next_path=/god-mode` loop | admin rule has trailing slash — remove it (note 1) |
-| Redirect to `:3000` port | image built before the nginx fix — pull a newer tag (note 2) |
+| Redirect to `:3000` port | admin image older than v1.5.0 (nginx) — pull a newer tag (note 2) |
 | "no available server" (503) | router name collision (note 3) or service down: `docker compose ps` |
 | API 502 on first boot | migrator still running — wait ~1-2 min, then retry |
 | GHCR pull unauthorized | private registry: `docker login ghcr.io` with a read:packages PAT |

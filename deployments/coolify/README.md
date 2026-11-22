@@ -104,7 +104,7 @@ docker README → Backup).
 |---|---|
 | **One Plane stack per proxy router names** | Router names (`plane-web`, `plane-api`, …) are global per Traefik. Deploying a **second** Plane stack (e.g. dev + prod) behind the same proxy requires search-replacing router/service names (e.g. `planedev-`). Traefik logs `router defined multiple times` otherwise. |
 | **Keep `/god-mode` rule WITHOUT trailing slash** | `/god-mode/` only matches the slashed form; the bare URL then falls into plane-web → users see `/?next_path=/god-mode`. The compose in this repo is already correct. |
-| **Don't strip the admin nginx redirect fix** | The image emits relative redirects (`/god-mode/`), never `host:3000`. If you build custom admin images, keep `absolute_redirect off`. |
+| **Admin and web are served by Caddy (since v1.5.0)** | `apps/{web,admin}/caddy/Caddyfile` serve the SPA on port 3000 and never redirect `/god-mode` to `host:3000`. |
 | **GHCR auth is per-Coolify-instance** | `unauthorized` pull errors = registry token missing/expired, not a compose problem. |
 | **Multi-arch tags are mandatory** | Coolify servers may be amd64 or arm64. Use `:dev*` multi-arch manifests (CI publishes them); per-arch `:dev-amd64-*` / `:dev-arm64-*` tags exist for pinning specific hosts. |
 
@@ -115,6 +115,6 @@ docker README → Backup).
 | Pull `unauthorized` | Add/refresh GHCR registry token (Prereq 1) |
 | 503 `no available server` | Router-name collision (rule 1) or service crashed: check sub-app logs |
 | `/god-mode` bounces to `/?next_path=…` | Trailing slash crept into the rule (rule 2) |
-| Redirect to `:3000` | Custom admin image missing nginx fix (rule 3) |
+| Redirect to `:3000` | Admin image older than v1.5.0 (nginx) — deploy a current tag (rule 3) |
 | API 502 right after deploy | Migrator/boot still running — wait 1–2 min |
 | Signup/login email issues | Configure SMTP via `/god-mode/` → Settings → Email |
