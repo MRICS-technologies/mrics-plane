@@ -496,7 +496,7 @@ wait_api
 wait_healthy plane-web plane-admin plane-space
 
 echo migration_gate
-$DC exec -T plane-api sh -lc 'cd /code && python manage.py migrate --check && python manage.py makemigrations --check --dry-run'
+$DC exec -T plane-api sh -lc 'cd /code && python manage.py migrate --check && python manage.py makemigrations --check --dry-run --lockfile-warn-only'
 
 echo neutralize_staging_side_effects
 $DC exec -T plane-api sh -lc 'cd /code && python manage.py shell' <<'PY'
@@ -554,7 +554,7 @@ wait_api
 wait_healthy plane-web plane-admin plane-space
 
 echo migration_gate
-$DC exec -T plane-api sh -lc 'cd /code && python manage.py migrate --check && python manage.py makemigrations --check --dry-run'
+$DC exec -T plane-api sh -lc 'cd /code && python manage.py migrate --check && python manage.py makemigrations --check --dry-run --lockfile-warn-only'
 
 echo images
 show_images
