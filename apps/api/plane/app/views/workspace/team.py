@@ -4,6 +4,8 @@
 
 # Django imports
 from django.db import IntegrityError, transaction
+from django.db.models import Exists, OuterRef, Prefetch
+from django.utils import timezone
 
 # Third party imports
 from rest_framework import status
@@ -19,8 +21,18 @@ DUPLICATE_NAME = {"name": ["A team with this name already exists in this workspa
 
 
 def _teams(slug):
+    # Members who left the workspace keep their row but are not listed.
+    active_members = TeamMember.objects.filter(
+        Exists(
+            WorkspaceMember.objects.filter(
+                workspace_id=OuterRef("workspace_id"), member_id=OuterRef("member_id"), is_active=True
+            )
+        )
+    )
     return (
-        Team.objects.filter(workspace__slug=slug).select_related("default_repository").prefetch_related("team_members")
+        Team.objects.filter(workspace__slug=slug)
+        .select_related("default_repository")
+        .prefetch_related(Prefetch("team_members", queryset=active_members))
     )
 
 
@@ -80,9 +92,11 @@ class WorkspaceTeamDetailEndpoint(BaseAPIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         with transaction.atomic():
             # Memberships are hard-deleted so the members can join another
-            # team; the team itself is soft-deleted (its name is freed).
+            # team; the team itself is soft-deleted (its name is freed) by a
+            # direct update: Team.delete() would queue the soft-delete cascade.
             TeamMember.all_objects.filter(team=team).delete()
-            team.delete()
+            now = timezone.now()
+            Team.objects.filter(pk=team.pk).update(deleted_at=now, updated_at=now)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -105,20 +119,15 @@ class WorkspaceTeamMembersEndpoint(BaseAPIView):
             return Response({"member_ids": sorted(str(i) for i in invalid)}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # One team per member: a member of another team is moved here.
-            # This and the TeamMember (workspace, member) constraint are the
-            # only places that encode the rule.
-            rows = TeamMember.objects.select_for_update().filter(
-                workspace_id=team.workspace_id, member_id__in=member_ids
-            )
-            existing = {row.member_id: row for row in rows}
-            for member_id in member_ids:
-                row = existing.get(member_id)
-                if row is None:
-                    TeamMember.objects.create(workspace_id=team.workspace_id, team=team, member_id=member_id)
-                elif row.team_id != team.id:
-                    row.team = team
-                    row.save(update_fields=["team", "updated_at"])
+            # One team per member: a member of another team is moved here
+            # (last writer wins; update_or_create retries the lookup when a
+            # concurrent insert hits the constraint). This and the TeamMember
+            # (workspace, member) constraint are the only places that encode
+            # the rule. Sorted so concurrent adds lock rows in the same order.
+            for member_id in sorted(member_ids):
+                TeamMember.objects.update_or_create(
+                    workspace_id=team.workspace_id, member_id=member_id, defaults={"team": team}
+                )
         return Response(serialize_team(_teams(slug).get(pk=team.pk)))
 
 

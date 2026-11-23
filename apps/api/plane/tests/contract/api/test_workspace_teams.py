@@ -34,6 +34,7 @@ from plane.db.models import (
     WorkspaceMember,
 )
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
+from plane.db.mixins import SoftDeletionQuerySet
 from plane.db.models.integration.github_sync import RepoProjectMapping
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import encrypt_data
@@ -428,6 +429,52 @@ class TestTeamMembership:
         assert list(TeamMember.all_objects.filter(member=member_user).values_list("id", flat=True)) == [row_id]
 
     @pytest.mark.django_db
+    def test_member_added_concurrently_elsewhere_is_moved_not_a_500(self, admin_client, workspace, member_user):
+        team_x = _team(workspace, "X")
+        team_y = _team(workspace, "Y")
+        real_get = SoftDeletionQuerySet.get
+
+        def racing_get(queryset, *args, **kwargs):
+            # Another request adds the member to X right after our lookup
+            # misses, so our insert hits the one-team-per-member constraint.
+            try:
+                return real_get(queryset, *args, **kwargs)
+            except TeamMember.DoesNotExist:
+                TeamMember(workspace=workspace, team=team_x, member=member_user).save()
+                raise
+
+        with patch.object(SoftDeletionQuerySet, "get", racing_get):
+            resp = admin_client.post(
+                _members_url(workspace.slug, team_y.id), {"member_ids": [str(member_user.id)]}, format="json"
+            )
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["member_ids"] == [str(member_user.id)]
+        assert TeamMember.all_objects.get(member=member_user).team_id == team_y.id
+
+    @pytest.mark.django_db
+    def test_member_ids_hide_members_who_left_the_workspace(self, admin_client, workspace, create_user, member_user):
+        _team(workspace, "Frontend", members=[create_user, member_user])
+        left = _user("left@plane.so")
+        removed = _user("removed@plane.so")
+        WorkspaceMember.objects.create(workspace=workspace, member=left, role=15, is_active=False)
+        WorkspaceMember.objects.create(workspace=workspace, member=removed, role=15, deleted_at=timezone.now())
+        _team(workspace, "Backend", members=[left, removed])
+
+        def list_teams():
+            with CaptureQueriesContext(connection) as ctx:
+                resp = admin_client.get(_teams_url(workspace.slug))
+            assert resp.status_code == status.HTTP_200_OK
+            return {team["name"]: sorted(team["member_ids"]) for team in resp.data}, len(ctx)
+
+        teams, queries = list_teams()
+        assert teams == {"Backend": [], "Frontend": sorted([str(create_user.id), str(member_user.id)])}
+
+        for i in range(3):
+            _team(workspace, f"Team {i}", members=[_user(f"m{i}@plane.so")])
+        assert list_teams()[1] == queries
+
+    @pytest.mark.django_db
     def test_remove_member(self, admin_client, workspace, member_user):
         team = _team(workspace, "Frontend", members=[member_user])
 
@@ -443,8 +490,12 @@ class TestTeamMembership:
         team = _team(workspace, "Frontend", members=[member_user])
         other = _team(workspace, "Backend")
 
-        assert admin_client.delete(_team_url(workspace.slug, team.id)).status_code == 204
+        with patch("plane.db.mixins.soft_delete_related_objects") as cascade:
+            assert admin_client.delete(_team_url(workspace.slug, team.id)).status_code == 204
 
+        # No soft-delete cascade: it would only re-touch the hard-deleted rows.
+        cascade.delay.assert_not_called()
+        assert Team.all_objects.get(pk=team.pk).deleted_at is not None
         assert not TeamMember.all_objects.filter(team=team).exists()
         resp = admin_client.post(
             _members_url(workspace.slug, other.id), {"member_ids": [str(member_user.id)]}, format="json"
