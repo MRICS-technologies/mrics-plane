@@ -53,6 +53,10 @@ Deliveries with a valid signature are limited per client IP by `GITHUB_WEBHOOK_R
 
 GitHub does not retry failed deliveries. A `429` shows the delivery as failed in the GitHub App's **Advanced → Recent deliveries**, and the PR update is missing in Plane until you redeliver it from there; the API logs `signed delivery throttled` when this happens. If it does, raise `GITHUB_WEBHOOK_RATE_LIMIT` (`<count>/<second|minute|hour|day>`; an invalid value logs a warning and falls back to `600/minute`) and check that `NUM_PROXIES` matches the number of proxies in front of the API, so the limit is keyed on GitHub's address rather than the proxy's or a client-supplied header.
 
+Raise the per-minute count rather than using a huge count over a long window: DRF stores one timestamp per counted request in the cache entry, so a value like `50000/hour` makes every delivery read and write a list of up to 50,000 timestamps.
+
+On the Coolify stack (`deployments/docker/docker-compose.yml`), the variable is passed to the API through the compose `backend-env` block; the default works without any configuration.
+
 ## Safe pause and rollback
 
 To stop **new** webhook effects without deleting history:
