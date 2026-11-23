@@ -376,9 +376,10 @@ class GitHubWebhookView(BaseAPIView):
     # Throttled in post() after the signature check: signed deliveries are
     # charged to GitHubWebhookThrottle, everything else to the usual anon
     # bucket. Counting first would let anyone burning the anon budget from a
-    # shared IP (or the proxy IP when NUM_PROXIES is unset) get real GitHub
-    # deliveries 429'd. The cost: an unsigned request now pays one config read
-    # and an HMAC over a body capped at MAX_WEBHOOK_BODY_BYTES before it counts.
+    # shared IP (or the proxy's, when NUM_PROXIES does not match the
+    # deployment) get real GitHub deliveries 429'd. The cost: an unsigned
+    # request now pays one config read and an HMAC over a body capped at
+    # MAX_WEBHOOK_BODY_BYTES before it counts.
     throttle_classes = []
 
     def _throttle(self, request, throttle):
