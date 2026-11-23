@@ -400,7 +400,8 @@ class GitHubWebhookView(BaseAPIView):
 
         secret = credentials.webhook_secret
         signature = request.headers.get("X-Hub-Signature-256", "")
-        if not signature.startswith("sha256="):
+        # compare_digest raises TypeError on non-ASCII str; treat it as a mismatch.
+        if not signature.isascii() or not signature.startswith("sha256="):
             return False
 
         expected = "sha256=" + hmac.new(secret.encode(), request.body, hashlib.sha256).hexdigest()

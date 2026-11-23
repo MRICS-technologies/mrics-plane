@@ -992,6 +992,16 @@ class TestGitHubWebhookThrottle:
         assert response.status_code == status.HTTP_200_OK
 
     @pytest.mark.django_db
+    def test_non_ascii_signature_is_a_401_charged_to_the_anon_bucket(self, api_client):
+        _configure_webhook_app()
+        with _throttle_rates(anon="2/minute"):
+            for _ in range(2):
+                response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=\xff")
+                assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=\xff")
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+    @pytest.mark.django_db
     def test_oversized_body_is_rejected_before_any_bucket(self, api_client):
         with _throttle_rates(anon="1/minute"):
             for _ in range(2):
