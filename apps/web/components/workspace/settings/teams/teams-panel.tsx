@@ -46,7 +46,8 @@ export function TeamsPanel(props: Props) {
   const { data: repositories } = useSWR(GITHUB_REPOSITORIES_KEY(workspaceSlug), () =>
     githubSyncService.getRepositories(workspaceSlug)
   );
-  const enabledRepositories = (repositories ?? []).filter((repository) => repository.is_enabled);
+  // undefined while loading, so the list items don't show the "no repositories" state yet.
+  const enabledRepositories = repositories?.filter((repository) => repository.is_enabled);
 
   const handleCreate = async (name: string) => {
     try {

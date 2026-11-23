@@ -42,8 +42,8 @@ type Props = {
   team: TWorkspaceTeam;
   /** Every team of the workspace, to tell which team a picked member is moved from. */
   teams: TWorkspaceTeam[];
-  /** Enabled repositories of the workspace's GitHub installation. */
-  repositories: TTeamRepositoryOption[];
+  /** Enabled repositories of the workspace's GitHub installation; undefined while loading. */
+  repositories: TTeamRepositoryOption[] | undefined;
   isAdmin: boolean;
   onChange: () => Promise<unknown>;
 };
@@ -69,11 +69,12 @@ export const TeamListItem = observer(function TeamListItem(props: Props) {
     full_name: t("workspace_settings.settings.teams.no_default_repository"),
   };
   const current = team.default_repository;
+  const hasNoRepositories = repositories?.length === 0;
   // A default repository disabled since it was picked still shows as the value.
   const repositoryOptions = [
     none,
-    ...repositories,
-    ...(current && !repositories.some((repository) => repository.id === current.id) ? [current] : []),
+    ...(repositories ?? []),
+    ...(current && !repositories?.some((repository) => repository.id === current.id) ? [current] : []),
   ];
 
   const run = async (write: () => Promise<unknown>) => {
@@ -197,7 +198,7 @@ export const TeamListItem = observer(function TeamListItem(props: Props) {
                 }
                 getOptionValue={(option) => option.id}
                 getOptionLabel={(option) => option.full_name}
-                disabled={repositories.length === 0 && !current}
+                disabled={hasNoRepositories && !current}
                 contentSizing="anchor"
               >
                 <Select.Trigger<TTeamRepositoryOption> variant="select-md">
@@ -205,7 +206,7 @@ export const TeamListItem = observer(function TeamListItem(props: Props) {
                 </Select.Trigger>
               </Select>
             </div>
-            {repositories.length === 0 && (
+            {hasNoRepositories && (
               <span className="text-11 text-tertiary">
                 {t("workspace_settings.settings.teams.no_repositories_hint")}
               </span>
