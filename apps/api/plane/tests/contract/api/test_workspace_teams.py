@@ -258,6 +258,29 @@ class TestTeamCrud:
         assert admin_client.post(_teams_url(workspace.slug), {"name": "  "}, format="json").status_code == 400
 
     @pytest.mark.django_db
+    def test_description_is_at_most_2000_characters(self, admin_client, workspace):
+        resp = admin_client.post(_teams_url(workspace.slug), {"name": "F", "description": "x" * 2001}, format="json")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert "description" in resp.data
+        team = _team(workspace, "Frontend")
+        resp = admin_client.patch(_team_url(workspace.slug, team.id), {"description": "x" * 2001}, format="json")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        resp = admin_client.patch(_team_url(workspace.slug, team.id), {"description": "x" * 2000}, format="json")
+        assert resp.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_patch_writes_only_the_fields_sent(self, admin_client, workspace, repo_b):
+        team = _team(workspace, "Frontend", default_repository=repo_b)
+
+        with CaptureQueriesContext(connection) as ctx:
+            resp = admin_client.patch(_team_url(workspace.slug, team.id), {"name": "Web"}, format="json")
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        (update,) = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith('UPDATE "teams"')]
+        assert '"name"' in update
+        assert '"description"' not in update and '"default_repository_id"' not in update
+
+    @pytest.mark.django_db
     def test_member_can_list_but_not_write(self, workspace, member_user, create_user):
         team = _team(workspace, "Frontend", members=[create_user])
         client = _client(member_user)

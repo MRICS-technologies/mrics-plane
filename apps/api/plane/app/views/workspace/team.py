@@ -46,8 +46,6 @@ class WorkspaceTeamEndpoint(BaseAPIView):
         serializer = TeamWriteSerializer(data=request.data, context={"workspace_slug": slug})
         serializer.is_valid(raise_exception=True)
         workspace = Workspace.objects.get(slug=slug)
-        if Team.objects.filter(workspace=workspace, name=serializer.validated_data["name"]).exists():
-            return Response(DUPLICATE_NAME, status=status.HTTP_409_CONFLICT)
         data = serializer.validated_data
         try:
             with transaction.atomic():
@@ -71,16 +69,11 @@ class WorkspaceTeamDetailEndpoint(BaseAPIView):
         serializer = TeamWriteSerializer(data=request.data, partial=True, context={"workspace_slug": slug})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        name = data.get("name", team.name)
-        if name != team.name and Team.objects.filter(workspace_id=team.workspace_id, name=name).exists():
-            return Response(DUPLICATE_NAME, status=status.HTTP_409_CONFLICT)
-        team.name = name
-        team.description = data.get("description", team.description)
-        if "default_repository_id" in data:
-            team.default_repository_id = data["default_repository_id"]
+        for field, value in data.items():
+            setattr(team, field, value)
         try:
             with transaction.atomic():
-                team.save(update_fields=["name", "description", "default_repository", "updated_at"])
+                team.save(update_fields=[*data, "updated_at"])
         except IntegrityError:
             return Response(DUPLICATE_NAME, status=status.HTTP_409_CONFLICT)
         return Response(serialize_team(_teams(slug).get(pk=team.pk)))
@@ -134,13 +127,10 @@ class WorkspaceTeamMembersEndpoint(BaseAPIView):
 class WorkspaceTeamMemberDetailEndpoint(BaseAPIView):
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def delete(self, request, slug, team_id, member_id):
-        deleted, _ = TeamMember.all_objects.filter(
-            workspace__slug=slug,
-            team_id=team_id,
-            team__deleted_at__isnull=True,
-            member_id=member_id,
-            deleted_at__isnull=True,
-        ).delete()
+        # soft=False: the soft-deletion queryset's delete() is soft by default.
+        deleted, _ = TeamMember.objects.filter(
+            workspace__slug=slug, team_id=team_id, team__deleted_at__isnull=True, member_id=member_id
+        ).delete(soft=False)
         if not deleted:
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(status=status.HTTP_204_NO_CONTENT)

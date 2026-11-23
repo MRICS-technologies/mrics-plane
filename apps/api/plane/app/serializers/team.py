@@ -13,16 +13,13 @@ class TeamWriteSerializer(serializers.Serializer):
     """Create/update body. Needs ``workspace_slug`` in the context."""
 
     name = serializers.CharField(max_length=255)
-    description = serializers.CharField(required=False, allow_blank=True)
+    description = serializers.CharField(required=False, allow_blank=True, max_length=2000)
     default_repository_id = serializers.UUIDField(required=False, allow_null=True)
 
     def validate_default_repository_id(self, value):
-        if value is None:
-            return None
-        repository = usable_repositories(self.context["workspace_slug"]).filter(pk=value).first()
-        if not repository:
+        if value is not None and not usable_repositories(self.context["workspace_slug"]).filter(pk=value).exists():
             raise serializers.ValidationError("Must be an enabled repository of this workspace's GitHub installation.")
-        return repository.id
+        return value
 
 
 class TeamMembersSerializer(serializers.Serializer):
