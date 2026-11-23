@@ -69,6 +69,46 @@
         "description": "Gerencie o acesso a este espaço de trabalho.",
         "leave_title": "Sair do espaço de trabalho?"
       },
+      "teams": {
+        "title": "Equipes",
+        "description": "Agrupe os membros do espaço de trabalho em equipes. Um membro só pode pertencer a uma equipe. Quando um membro cria um branch a partir de um item de trabalho, o repositório padrão da equipe é pré-selecionado se estiver vinculado ao projeto.",
+        "create": "Criar equipe",
+        "empty": {
+          "title": "Nenhuma equipe ainda",
+          "description": "As equipes agrupam membros e definem para eles um repositório padrão do GitHub para novos branches."
+        },
+        "member_count": "{count, plural, one {# membro} many {# membros} other {# membros}}",
+        "no_members": "Nenhum membro ainda",
+        "add_member": "Adicionar membro",
+        "remove_member_aria_label": "Remover {name} da equipe",
+        "default_repository": "Repositório padrão",
+        "no_default_repository": "Sem repositório padrão",
+        "no_repositories_hint": "Conecte o GitHub e ative repositórios nas configurações do GitHub para escolher um repositório padrão.",
+        "rename": "Renomear",
+        "form": {
+          "create_title": "Criar equipe",
+          "rename_title": "Renomear equipe",
+          "name_label": "Nome",
+          "name_placeholder": "ex.: Frontend",
+          "name_required": "O nome é obrigatório",
+          "save": "Salvar"
+        },
+        "delete_modal": {
+          "title": "Excluir equipe",
+          "content": "Excluir a equipe {name}? Seus membros não farão mais parte de nenhuma equipe."
+        },
+        "move_modal": {
+          "title": "Mover membro",
+          "content": "{member} está na equipe {from} e passará para {to}.",
+          "confirm": "Mover"
+        },
+        "errors": {
+          "load_failed": "Não foi possível carregar as equipes.",
+          "duplicate_name": "Já existe uma equipe com este nome.",
+          "save_failed": "Não foi possível salvar a equipe.",
+          "forbidden": "Somente administradores do espaço de trabalho podem alterar equipes."
+        }
+      },
       "billing_and_plans": {
         "heading": "Faturamento e planos",
         "description": "Escolha seu plano, gerencie assinaturas e faça upgrade facilmente conforme suas necessidades crescem.",

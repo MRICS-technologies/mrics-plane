@@ -69,6 +69,46 @@
         "description": "Zarządzaj dostępem do tego obszaru roboczego.",
         "leave_title": "Opuścić przestrzeń roboczą?"
       },
+      "teams": {
+        "title": "Zespoły",
+        "description": "Członków przestrzeni roboczej można grupować w zespoły. Członek może należeć tylko do jednego zespołu. Gdy członek tworzy gałąź z elementu pracy, domyślne repozytorium jego zespołu jest wstępnie wybierane, jeśli jest powiązane z projektem.",
+        "create": "Utwórz zespół",
+        "empty": {
+          "title": "Brak zespołów",
+          "description": "Zespoły grupują członków i przypisują im domyślne repozytorium GitHub dla nowych gałęzi."
+        },
+        "member_count": "{count, plural, one {# członek} few {# członkowie} many {# członków} other {# członka}}",
+        "no_members": "Brak członków",
+        "add_member": "Dodaj członka",
+        "remove_member_aria_label": "Usuń {name} z zespołu",
+        "default_repository": "Domyślne repozytorium",
+        "no_default_repository": "Brak domyślnego repozytorium",
+        "no_repositories_hint": "Aby wybrać domyślne repozytorium, należy połączyć GitHub i włączyć repozytoria w ustawieniach GitHub.",
+        "rename": "Zmień nazwę",
+        "form": {
+          "create_title": "Utwórz zespół",
+          "rename_title": "Zmień nazwę zespołu",
+          "name_label": "Nazwa",
+          "name_placeholder": "np. Frontend",
+          "name_required": "Nazwa jest wymagana",
+          "save": "Zapisz"
+        },
+        "delete_modal": {
+          "title": "Usuń zespół",
+          "content": "Usunąć zespół {name}? Jego członkowie nie będą już należeć do żadnego zespołu."
+        },
+        "move_modal": {
+          "title": "Przenieś członka",
+          "content": "{member} należy do zespołu {from} i przejdzie do zespołu {to}.",
+          "confirm": "Przenieś"
+        },
+        "errors": {
+          "load_failed": "Nie udało się wczytać zespołów.",
+          "duplicate_name": "Zespół o tej nazwie już istnieje.",
+          "save_failed": "Nie udało się zapisać zespołu.",
+          "forbidden": "Tylko administratorzy przestrzeni roboczej mogą zmieniać zespoły."
+        }
+      },
       "billing_and_plans": {
         "heading": "Rozliczenia i plany",
         "description": "Wybierz plan, zarządzaj subskrypcjami i łatwo dokonaj uaktualnienia w miarę rozwoju Twoich potrzeb.",

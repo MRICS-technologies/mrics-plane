@@ -210,6 +210,7 @@
         "description": "Attach one or more GitHub repositories to link pull requests and create branches from work items. The default repository is used when a branch is created without picking one.",
         "label": "Label: {label}",
         "base_branch": "Base branch: {branch}",
+        "team_default_for": "Predeterminado para los equipos: {teams}",
         "attach_button": "Attach a GitHub repository (recommended)",
         "attach_repository": "Attach repository",
         "remove_aria_label": "Remove {repo}",

@@ -69,6 +69,46 @@
         "description": "Gérez l’accès à cet espace de travail.",
         "leave_title": "Quitter l’espace de travail ?"
       },
+      "teams": {
+        "title": "Équipes",
+        "description": "Regroupez les membres de l’espace de travail en équipes. Un membre ne peut appartenir qu’à une seule équipe. Lorsqu’un membre crée une branche depuis un élément de travail, le dépôt par défaut de son équipe est présélectionné s’il est associé au projet.",
+        "create": "Créer une équipe",
+        "empty": {
+          "title": "Aucune équipe pour le moment",
+          "description": "Les équipes regroupent des membres et leur attribuent un dépôt GitHub par défaut pour les nouvelles branches."
+        },
+        "member_count": "{count, plural, one {# membre} many {# membres} other {# membres}}",
+        "no_members": "Aucun membre pour le moment",
+        "add_member": "Ajouter un membre",
+        "remove_member_aria_label": "Retirer {name} de l’équipe",
+        "default_repository": "Dépôt par défaut",
+        "no_default_repository": "Aucun dépôt par défaut",
+        "no_repositories_hint": "Connectez GitHub et activez des dépôts dans les paramètres GitHub pour choisir un dépôt par défaut.",
+        "rename": "Renommer",
+        "form": {
+          "create_title": "Créer une équipe",
+          "rename_title": "Renommer l’équipe",
+          "name_label": "Nom",
+          "name_placeholder": "p. ex. Frontend",
+          "name_required": "Le nom est obligatoire",
+          "save": "Enregistrer"
+        },
+        "delete_modal": {
+          "title": "Supprimer l’équipe",
+          "content": "Supprimer l’équipe {name} ? Ses membres ne feront plus partie d’aucune équipe."
+        },
+        "move_modal": {
+          "title": "Déplacer le membre",
+          "content": "{member} fait partie de l’équipe {from} et rejoindra l’équipe {to}.",
+          "confirm": "Déplacer"
+        },
+        "errors": {
+          "load_failed": "Impossible de charger les équipes.",
+          "duplicate_name": "Une équipe portant ce nom existe déjà.",
+          "save_failed": "Impossible d’enregistrer l’équipe.",
+          "forbidden": "Seuls les administrateurs de l’espace de travail peuvent modifier les équipes."
+        }
+      },
       "billing_and_plans": {
         "heading": "Facturation & Plans",
         "description": "Choisissez votre forfait, gérez vos abonnements et passez facilement à une version supérieure au fur et à mesure que vos besoins évoluent.",
