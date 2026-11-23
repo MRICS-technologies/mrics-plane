@@ -9,11 +9,13 @@
 :3000 {
 	root * /usr/share/caddy/html
 
-	# Per-client-IP rate limiting for static asset requests
+	# Per-client-IP rate limiting for static asset requests.
+	# MRICS: 3000/min (upstream 300). One uncached page load is 125+ requests
+	# (code-split chunks), so 300 locked out a single user after 2-3 loads.
 	rate_limit {
 		zone static {
 			key {client_ip}
-			events 300
+			events 3000
 			window 1m
 		}
 	}
