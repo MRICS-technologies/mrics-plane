@@ -19,6 +19,7 @@ from unittest.mock import patch
 import pytest
 from django.db import IntegrityError, connection, transaction
 from django.test.utils import CaptureQueriesContext
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -36,6 +37,7 @@ from plane.db.models.integration.github_app import GithubAppInstallation, Github
 from plane.db.models.integration.github_sync import RepoProjectMapping
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import encrypt_data
+from plane.services.github.installations import soft_delete_installations
 from plane.services.github.team_repo import pick_branch_mapping
 
 
@@ -532,6 +534,33 @@ class TestBranchUsesTeamDefaultRepository:
             GithubAppInstallation.objects.filter(pk=repo_b.installation_id).update(is_active=False)
 
         assert _create_branch(admin_client, project, issue) == "acme/api"
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("remove_repo", ["soft_delete_repo", "disconnect_installation"])
+    def test_deleted_team_repo_falls_back_and_is_not_hinted(
+        self, remove_repo, admin_client, workspace, project, issue, installation, repo_b, create_user
+    ):
+        team = _team(workspace, "Frontend", default_repository=repo_b, members=[create_user])
+        if remove_repo == "soft_delete_repo":
+            GithubEnabledRepository.objects.filter(pk=repo_b.pk).update(deleted_at=timezone.now())
+        else:
+            soft_delete_installations([installation])
+            # Reconnected: the same GitHub repositories come back as new rows
+            # and the mappings are revived (as the create endpoint does); the
+            # team still points at the old, deleted acme/web row.
+            reconnected = GithubAppInstallation.objects.create(
+                workspace=workspace, installation_id=77770001, account_login="acme", account_type="Organization"
+            )
+            for mapping in RepoProjectMapping.all_objects.filter(project=project):
+                mapping.repository = _repo(reconnected, mapping.repository.github_repository_id, mapping.github_repo)
+                mapping.deleted_at = None
+                mapping.save()
+        assert Team.objects.get(pk=team.pk).default_repository_id == repo_b.id
+
+        assert _create_branch(admin_client, project, issue) == "acme/api"
+        mappings = admin_client.get(f"/api/workspaces/{workspace.slug}/projects/{project.id}/github/mappings/").data
+        assert {m["github_repo"] for m in mappings} == {"acme/api", "acme/web"}
+        assert [(m["is_my_team_default"], m["default_for_teams"]) for m in mappings] == [(False, [])] * 2
 
     @pytest.mark.django_db
     def test_legacy_mapping_matches_the_team_repo_by_name(
