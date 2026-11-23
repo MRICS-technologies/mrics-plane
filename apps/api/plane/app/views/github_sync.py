@@ -20,7 +20,7 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
+from rest_framework.throttling import AnonRateThrottle
 
 # Module imports
 from .base import BaseAPIView, BaseViewSet
@@ -356,17 +356,17 @@ class IssueCreateBranchEndpoint(BaseAPIView):
 # ---------------------------------------------------------------------------
 
 
-class GitHubWebhookThrottle(SimpleRateThrottle):
+class GitHubWebhookThrottle(AnonRateThrottle):
     """Per-IP bucket for signed GitHub deliveries (GITHUB_WEBHOOK_RATE_LIMIT)."""
 
     scope = "github_webhook"
 
-    def get_cache_key(self, request, view):
-        return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}
-
     def throttle_failure(self):
         # GitHub does not retry a failed delivery, so make the drop visible.
-        logger.warning("GitHub webhook: signed delivery throttled, raise GITHUB_WEBHOOK_RATE_LIMIT and redeliver it")
+        # "plane.api" has a handler in production LOGGING; this module's logger does not.
+        logging.getLogger("plane.api").warning(
+            "GitHub webhook: signed delivery throttled, raise GITHUB_WEBHOOK_RATE_LIMIT and redeliver it"
+        )
         return False
 
 

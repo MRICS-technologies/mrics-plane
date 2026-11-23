@@ -963,13 +963,17 @@ class TestGitHubWebhookThrottle:
             for n in range(3):
                 response = _post_signed_webhook(api_client, {"zen": "hi"}, secret, f"delivery-signed-{n}")
                 assert response.status_code == status.HTTP_200_OK
-            with caplog.at_level(logging.WARNING, logger="plane"):
+            with caplog.at_level(logging.WARNING, logger="plane.api"):
                 response = _post_signed_webhook(api_client, {"zen": "hi"}, secret, "delivery-throttled")
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert int(response.headers["Retry-After"]) > 0
+        assert GithubWebhookDelivery.objects.filter(delivery_id__startswith="delivery-signed-").count() == 3
         assert not GithubWebhookDelivery.objects.filter(delivery_id="delivery-throttled").exists()
-        # GitHub never retries the dropped delivery, so it must show up in the logs.
-        assert any("GITHUB_WEBHOOK_RATE_LIMIT" in r.getMessage() for r in caplog.records)
+        # GitHub never retries the dropped delivery, so it must show up in the
+        # logs, on a logger production LOGGING has a handler for.
+        assert any(
+            r.name == "plane.api" and "GITHUB_WEBHOOK_RATE_LIMIT" in r.getMessage() for r in caplog.records
+        )
 
     @pytest.mark.django_db
     def test_unsigned_requests_use_the_anon_bucket_and_spare_the_webhook_bucket(self, api_client):
