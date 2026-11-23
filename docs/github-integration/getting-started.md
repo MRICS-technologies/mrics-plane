@@ -44,9 +44,11 @@ The workspace GitHub panel lists the granted repositories **live from GitHub**
 1. Open **Project Settings → GitHub** (or the _Attach GitHub repo (recommended)_
    prompt on a project without one)
 2. Pick from the workspace's enabled repositories
-3. Set the **base branch** (used when creating branches) and which mapping is
-   the project **default** (used by the issue panel when multiple repos map to
-   the same project)
+3. Set the **base branch** (used when creating branches). The first repo
+   attached becomes the project **default** (pre-selected in the issue panel
+   when several repos map to the same project); use **Set as default** on
+   another row to change it. Removing the default promotes the oldest
+   remaining repo
 
 Rules that are enforced:
 
