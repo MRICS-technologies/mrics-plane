@@ -25,7 +25,7 @@ urlpatterns = [
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/github/mappings/<uuid:pk>/",
-        RepoProjectMappingViewSet.as_view({"delete": "destroy"}),
+        RepoProjectMappingViewSet.as_view({"patch": "partial_update", "delete": "destroy"}),
         name="github-repo-project-mapping-detail",
     ),
     path(

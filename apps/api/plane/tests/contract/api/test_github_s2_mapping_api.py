@@ -119,6 +119,16 @@ def second_repo(db, installation):
 
 
 @pytest.fixture
+def third_repo(db, installation):
+    return GithubEnabledRepository.objects.create(
+        installation=installation,
+        github_repository_id=88004,
+        full_name="s2-acme/repo3",
+        is_enabled=True,
+    )
+
+
+@pytest.fixture
 def other_project(db, workspace, create_user):
     p = Project.objects.create(name="S2 Other Project", identifier="S2O", workspace=workspace, created_by=create_user)
     ProjectMember.objects.create(workspace=workspace, project=p, member=create_user, role=20, is_active=True)
@@ -912,6 +922,123 @@ class TestMappingDelete:
         api_client.force_authenticate(user=create_user)
         resp = api_client.delete(_mapping_detail_url(workspace.slug, project.id, legacy_mapping.pk))
         assert resp.status_code == status.HTTP_403_FORBIDDEN
+
+    @pytest.mark.django_db
+    def test_deleting_default_promotes_oldest_remaining(
+        self, session_client, workspace, project, installation, enabled_repo, second_repo, third_repo
+    ):
+        a_id = _attach(session_client, workspace, project, enabled_repo).data["id"]
+        _attach(session_client, workspace, project, second_repo)
+        _attach(session_client, workspace, project, third_repo)
+
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        defaults = RepoProjectMapping.objects.filter(project=project, is_default=True)
+        assert [m.github_repo for m in defaults] == ["s2-acme/repo2"]
+
+    @pytest.mark.django_db
+    def test_deleting_last_mapping_leaves_none(self, session_client, workspace, project, installation, enabled_repo):
+        a_id = _attach(session_client, workspace, project, enabled_repo).data["id"]
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert not RepoProjectMapping.objects.filter(project=project).exists()
+
+    @pytest.mark.django_db
+    def test_deleting_non_default_keeps_default(
+        self, session_client, workspace, project, installation, enabled_repo, second_repo, third_repo
+    ):
+        _attach(session_client, workspace, project, enabled_repo)
+        b_id = _attach(session_client, workspace, project, second_repo).data["id"]
+        _attach(session_client, workspace, project, third_repo)
+
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert sorted(RepoProjectMapping.objects.filter(project=project).values_list("github_repo", "is_default")) == [
+            ("s2-acme/repo3", False),
+            ("s2-acme/widgets", True),
+        ]
+
+
+@pytest.mark.contract
+class TestMappingSetDefault:
+    @pytest.fixture
+    def two_mappings(self, session_client, workspace, project, installation, enabled_repo, second_repo):
+        a = _attach(session_client, workspace, project, enabled_repo).data
+        b = _attach(session_client, workspace, project, second_repo).data
+        return a["id"], b["id"]
+
+    @pytest.mark.django_db
+    def test_set_default_moves_the_default(self, session_client, workspace, project, two_mappings):
+        a_id, b_id = two_mappings
+        resp = session_client.patch(
+            _mapping_detail_url(workspace.slug, project.id, b_id), {"is_default": True}, format="json"
+        )
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert str(resp.data["id"]) == str(b_id)
+        assert resp.data["is_default"] is True
+        defaults = RepoProjectMapping.objects.filter(project=project, is_default=True)
+        assert [str(m.id) for m in defaults] == [str(b_id)]
+        assert RepoProjectMapping.objects.get(pk=a_id).is_default is False
+
+    @pytest.mark.django_db
+    def test_set_default_on_current_default_is_a_noop(self, session_client, workspace, project, two_mappings):
+        a_id, _ = two_mappings
+        resp = session_client.patch(
+            _mapping_detail_url(workspace.slug, project.id, a_id), {"is_default": True}, format="json"
+        )
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["is_default"] is True
+        assert RepoProjectMapping.objects.filter(project=project, is_default=True).count() == 1
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {"is_default": False},
+            {"is_default": True, "base_branch": "main"},
+            {"base_branch": "main"},
+            {},
+        ],
+    )
+    def test_set_default_rejects_any_other_body(self, session_client, workspace, project, two_mappings, body):
+        a_id, b_id = two_mappings
+        resp = session_client.patch(_mapping_detail_url(workspace.slug, project.id, b_id), body, format="json")
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        b = RepoProjectMapping.objects.get(pk=b_id)
+        assert (b.is_default, b.base_branch) == (False, "dev")
+        assert RepoProjectMapping.objects.get(pk=a_id).is_default is True
+
+    @pytest.mark.django_db
+    def test_member_cannot_set_default(self, api_client, workspace, create_user, project, two_mappings):
+        _, b_id = two_mappings
+        WorkspaceMember.objects.filter(workspace=workspace, member=create_user).update(role=15)
+        ProjectMember.objects.filter(project=project, member=create_user).update(role=15)
+        api_client.force_authenticate(user=create_user)
+        resp = api_client.patch(
+            _mapping_detail_url(workspace.slug, project.id, b_id), {"is_default": True}, format="json"
+        )
+        assert resp.status_code == status.HTTP_403_FORBIDDEN
+        assert RepoProjectMapping.objects.get(pk=b_id).is_default is False
+
+    @pytest.mark.django_db
+    def test_mapping_of_another_project_or_workspace_is_404(
+        self, session_client, workspace, project, other_project, installation, enabled_repo, second_workspace
+    ):
+        other_id = _attach(session_client, workspace, other_project, enabled_repo).data["id"]
+        foreign_project = Project.objects.create(
+            name="Foreign", identifier="FRN", workspace=second_workspace, created_by=project.created_by
+        )
+        foreign = RepoProjectMapping.objects.create(
+            project=foreign_project, github_installation_id=1, github_repo="other-org/api"
+        )
+        for pk in (other_id, foreign.pk):
+            resp = session_client.patch(
+                _mapping_detail_url(workspace.slug, project.id, pk), {"is_default": True}, format="json"
+            )
+            assert resp.status_code == status.HTTP_404_NOT_FOUND
 
 
 # ============================================================================

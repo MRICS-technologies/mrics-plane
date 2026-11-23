@@ -145,12 +145,43 @@ class RepoProjectMappingViewSet(BaseViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @allow_permission([ROLE.ADMIN])
+    def partial_update(self, request, slug, project_id, pk):
+        # Only "make this the default" is supported; the default moves by
+        # picking another repository, never by un-setting the current one.
+        if request.data != {"is_default": True}:
+            return Response(
+                {"error": 'Only {"is_default": true} is supported.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            self._lock_project(project_id)
+            try:
+                mapping = self.get_queryset().get(pk=pk)
+            except RepoProjectMapping.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if not mapping.is_default:
+                # Unset the old default first: the partial unique constraint
+                # is checked per statement.
+                self.get_queryset().filter(is_default=True).update(is_default=False, updated_at=timezone.now())
+                mapping.is_default = True
+                mapping.save(update_fields=["is_default", "updated_at"])
+        return Response(self.serializer_class(mapping).data, status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN])
     def destroy(self, request, slug, project_id, pk):
-        try:
-            mapping = self.get_queryset().get(pk=pk)
-        except RepoProjectMapping.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        mapping.delete()
+        with transaction.atomic():
+            self._lock_project(project_id)
+            try:
+                mapping = self.get_queryset().get(pk=pk)
+            except RepoProjectMapping.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            mapping.delete()
+            if mapping.is_default:
+                # Keep the project with a default while any repository is left.
+                successor = self.get_queryset().order_by("created_at").first()
+                if successor:
+                    successor.is_default = True
+                    successor.save(update_fields=["is_default", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
