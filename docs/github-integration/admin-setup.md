@@ -63,9 +63,9 @@ Load the repositories accessible to the registered installation, then enable onl
 
 A webhook from a repository that is not enabled is intentionally ignored. This prevents a valid GitHub event from affecting an unrelated Plane project.
 
-## 5. Map each repository to one Plane project
+## 5. Map repositories to Plane projects
 
-From the project GitHub settings, map one enabled repository to the target Plane project.
+From the project GitHub settings, attach one or more enabled repositories to the target Plane project. The first one attached is the project's default repository (used when a branch is created without picking a repository); any other can be made the default with **Set as default**. The same repository can also be attached to several projects.
 
 ```text
 /api/workspaces/<workspace-slug>/projects/<project-id>/github/mappings/

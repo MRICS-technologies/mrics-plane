@@ -20,10 +20,12 @@ const STATE_BADGE_CLASSNAME: Record<TIssueGitLink["state"], string> = {
 
 type Props = {
   link: TIssueGitLink;
+  /** Show which repository the link belongs to (projects with several repositories). */
+  showRepo?: boolean;
 };
 
 export const GitLinkItem = (props: Props) => {
-  const { link } = props;
+  const { link, showRepo = false } = props;
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
   const Icon = link.kind === "pr" ? GitPullRequestOutline : GitBranchOutline;
@@ -31,19 +33,21 @@ export const GitLinkItem = (props: Props) => {
     link.kind === "branch" ? t("work_item.github.link.state.linked") : t(`work_item.github.link.state.${link.state}`);
 
   return (
-    <div className="group flex h-10 flex-shrink-0 items-center justify-between gap-3 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-3 hover:bg-layer-1">
+    <div className="group flex min-h-10 flex-shrink-0 items-center justify-between gap-3 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-3 py-1.5 hover:bg-layer-1">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <Icon className="size-4 flex-shrink-0 text-tertiary group-hover:text-primary" />
-        <Tooltip label={link.url} disabled={isMobile}>
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-0 flex-1 truncate text-body-xs-regular"
-          >
-            {link.ref}
-          </a>
-        </Tooltip>
+        <div className="flex w-0 flex-1 flex-col">
+          <Tooltip label={link.url} disabled={isMobile}>
+            <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate text-body-xs-regular">
+              {link.ref}
+            </a>
+          </Tooltip>
+          {showRepo && (
+            <span className="truncate text-caption-sm-regular text-tertiary" title={link.github_repo}>
+              {link.github_repo.split("/").pop()}
+            </span>
+          )}
+        </div>
       </div>
       <span
         className={cn(

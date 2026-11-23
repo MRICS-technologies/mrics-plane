@@ -207,11 +207,13 @@
       "label": "GitHub",
       "mapping": {
         "title": "Association de dépôt",
-        "description": "Associez ce projet à un dépôt GitHub pour lier les pull requests et créer des branches depuis les éléments de travail.",
+        "description": "Associez un ou plusieurs dépôts GitHub pour lier les pull requests et créer des branches depuis les éléments de travail. Le dépôt par défaut est utilisé lorsqu'une branche est créée sans choisir de dépôt.",
         "label": "Libellé : {label}",
         "base_branch": "Branche de base : {branch}",
         "attach_button": "Associer un dépôt GitHub (recommandé)",
+        "attach_repository": "Associer un dépôt",
         "remove_aria_label": "Retirer {repo}",
+        "set_default": "Définir par défaut",
         "empty": {
           "title": "Aucun dépôt associé",
           "description_ready": "Associez l'un de vos dépôts GitHub activés pour lier les pull requests et créer des branches depuis les éléments de travail.",
@@ -221,7 +223,8 @@
           "load_failed": "Impossible de charger l'association du dépôt. Veuillez réessayer.",
           "create_failed": "Ce dépôt n'a pas pu être associé. Veuillez réessayer.",
           "conflict": "Ce projet possède déjà une association pour ce dépôt.",
-          "forbidden": "Vous n'avez pas la permission d'associer un dépôt à ce projet."
+          "forbidden": "Vous n'avez pas la permission d'associer un dépôt à ce projet.",
+          "set_default_failed": "Le dépôt par défaut n'a pas pu être modifié. Veuillez réessayer."
         },
         "modal": {
           "title": "Associer un dépôt GitHub",
@@ -236,6 +239,7 @@
         "delete_modal": {
           "title": "Supprimer l'association du dépôt",
           "content": "Cela cesse de lier {repo} à ce projet. Les liens de pull requests existants restent visibles.",
+          "content_default": "Cela cesse de lier {repo} à ce projet. Les liens de pull requests existants restent visibles. Le plus ancien dépôt restant devient le nouveau dépôt par défaut.",
           "success": "Association du dépôt supprimée.",
           "forbidden": "Vous n'avez pas la permission de supprimer cette association.",
           "failed": "Cette association n'a pas pu être supprimée."

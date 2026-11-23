@@ -15,10 +15,11 @@ type Props = {
   onClose: () => void;
   onDelete: () => Promise<void>;
   mappingLabel: string;
+  isDefault: boolean;
 };
 
 export function DeleteMappingModal(props: Props) {
-  const { isOpen, onClose, onDelete, mappingLabel } = props;
+  const { isOpen, onClose, onDelete, mappingLabel, isDefault } = props;
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,7 +56,12 @@ export function DeleteMappingModal(props: Props) {
       handleSubmit={handleSubmit}
       isSubmitting={isSubmitting}
       title={t("project_settings.github.mapping.delete_modal.title")}
-      content={t("project_settings.github.mapping.delete_modal.content", { repo: mappingLabel })}
+      content={t(
+        isDefault
+          ? "project_settings.github.mapping.delete_modal.content_default"
+          : "project_settings.github.mapping.delete_modal.content",
+        { repo: mappingLabel }
+      )}
     />
   );
 }

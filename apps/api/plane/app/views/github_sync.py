@@ -83,9 +83,18 @@ class RepoProjectMappingViewSet(BaseViewSet):
             workspace__slug=self.kwargs.get("slug"), project_id=self.kwargs.get("project_id")
         )
 
+    @staticmethod
+    def _lock_project(project_id):
+        # Serialises attach / set-default / delete on one project. The
+        # one-live-default constraint is not deferrable, so concurrent writers
+        # must never interleave their unset-old / set-new default steps.
+        # no_key: still excludes other writers here, but lets concurrent FK
+        # inserts that reference the project (new issues, ...) through.
+        Project.objects.select_for_update(no_key=True).filter(pk=project_id).first()
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def list(self, request, slug, project_id):
-        serializer = self.serializer_class(self.get_queryset(), many=True)
+        serializer = self.serializer_class(self.get_queryset().order_by("-is_default", "created_at"), many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN])
@@ -96,51 +105,94 @@ class RepoProjectMappingViewSet(BaseViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data, context={"project": project})
         serializer.is_valid(raise_exception=True)
+        github_repo = serializer.validated_data["github_repo"]
+        repository = serializer.validated_data.get("repository")
+        already_attached = Q(github_repo=github_repo)
+        if repository:
+            # A repository renamed on GitHub keeps its old name on the live
+            # mapping, so match the enabled repository as well as the name.
+            already_attached |= Q(repository=repository)
 
-        # Check: project already has a live mapping? Return 409.
-        if RepoProjectMapping.objects.filter(project=project).exists():
-            return Response(
-                {"error": "This project already has a configured repository mapping."},
-                status=status.HTTP_409_CONFLICT,
-            )
-
-        try:
-            with transaction.atomic():
-                serializer.save(workspace=project.workspace, project=project)
-        except IntegrityError:
-            # F1: unique_together=["project", "github_repo"] is unconditional
-            # (no deleted_at__isnull=True partial constraint), so a
-            # soft-deleted row from a prior disconnect/reset still occupies
-            # the slot -- revive it instead of leaving reconnect permanently
-            # 409ing, mirroring _write_github_app_configuration's revival.
-            existing = RepoProjectMapping.all_objects.filter(
-                project=project,
-                github_repo=serializer.validated_data.get("github_repo"),
-                deleted_at__isnull=False,
-            ).first()
-            if not existing:
+        with transaction.atomic():
+            self._lock_project(project.pk)
+            if RepoProjectMapping.objects.filter(already_attached, project=project).exists():
                 return Response(
-                    {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
+                    {"error": "This repository is already attached to this project."},
                     status=status.HTTP_409_CONFLICT,
                 )
-            for field, value in serializer.validated_data.items():
-                setattr(existing, field, value)
-            existing.workspace = project.workspace
-            existing.project = project
-            existing.is_default = True
-            existing.deleted_at = None
-            existing.save()
-            return Response(self.serializer_class(existing).data, status=status.HTTP_201_CREATED)
+            # The first repository attached becomes the default; later ones
+            # never steal it (the model field defaults to True).
+            is_default = not RepoProjectMapping.objects.filter(project=project, is_default=True).exists()
+
+            try:
+                with transaction.atomic():
+                    serializer.save(workspace=project.workspace, project=project, is_default=is_default)
+            except IntegrityError:
+                # F1: unique_together=["project", "github_repo"] is unconditional
+                # (no deleted_at__isnull=True partial constraint), so a
+                # soft-deleted row from a prior disconnect/reset still occupies
+                # the slot -- revive it instead of leaving reconnect permanently
+                # 409ing, mirroring _write_github_app_configuration's revival.
+                existing = RepoProjectMapping.all_objects.filter(
+                    project=project, github_repo=github_repo, deleted_at__isnull=False
+                ).first()
+                if not existing:
+                    return Response(
+                        {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                for field, value in serializer.validated_data.items():
+                    setattr(existing, field, value)
+                existing.is_default = is_default
+                existing.deleted_at = None
+                # Re-attached counts as newest for ordering and promotion.
+                existing.created_at = timezone.now()
+                existing.save()
+                return Response(self.serializer_class(existing).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @allow_permission([ROLE.ADMIN])
+    def partial_update(self, request, slug, project_id, pk):
+        # Only "make this the default" is supported; the default moves by
+        # picking another repository, never by un-setting the current one.
+        if request.data != {"is_default": True}:
+            return Response(
+                {"error": 'Only {"is_default": true} is supported.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            self._lock_project(project_id)
+            try:
+                mapping = self.get_queryset().get(pk=pk)
+            except RepoProjectMapping.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if not mapping.is_default:
+                # Unset the old default first: the partial unique constraint
+                # is checked per statement.
+                self.get_queryset().filter(is_default=True).update(is_default=False, updated_at=timezone.now())
+                mapping.is_default = True
+                mapping.save(update_fields=["is_default", "updated_at"])
+        return Response(self.serializer_class(mapping).data, status=status.HTTP_200_OK)
+
+    @allow_permission([ROLE.ADMIN])
     def destroy(self, request, slug, project_id, pk):
-        try:
-            mapping = self.get_queryset().get(pk=pk)
-        except RepoProjectMapping.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        mapping.delete()
+        with transaction.atomic():
+            self._lock_project(project_id)
+            try:
+                mapping = self.get_queryset().get(pk=pk)
+            except RepoProjectMapping.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            # Direct soft delete: nothing references a mapping, so
+            # SoftDeleteModel.delete()'s Celery cascade has nothing to do.
+            mapping.deleted_at = timezone.now()
+            mapping.save(update_fields=["deleted_at", "updated_at"])
+            if mapping.is_default:
+                # Keep the project with a default while any repository is left.
+                successor = self.get_queryset().order_by("created_at").first()
+                if successor:
+                    successor.is_default = True
+                    successor.save(update_fields=["is_default", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -181,7 +233,11 @@ class IssueCreateBranchEndpoint(BaseAPIView):
 
         repo = request.data.get("repo")
         mapping_qs = RepoProjectMapping.objects.filter(workspace__slug=slug, project_id=project_id)
-        mapping = mapping_qs.filter(github_repo=repo).first() if repo else mapping_qs.filter(is_default=True).first()
+        mapping = (
+            mapping_qs.filter(github_repo=repo).first()
+            if repo
+            else mapping_qs.order_by("-is_default", "created_at").first()
+        )
         if not mapping:
             return Response(
                 {"error": "No GitHub repository mapping configured for this project"},
@@ -500,9 +556,13 @@ class GitHubWebhookView(BaseAPIView):
         seen_issue_ids = set()
         if head_ref:
             for mapping in mappings:
-                branch_links = IssueGitLink.objects.filter(
-                    project=mapping.project, github_repo=repo_full_name, kind="branch", ref=head_ref
-                ).select_related("issue").order_by("issue_id")
+                branch_links = (
+                    IssueGitLink.objects.filter(
+                        project=mapping.project, github_repo=repo_full_name, kind="branch", ref=head_ref
+                    )
+                    .select_related("issue")
+                    .order_by("issue_id")
+                )
                 for branch_link in branch_links:
                     if branch_link.issue_id in seen_issue_ids:
                         continue
