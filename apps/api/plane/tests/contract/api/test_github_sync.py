@@ -21,7 +21,6 @@ import json
 from unittest.mock import patch
 
 import pytest
-from django.core.cache import cache
 from rest_framework import status
 
 from plane.db.models import Issue, Project, ProjectMember, Workspace, WorkspaceMember
@@ -29,15 +28,6 @@ from plane.db.models.integration.github_sync import GithubWebhookDelivery, Issue
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import encrypt_data
-
-
-@pytest.fixture(autouse=True)
-def _reset_anon_throttle_cache():
-    # The webhook is anonymous (30/minute per IP); this file posts more than
-    # that within a minute, so give each test its own budget.
-    cache.delete_pattern("throttle_anon_*")
-    yield
-    cache.delete_pattern("throttle_anon_*")
 
 
 @pytest.fixture
