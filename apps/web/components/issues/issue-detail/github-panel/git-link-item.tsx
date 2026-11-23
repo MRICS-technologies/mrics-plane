@@ -29,28 +29,29 @@ export const GitLinkItem = (props: Props) => {
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
   const Icon = link.kind === "pr" ? GitPullRequestOutline : GitBranchOutline;
+  const [repoOwner, repoName] = link.github_repo.split("/");
   const stateLabel =
     link.kind === "branch" ? t("work_item.github.link.state.linked") : t(`work_item.github.link.state.${link.state}`);
 
   return (
-    <div className="group flex h-10 flex-shrink-0 items-center justify-between gap-3 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-3 hover:bg-layer-1">
+    <div className="group flex min-h-10 flex-shrink-0 items-center justify-between gap-3 rounded-sm border-[0.5px] border-subtle bg-surface-2 px-3 py-1.5 hover:bg-layer-1">
       <div className="flex min-w-0 flex-1 items-center gap-2.5">
         <Icon className="size-4 flex-shrink-0 text-tertiary group-hover:text-primary" />
-        <Tooltip label={link.url} disabled={isMobile}>
-          <a
-            href={link.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-0 flex-1 truncate text-body-xs-regular"
-          >
-            {link.ref}
-          </a>
-        </Tooltip>
-        {showRepo && (
-          <span className="max-w-[40%] flex-shrink-0 truncate text-caption-sm-regular text-tertiary">
-            {link.github_repo}
-          </span>
-        )}
+        <div className="flex w-0 flex-1 flex-col">
+          <Tooltip label={link.url} disabled={isMobile}>
+            <a href={link.url} target="_blank" rel="noopener noreferrer" className="truncate text-body-xs-regular">
+              {link.ref}
+            </a>
+          </Tooltip>
+          {showRepo && (
+            // The owner truncates first so the repository name, which tells
+            // a project's repositories apart, stays visible.
+            <span className="flex text-caption-sm-regular text-tertiary" title={link.github_repo}>
+              <span className="truncate">{repoOwner}</span>
+              <span className="max-w-full flex-shrink-0 truncate">/{repoName}</span>
+            </span>
+          )}
+        </div>
       </div>
       <span
         className={cn(
