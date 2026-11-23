@@ -8,6 +8,7 @@
 import ipaddress
 import logging
 import os
+import re
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from urllib.parse import urljoin
@@ -135,6 +136,22 @@ MIDDLEWARE = [
     "plane.middleware.logger.RequestLoggerMiddleware",
 ]
 
+
+def _throttle_rate(env_var, default):
+    """
+    Read a DRF throttle rate ("<count>/<period>") from the environment, falling
+    back to the default when the variable is unset or invalid. DRF parses the
+    rate on every throttled request, so a typo would otherwise 500 the endpoint.
+    """
+    raw = os.environ.get(env_var, "").strip()
+    if not raw:
+        return default
+    if re.fullmatch(r"[1-9]\d*/(s|sec|m|min|h|d|(second|minute|hour|day)s?)", raw):
+        return raw
+    _logger.warning("%s: ignoring invalid value %r, using %r", env_var, raw, default)
+    return default
+
+
 # Rest Framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework.authentication.SessionAuthentication",),
@@ -142,6 +159,9 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "30/minute",
         "asset_id": "5/minute",
+        # Signed GitHub webhook deliveries only (GitHubWebhookThrottle, per IP);
+        # unsigned requests to the webhook stay on "anon".
+        "github_webhook": _throttle_rate("GITHUB_WEBHOOK_RATE_LIMIT", "600/minute"),
     },
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),

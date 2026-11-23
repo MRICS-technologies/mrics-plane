@@ -123,6 +123,8 @@ services:
       # Admin
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
+      # Rate limits
+      GITHUB_WEBHOOK_RATE_LIMIT: ${GITHUB_WEBHOOK_RATE_LIMIT:-600/minute}
     command: ./bin/docker-entrypoint-migrator.sh
     networks:
       - plane-net

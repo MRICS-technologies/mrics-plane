@@ -16,6 +16,7 @@ This page is for maintainers extending or reviewing the GitHub integration.
 | Create issue branch                       | `/api/workspaces/<workspace-slug>/projects/<project-id>/issues/<issue-id>/github/create-branch/` |
 
 The webhook route deliberately has no browser/session authentication; authorization comes from signature validation and the stored GitHub/Plane relationships.
+It opts out of DRF's automatic throttling and throttles in `post()` after the signature check: signed deliveries on `GitHubWebhookThrottle` (`GITHUB_WEBHOOK_RATE_LIMIT`), everything else on the anon bucket (see [Webhook rate limit](operations-and-troubleshooting.md#webhook-rate-limit)).
 
 ## Data model
 

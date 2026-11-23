@@ -18,16 +18,19 @@ variables -- see `plane.services.github.credentials`.
 import hashlib
 import hmac
 import json
+import logging
 from unittest.mock import patch
 
 import pytest
 from rest_framework import status
+from rest_framework.throttling import SimpleRateThrottle
 
 from plane.db.models import Issue, Project, ProjectMember, Workspace, WorkspaceMember
 from plane.db.models.integration.github_sync import GithubWebhookDelivery, IssueGitLink, RepoProjectMapping
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import encrypt_data
+from plane.settings.common import _throttle_rate
 
 
 @pytest.fixture
@@ -915,3 +918,124 @@ class TestGitHubInstallationLifecycleWebhook:
         assert response.status_code == status.HTTP_200_OK
         repository.refresh_from_db()
         assert repository.is_enabled is True
+
+
+# ---------------------------------------------------------------------------
+# Webhook rate limit: signed deliveries -> github_webhook, the rest -> anon
+# ---------------------------------------------------------------------------
+
+
+def _throttle_rates(**rates):
+    # SimpleRateThrottle.THROTTLE_RATES is the settings dict captured at
+    # import, so override_settings cannot reach it; patch it in place. The
+    # package conftest clears both buckets around every test.
+    return patch.dict(SimpleRateThrottle.THROTTLE_RATES, rates)
+
+
+def _post_unsigned_webhook(api_client, **headers):
+    return api_client.post(
+        TestGitHubWebhookAPI.WEBHOOK_URL,
+        data=b"{}",
+        content_type="application/json",
+        HTTP_X_GITHUB_EVENT="pull_request",
+        HTTP_X_GITHUB_DELIVERY="delivery-unsigned",
+        **headers,
+    )
+
+
+@pytest.mark.contract
+class TestGitHubWebhookThrottle:
+    @pytest.mark.django_db
+    def test_signed_deliveries_are_not_charged_to_the_anon_bucket(self, api_client):
+        secret = _configure_webhook_app()
+        with _throttle_rates(anon="3/minute"):
+            for n in range(5):
+                response = _post_signed_webhook(api_client, {"zen": "hi"}, secret, f"delivery-signed-{n}")
+                assert response.status_code == status.HTTP_200_OK
+            # The anon budget for this IP is still untouched.
+            response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=bogus")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    @pytest.mark.django_db
+    def test_signed_deliveries_over_the_webhook_limit_get_429(self, api_client, caplog):
+        secret = _configure_webhook_app()
+        with _throttle_rates(github_webhook="3/minute"):
+            for n in range(3):
+                response = _post_signed_webhook(api_client, {"zen": "hi"}, secret, f"delivery-signed-{n}")
+                assert response.status_code == status.HTTP_200_OK
+            with caplog.at_level(logging.WARNING, logger="plane.api"):
+                response = _post_signed_webhook(api_client, {"zen": "hi"}, secret, "delivery-throttled")
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert int(response.headers["Retry-After"]) > 0
+        assert GithubWebhookDelivery.objects.filter(delivery_id__startswith="delivery-signed-").count() == 3
+        assert not GithubWebhookDelivery.objects.filter(delivery_id="delivery-throttled").exists()
+        # GitHub never retries the dropped delivery, so it must show up in the
+        # logs, on a logger production LOGGING has a handler for.
+        assert any(r.name == "plane.api" and "GITHUB_WEBHOOK_RATE_LIMIT" in r.getMessage() for r in caplog.records)
+
+    @pytest.mark.django_db
+    def test_unsigned_requests_use_the_anon_bucket_and_spare_the_webhook_bucket(self, api_client):
+        with _throttle_rates(anon="3/minute", github_webhook="1/minute"):
+            # App not configured: fails closed and is charged to anon.
+            signature = "sha256=" + hmac.new(b"any-secret", b"{}", hashlib.sha256).hexdigest()
+            response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256=signature)
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            secret = _configure_webhook_app()
+            response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=bogus")
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            response = _post_unsigned_webhook(api_client)
+            assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+            response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=bogus")
+            assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+            assert int(response.headers["Retry-After"]) > 0
+
+            response = _post_signed_webhook(api_client, {"zen": "hi"}, secret, "delivery-after-unsigned")
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.django_db
+    def test_non_ascii_signature_is_a_401_charged_to_the_anon_bucket(self, api_client):
+        _configure_webhook_app()
+        with _throttle_rates(anon="2/minute"):
+            for _ in range(2):
+                response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=\xff")
+                assert response.status_code == status.HTTP_401_UNAUTHORIZED
+            response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=\xff")
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+
+    @pytest.mark.django_db
+    def test_oversized_body_is_rejected_before_any_bucket(self, api_client):
+        with _throttle_rates(anon="1/minute"):
+            for _ in range(2):
+                response = api_client.post(
+                    TestGitHubWebhookAPI.WEBHOOK_URL,
+                    data=b"x" * (1024 * 1024 + 1),
+                    content_type="application/json",
+                )
+                assert response.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+            response = _post_unsigned_webhook(api_client, HTTP_X_HUB_SIGNATURE_256="sha256=bogus")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.unit
+class TestThrottleRateSetting:
+    @pytest.mark.parametrize(
+        "value", ["600/minute", "10/s", "5/sec", "100/hour", "1/d", "30/min", "1000/minutes", "50/hours"]
+    )
+    def test_valid_value_is_used(self, monkeypatch, value):
+        monkeypatch.setenv("GITHUB_WEBHOOK_RATE_LIMIT", value)
+        assert _throttle_rate("GITHUB_WEBHOOK_RATE_LIMIT", "600/minute") == value
+
+    @pytest.mark.parametrize("value", [None, ""])
+    def test_unset_uses_default(self, monkeypatch, value):
+        monkeypatch.delenv("GITHUB_WEBHOOK_RATE_LIMIT", raising=False)
+        if value is not None:
+            monkeypatch.setenv("GITHUB_WEBHOOK_RATE_LIMIT", value)
+        assert _throttle_rate("GITHUB_WEBHOOK_RATE_LIMIT", "600/minute") == "600/minute"
+
+    @pytest.mark.parametrize("value", ["abc", "0/minute", "10/fortnight", "-5/minute", "10/", "/minute", "1.5/minute"])
+    def test_invalid_value_warns_and_uses_default(self, monkeypatch, caplog, value):
+        monkeypatch.setenv("GITHUB_WEBHOOK_RATE_LIMIT", value)
+        with caplog.at_level(logging.WARNING, logger="plane"):
+            assert _throttle_rate("GITHUB_WEBHOOK_RATE_LIMIT", "600/minute") == "600/minute"
+        assert any("GITHUB_WEBHOOK_RATE_LIMIT" in r.getMessage() for r in caplog.records)
