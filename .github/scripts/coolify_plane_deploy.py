@@ -18,8 +18,13 @@ Coolify 4.5 (CoolifyVBSManagement Hub) model this script relies on:
 Besides the image refs, every deploy converges the compose (authored and rendered) on the runtime
 config the current Plane release needs (idempotent, fails loudly on anything it can't place):
 - upstream plane-live / plane-space pinned to PLANE_LIVE_IMAGE / PLANE_SPACE_IMAGE (when set);
+- plane-minio + plane-minio-setup pinned to PLANE_MINIO_IMAGE (our GHCR mirror; when set);
 - an HSTS headers middleware on the https web + admin routers (Caddy images don't send HSTS);
 - NUM_PROXIES on plane-api (Traefik is the only proxy in front of it).
+
+Order: Coolify's authored compose is only dry-run converged before the host step and is written
+AFTER the host deploy succeeded, so a failed host step never leaves Coolify describing images that
+are not running (a later Coolify UI redeploy would otherwise roll a half-done release forward).
 
 Required env:
   COOLIFY_BASE_URL, COOLIFY_ACCESS_TOKEN
@@ -29,6 +34,7 @@ Required env:
   PLANE_BACKEND_IMAGE, PLANE_FRONTEND_IMAGE, PLANE_ADMIN_IMAGE
 Optional env:
   PLANE_LIVE_IMAGE, PLANE_SPACE_IMAGE  digest-pinned makeplane/plane-{live,space} refs
+  PLANE_MINIO_IMAGE                    digest-pinned ghcr.io/mrics-technologies/minio ref
   PLANE_NUM_PROXIES                    default 1 (set 2 if a CDN proxy is put in front)
 """
 from __future__ import annotations
@@ -41,6 +47,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 import urllib.error
 import urllib.request
 
@@ -70,6 +77,7 @@ FRONTEND_IMAGE = env("PLANE_FRONTEND_IMAGE")
 ADMIN_IMAGE = env("PLANE_ADMIN_IMAGE")
 LIVE_IMAGE = os.environ.get("PLANE_LIVE_IMAGE", "")
 SPACE_IMAGE = os.environ.get("PLANE_SPACE_IMAGE", "")
+MINIO_IMAGE = os.environ.get("PLANE_MINIO_IMAGE", "")
 NUM_PROXIES = os.environ.get("PLANE_NUM_PROXIES", "1")
 SHA = os.environ.get("GITHUB_SHA", "manual")[:12]
 HSTS_MAX_AGE = "31536000"
@@ -160,6 +168,32 @@ def patch_upstream_images(compose: str) -> str:
     return patched
 
 
+MINIO_IMAGE_RE = re.compile(r"ghcr\.io/mrics-technologies/minio(?::[\w.-]+)?@sha256:[a-f0-9]{64}")
+
+
+def patch_minio_images(compose: str) -> str:
+    """Pin plane-minio and plane-minio-setup to our mirrored MinIO image (PLANE_MINIO_IMAGE).
+
+    MinIO deleted ``minio/minio`` and ``minio/mc`` from Docker Hub (2026-09-11) and quay.io/minio
+    refuses anonymous pulls, so neither ``:latest`` nor an old digest pulls any more. We mirror the
+    exact build the stacks already run into GHCR. The server image ships ``mc``, so it also serves the
+    bucket-setup job (``minio/mc`` is gone too).
+    """
+    if not MINIO_IMAGE:
+        return compose
+    if not MINIO_IMAGE_RE.fullmatch(MINIO_IMAGE):
+        raise SystemExit(f"PLANE_MINIO_IMAGE must be ghcr.io/mrics-technologies/minio[:tag]@sha256:<digest>: {MINIO_IMAGE}")
+    for svc in ("plane-minio", "plane-minio-setup"):
+        start, end = service_block(compose, svc)
+        block, count = re.subn(
+            r"(?m)^(    image:\s*)['\"]?[^\s'\"]+['\"]?\s*$", lambda m: m.group(1) + MINIO_IMAGE, compose[start:end], count=1
+        )
+        if count != 1:
+            raise SystemExit(f"{svc}: no image line to pin")
+        compose = compose[:start] + block + compose[end:]
+    return compose
+
+
 def service_block(compose: str, name: str) -> tuple[int, int]:
     """(start, end) offsets of a top-level compose service block (``  <name>:`` up to the next key)."""
     m = re.search(rf"(?m)^  {re.escape(name)}:\s*$", compose)
@@ -238,7 +272,7 @@ def ensure_api_env(compose: str) -> str:
 
 def converge(compose: str) -> str:
     """Image refs + runtime config for this release. Idempotent."""
-    return ensure_api_env(ensure_hsts(patch_upstream_images(patch_images(compose))))
+    return ensure_api_env(ensure_hsts(patch_minio_images(patch_upstream_images(patch_images(compose)))))
 
 
 def check_service_env() -> None:
@@ -252,22 +286,47 @@ def check_service_env() -> None:
     print("service_env=ok (AWS keys set, WEB_URL https)")
 
 
-def update_coolify_compose() -> None:
-    """Persist the new image refs in Coolify's authored compose (used by future Coolify deploys)."""
-    service = api("/services/" + SERVICE)
-    compose = decode_compose(service.get("docker_compose_raw") or "")
+def authored_compose() -> str:
+    compose = decode_compose(api("/services/" + SERVICE).get("docker_compose_raw") or "")
     if not compose.strip() or compose.strip() == "***":
         raise SystemExit("Coolify service docker_compose_raw is empty or redacted (token needs read:sensitive)")
-    patched = converge(compose)
-    encoded = base64.b64encode(patched.encode()).decode()
-    api("/services/" + SERVICE, method="PATCH", body={"docker_compose_raw": encoded})
-    readback = decode_compose(api("/services/" + SERVICE).get("docker_compose_raw") or "")
-    for ref in [BACKEND_IMAGE, FRONTEND_IMAGE, ADMIN_IMAGE, LIVE_IMAGE, SPACE_IMAGE]:
-        if ref and ref not in readback:
-            raise SystemExit(f"Coolify readback missing {ref}")
-    if "-hsts@docker" not in readback or "NUM_PROXIES" not in readback:
-        raise SystemExit("Coolify readback missing the HSTS middleware or NUM_PROXIES")
-    print(f"coolify_compose_patched target={TARGET} service={SERVICE}")
+    return compose
+
+
+def check_coolify_compose() -> None:
+    """Dry run: prove the authored compose converges before anything on the host changes."""
+    converge(authored_compose())
+    print(f"coolify_compose_converges target={TARGET} service={SERVICE}")
+
+
+def update_coolify_compose(attempts: int = 3) -> None:
+    """Persist the deployed refs in Coolify's authored compose (used by future Coolify deploys).
+
+    Runs only AFTER the host deploy succeeded, so Coolify never describes images that are not
+    running: a failed host step leaves Coolify on the previous, still-running config, and a Coolify
+    UI redeploy can't silently roll a half-done release forward. Re-reads the compose each attempt
+    (converge is idempotent, so a concurrent edit is preserved, not overwritten).
+    """
+    expected = [BACKEND_IMAGE, FRONTEND_IMAGE, ADMIN_IMAGE, LIVE_IMAGE, SPACE_IMAGE, MINIO_IMAGE]
+    for attempt in range(1, attempts + 1):
+        try:
+            patched = converge(authored_compose())
+            encoded = base64.b64encode(patched.encode()).decode()
+            api("/services/" + SERVICE, method="PATCH", body={"docker_compose_raw": encoded})
+            readback = authored_compose()
+            missing = [ref for ref in expected if ref and ref not in readback]
+            if missing or "-hsts@docker" not in readback or "NUM_PROXIES" not in readback:
+                raise SystemExit(f"Coolify readback missing {missing or 'the HSTS middleware or NUM_PROXIES'}")
+            print(f"coolify_compose_patched target={TARGET} service={SERVICE}")
+            return
+        except (SystemExit, OSError) as exc:
+            print(f"coolify_compose_patch attempt {attempt}/{attempts} failed: {exc}")
+            if attempt < attempts:
+                time.sleep(10 * attempt)
+    raise SystemExit(
+        "HOST IS ON THE NEW RELEASE but Coolify's docker_compose_raw still has the previous refs. "
+        "Re-run this workflow (idempotent) before anyone redeploys this service from the Coolify UI."
+    )
 
 
 @functools.cache
@@ -360,7 +419,17 @@ def remote_common(encoded_compose: str) -> str:
 set +x
 set -euo pipefail
 cd {service_dir(SERVICE)}
-sudo cp -p docker-compose.yml docker-compose.yml.pre-github-actions-{SHA}-$(date -u +%Y%m%dT%H%M%SZ)
+PRE=docker-compose.yml.pre-github-actions-{SHA}-$(date -u +%Y%m%dT%H%M%SZ)
+sudo cp -p docker-compose.yml "$PRE"
+on_exit() {{
+  rc=$?
+  [ "$rc" = 0 ] && return 0
+  echo "deploy_failed rc=$rc: {service_dir(SERVICE)}/docker-compose.yml may already hold the new refs"
+  echo "  previous rendered compose: {service_dir(SERVICE)}/$PRE ; Coolify's authored compose was NOT changed"
+  echo "  fix and re-run the workflow, or restore $PRE and 'docker compose -p {SERVICE} up -d' the previous images"
+  show_images 2>/dev/null || true
+}}
+trap on_exit EXIT
 echo {encoded_compose} | base64 -d | sudo tee docker-compose.yml.next >/dev/null
 DC="sudo docker compose -f docker-compose.yml -p {SERVICE}"
 sudo docker compose -f docker-compose.yml.next -p {SERVICE} config -q
@@ -463,7 +532,7 @@ for c in $($PROD_DC ps --all -q); do
 done
 
 echo pull_images
-$DC pull plane-api plane-worker plane-beat-worker plane-migrator plane-web plane-admin plane-space plane-live
+$DC pull plane-api plane-worker plane-beat-worker plane-migrator plane-web plane-admin plane-space plane-live plane-minio plane-minio-setup
 
 echo stop_staging_apps
 $DC stop plane-api plane-worker plane-beat-worker plane-web plane-admin plane-space plane-live plane-migrator || true
@@ -545,7 +614,7 @@ grep -q 'PostgreSQL database dump complete' /tmp/plane-backup.tail || {{ echo "b
 echo "rollback_backup=$BK (rollback = restore this dump + previous images; older images alone are not enough)"
 
 echo deploy_production_images
-$DC pull plane-api plane-worker plane-beat-worker plane-migrator plane-web plane-admin plane-space plane-live
+$DC pull plane-api plane-worker plane-beat-worker plane-migrator plane-web plane-admin plane-space plane-live plane-minio plane-minio-setup
 $DC up -d --no-deps --force-recreate plane-migrator
 wait_migrator
 
@@ -574,9 +643,10 @@ def main() -> None:
     check_service_env()
     preflight()
     encoded = rendered_compose()
-    update_coolify_compose()
+    check_coolify_compose()
     script = staging_script(encoded) if TARGET == "staging" else production_script(encoded)
     print(ssh(script, timeout=1800))
+    update_coolify_compose()
     print(f"deploy_complete target={TARGET} service={SERVICE} sha={SHA}")
 
 

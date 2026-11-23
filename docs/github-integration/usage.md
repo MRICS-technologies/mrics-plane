@@ -64,10 +64,26 @@ Plane automatically**:
 
 ## Multiple repos per project
 
-When a project has several mapped repositories:
+A project can have several repositories attached (for example a backend and a
+frontend repo). Manage them in **Project Settings → GitHub**:
 
-- The issue panel shows a **repository selector** before creating a branch
-- The **default mapping** is pre-selected
+- **Attach repository** adds another enabled repository. A repository can be
+  attached to a project only once; the picker lists only repos not yet attached
+- The first repository attached becomes the **default**; later ones do not
+  change it. **Set as default** on another row moves the default there
+- **Remove** detaches a repository. Removing the default makes the **oldest
+  remaining** repository the new default; removing the last one leaves the
+  project without a repository (branch creation is hidden again)
+
+What the default means:
+
+- In the issue panel, **Create / link branch** shows a **repository selector**
+  with the default pre-selected. A branch-create request that names no
+  repository uses the default
+- Pull requests are linked from **every** attached repository, default or not
+- Linked branches and PRs show their repository name (the full `owner/repo`
+  on hover) when the project has more than one repository or the issue has
+  links from several repositories
 
 ## Time tracking (the other MRICS feature)
 

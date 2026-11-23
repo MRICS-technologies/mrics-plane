@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { WarningTriangleOutline } from "@makeplane/propel/icons";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 // plane imports
 import { Button } from "@makeplane/propel/components/button";
 import { EmptyStateCompact } from "@plane/blocks/empty-state";
@@ -51,6 +51,13 @@ export function MappingPanel(props: Props) {
     mutate: mutateRepositories,
   } = useSWR(GITHUB_REPOSITORIES_KEY(workspaceSlug), () => githubSyncService.getRepositories(workspaceSlug));
   const enabledRepositories = (repositories ?? []).filter((repository) => repository.is_enabled);
+  // A repository can be attached to a project only once.
+  const attachableRepositories = enabledRepositories.filter(
+    (repository) =>
+      !mappings?.some(
+        (mapping) => mapping.repository_detail?.id === repository.id || mapping.github_repo === repository.full_name
+      )
+  );
 
   const hasMapping = Boolean(mappings && mappings.length > 0);
   const hasError = Boolean(mappingsError || repositoriesError);
@@ -61,22 +68,21 @@ export function MappingPanel(props: Props) {
     setIsRetrying(false);
   };
 
+  // Every write re-fetches the list: the server decides which mapping is the
+  // default (first attached, or the oldest left after removing the default).
   const handleCreate = async (data: TCreateMappingPayload) => {
-    const created = await githubSyncService.createMapping(workspaceSlug, projectId, data);
-    mutate<TRepoProjectMapping[]>(
-      GITHUB_PROJECT_MAPPINGS_KEY(workspaceSlug, projectId),
-      (prev) => [created, ...(prev ?? [])],
-      false
-    );
+    await githubSyncService.createMapping(workspaceSlug, projectId, data);
+    await mutateMappings();
+  };
+
+  const handleSetDefault = async (mapping: TRepoProjectMapping) => {
+    await githubSyncService.setDefaultMapping(workspaceSlug, projectId, mapping.id);
+    await mutateMappings();
   };
 
   const handleDelete = async (mapping: TRepoProjectMapping) => {
     await githubSyncService.deleteMapping(workspaceSlug, projectId, mapping.id);
-    mutate<TRepoProjectMapping[]>(
-      GITHUB_PROJECT_MAPPINGS_KEY(workspaceSlug, projectId),
-      (prev) => (prev ?? []).filter((m) => m.id !== mapping.id),
-      false
-    );
+    await mutateMappings();
   };
 
   return (
@@ -85,23 +91,21 @@ export function MappingPanel(props: Props) {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onCreate={handleCreate}
-        enabledRepositories={enabledRepositories}
+        enabledRepositories={attachableRepositories}
       />
 
       <SettingsHeading
         title={t("project_settings.github.mapping.title")}
         description={t("project_settings.github.mapping.description")}
         control={
-          !hasMapping ? (
-            <Button
-              variant="primary"
-              size="xs"
-              stretch="auto"
-              label={t("project_settings.github.mapping.attach_button")}
-              onClick={() => setIsAddModalOpen(true)}
-              disabled={enabledRepositories.length === 0}
-            />
-          ) : undefined
+          <Button
+            variant="primary"
+            size="xs"
+            stretch="auto"
+            label={t("project_settings.github.mapping.attach_repository")}
+            onClick={() => setIsAddModalOpen(true)}
+            disabled={attachableRepositories.length === 0}
+          />
         }
       />
 
@@ -130,7 +134,12 @@ export function MappingPanel(props: Props) {
       ) : hasMapping ? (
         <div>
           {mappings?.map((mapping) => (
-            <MappingListItem key={mapping.id} mapping={mapping} onDelete={handleDelete} />
+            <MappingListItem
+              key={mapping.id}
+              mapping={mapping}
+              onSetDefault={handleSetDefault}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       ) : (

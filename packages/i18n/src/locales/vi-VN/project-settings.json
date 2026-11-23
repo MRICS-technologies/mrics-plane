@@ -207,11 +207,13 @@
       "label": "GitHub",
       "mapping": {
         "title": "Repository mapping",
-        "description": "Map this project to a GitHub repository to link pull requests and create branches from work items.",
+        "description": "Attach one or more GitHub repositories to link pull requests and create branches from work items. The default repository is used when a branch is created without picking one.",
         "label": "Label: {label}",
         "base_branch": "Base branch: {branch}",
         "attach_button": "Attach a GitHub repository (recommended)",
+        "attach_repository": "Attach repository",
         "remove_aria_label": "Remove {repo}",
+        "set_default": "Set as default",
         "empty": {
           "title": "No repository attached",
           "description_ready": "Attach one of your enabled GitHub repositories to link pull requests and create branches from work items.",
@@ -221,7 +223,8 @@
           "load_failed": "We couldn't load the repository mapping. Please try again.",
           "create_failed": "This repository could not be attached. Please try again.",
           "conflict": "This project already has a mapping for this repository.",
-          "forbidden": "You don't have permission to attach a repository to this project."
+          "forbidden": "You don't have permission to attach a repository to this project.",
+          "set_default_failed": "The default repository could not be changed. Please try again."
         },
         "modal": {
           "title": "Attach a GitHub repository",
@@ -236,6 +239,7 @@
         "delete_modal": {
           "title": "Remove repository mapping",
           "content": "This stops {repo} from being linked to this project. Existing pull request links stay visible.",
+          "content_default": "This stops {repo} from being linked to this project. Existing pull request links stay visible. The oldest remaining repository becomes the new default.",
           "success": "Repository mapping removed.",
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
