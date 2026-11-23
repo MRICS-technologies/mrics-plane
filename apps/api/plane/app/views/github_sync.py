@@ -20,6 +20,7 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle, SimpleRateThrottle
 
 # Module imports
 from .base import BaseAPIView, BaseViewSet
@@ -355,9 +356,35 @@ class IssueCreateBranchEndpoint(BaseAPIView):
 # ---------------------------------------------------------------------------
 
 
+class GitHubWebhookThrottle(SimpleRateThrottle):
+    """Per-IP bucket for signed GitHub deliveries (GITHUB_WEBHOOK_RATE_LIMIT)."""
+
+    scope = "github_webhook"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}
+
+    def throttle_failure(self):
+        # GitHub does not retry a failed delivery, so make the drop visible.
+        logger.warning("GitHub webhook: signed delivery throttled, raise GITHUB_WEBHOOK_RATE_LIMIT and redeliver it")
+        return False
+
+
 class GitHubWebhookView(BaseAPIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    # Throttled in post() after the signature check: signed deliveries are
+    # charged to GitHubWebhookThrottle, everything else to the usual anon
+    # bucket. Counting first would let anyone burning the anon budget from a
+    # shared IP (or the proxy IP when NUM_PROXIES is unset) get real GitHub
+    # deliveries 429'd. The cost: an unsigned request now pays one config read
+    # and an HMAC over a body capped at MAX_WEBHOOK_BODY_BYTES before it counts.
+    throttle_classes = []
+
+    def _throttle(self, request, throttle):
+        # Same 429 + Retry-After DRF returns when throttle_classes trip.
+        if not throttle.allow_request(request, self):
+            self.throttled(request, throttle.wait())
 
     def _verify_signature(self, request):
         try:
@@ -384,7 +411,9 @@ class GitHubWebhookView(BaseAPIView):
         if len(request.body) > MAX_WEBHOOK_BODY_BYTES:
             return Response(status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         if not self._verify_signature(request):
+            self._throttle(request, AnonRateThrottle())
             return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
+        self._throttle(request, GitHubWebhookThrottle())
 
         event = request.headers.get("X-GitHub-Event", "")
         delivery_id = request.headers.get("X-GitHub-Delivery", "")
