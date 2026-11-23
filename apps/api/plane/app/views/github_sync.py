@@ -88,7 +88,9 @@ class RepoProjectMappingViewSet(BaseViewSet):
         # Serialises attach / set-default / delete on one project. The
         # one-live-default constraint is not deferrable, so concurrent writers
         # must never interleave their unset-old / set-new default steps.
-        Project.objects.select_for_update().filter(pk=project_id).first()
+        # no_key: still excludes other writers here, but lets concurrent FK
+        # inserts that reference the project (new issues, ...) through.
+        Project.objects.select_for_update(no_key=True).filter(pk=project_id).first()
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def list(self, request, slug, project_id):
@@ -104,10 +106,16 @@ class RepoProjectMappingViewSet(BaseViewSet):
         serializer = self.serializer_class(data=request.data, context={"project": project})
         serializer.is_valid(raise_exception=True)
         github_repo = serializer.validated_data["github_repo"]
+        repository = serializer.validated_data.get("repository")
+        already_attached = Q(github_repo=github_repo)
+        if repository:
+            # A repository renamed on GitHub keeps its old name on the live
+            # mapping, so match the enabled repository as well as the name.
+            already_attached |= Q(repository=repository)
 
         with transaction.atomic():
             self._lock_project(project.pk)
-            if RepoProjectMapping.objects.filter(project=project, github_repo=github_repo).exists():
+            if RepoProjectMapping.objects.filter(already_attached, project=project).exists():
                 return Response(
                     {"error": "This repository is already attached to this project."},
                     status=status.HTTP_409_CONFLICT,
@@ -135,10 +143,10 @@ class RepoProjectMappingViewSet(BaseViewSet):
                     )
                 for field, value in serializer.validated_data.items():
                     setattr(existing, field, value)
-                existing.workspace = project.workspace
-                existing.project = project
                 existing.is_default = is_default
                 existing.deleted_at = None
+                # Re-attached counts as newest for ordering and promotion.
+                existing.created_at = timezone.now()
                 existing.save()
                 return Response(self.serializer_class(existing).data, status=status.HTTP_201_CREATED)
 
@@ -175,7 +183,10 @@ class RepoProjectMappingViewSet(BaseViewSet):
                 mapping = self.get_queryset().get(pk=pk)
             except RepoProjectMapping.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            mapping.delete()
+            # Direct soft delete: nothing references a mapping, so
+            # SoftDeleteModel.delete()'s Celery cascade has nothing to do.
+            mapping.deleted_at = timezone.now()
+            mapping.save(update_fields=["deleted_at", "updated_at"])
             if mapping.is_default:
                 # Keep the project with a default while any repository is left.
                 successor = self.get_queryset().order_by("created_at").first()
@@ -222,7 +233,11 @@ class IssueCreateBranchEndpoint(BaseAPIView):
 
         repo = request.data.get("repo")
         mapping_qs = RepoProjectMapping.objects.filter(workspace__slug=slug, project_id=project_id)
-        mapping = mapping_qs.filter(github_repo=repo).first() if repo else mapping_qs.filter(is_default=True).first()
+        mapping = (
+            mapping_qs.filter(github_repo=repo).first()
+            if repo
+            else mapping_qs.order_by("-is_default", "created_at").first()
+        )
         if not mapping:
             return Response(
                 {"error": "No GitHub repository mapping configured for this project"},

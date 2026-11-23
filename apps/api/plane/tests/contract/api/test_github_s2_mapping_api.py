@@ -784,6 +784,41 @@ class TestMappingCreate:
         assert RepoProjectMapping.objects.filter(project=project).count() == 1
 
     @pytest.mark.django_db
+    def test_repo_renamed_on_github_cannot_be_attached_twice(
+        self, session_client, workspace, project, installation, enabled_repo
+    ):
+        assert _attach(session_client, workspace, project, enabled_repo).status_code == status.HTTP_201_CREATED
+        # GitHub rename: the enabled repo gets a new full_name, the live
+        # mapping still carries the old github_repo string.
+        enabled_repo.full_name = "s2-acme/widgets-renamed"
+        enabled_repo.save(update_fields=["full_name"])
+
+        resp = _attach(session_client, workspace, project, enabled_repo)
+        assert resp.status_code == status.HTTP_409_CONFLICT
+        assert list(RepoProjectMapping.objects.filter(project=project).values_list("github_repo", flat=True)) == [
+            "s2-acme/widgets"
+        ]
+
+    @pytest.mark.django_db
+    def test_attach_becomes_default_when_live_mappings_have_none(
+        self, session_client, workspace, project, installation, enabled_repo, second_repo, third_repo
+    ):
+        for repo in (enabled_repo, second_repo):
+            RepoProjectMapping.objects.create(
+                project=project,
+                repository=repo,
+                github_installation_id=installation.installation_id,
+                github_repo=repo.full_name,
+                is_default=False,
+            )
+        resp = _attach(session_client, workspace, project, third_repo)
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert resp.data["is_default"] is True
+        assert [m.github_repo for m in RepoProjectMapping.objects.filter(project=project, is_default=True)] == [
+            "s2-acme/repo3"
+        ]
+
+    @pytest.mark.django_db
     def test_same_repo_in_two_projects_allowed(
         self, session_client, workspace, project, other_project, installation, enabled_repo
     ):
@@ -799,8 +834,7 @@ class TestMappingCreate:
     ):
         _attach(session_client, workspace, project, enabled_repo)
         b_id = _attach(session_client, workspace, project, second_repo).data["id"]
-        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
-            session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
+        session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
 
         resp = _attach(session_client, workspace, project, second_repo)
         assert resp.status_code == status.HTTP_201_CREATED, resp.data
@@ -814,14 +848,28 @@ class TestMappingCreate:
     ):
         a_id = _attach(session_client, workspace, project, enabled_repo).data["id"]
         b_id = _attach(session_client, workspace, project, second_repo).data["id"]
-        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
-            session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
-            session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
+        session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
+        session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
 
         resp = _attach(session_client, workspace, project, enabled_repo)
         assert resp.status_code == status.HTTP_201_CREATED, resp.data
         assert str(resp.data["id"]) == str(a_id)
         assert resp.data["is_default"] is True
+
+    @pytest.mark.django_db
+    def test_reattached_repo_counts_as_newest_for_promotion(
+        self, session_client, workspace, project, installation, enabled_repo, second_repo, third_repo
+    ):
+        a_id = _attach(session_client, workspace, project, enabled_repo).data["id"]
+        b_id = _attach(session_client, workspace, project, second_repo).data["id"]
+        session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
+        _attach(session_client, workspace, project, third_repo)
+        assert str(_attach(session_client, workspace, project, second_repo).data["id"]) == str(b_id)
+
+        # Removing the default promotes the oldest remaining: repo3, not the
+        # re-attached repo2 whose row was first created before it.
+        session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
+        assert RepoProjectMapping.objects.get(project=project, is_default=True).github_repo == "s2-acme/repo3"
 
     @pytest.mark.django_db
     def test_second_repo_from_another_workspace_rejected(
@@ -909,8 +957,7 @@ class TestMappingList:
 class TestMappingDelete:
     @pytest.mark.django_db
     def test_delete_mapping(self, session_client, workspace, project, legacy_mapping):
-        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
-            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, legacy_mapping.pk))
+        resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, legacy_mapping.pk))
         assert resp.status_code == status.HTTP_204_NO_CONTENT
         assert not RepoProjectMapping.objects.filter(pk=legacy_mapping.pk).exists()
         assert RepoProjectMapping.all_objects.filter(pk=legacy_mapping.pk).exists()
@@ -931,8 +978,7 @@ class TestMappingDelete:
         _attach(session_client, workspace, project, second_repo)
         _attach(session_client, workspace, project, third_repo)
 
-        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
-            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
+        resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
         assert resp.status_code == status.HTTP_204_NO_CONTENT
         defaults = RepoProjectMapping.objects.filter(project=project, is_default=True)
         assert [m.github_repo for m in defaults] == ["s2-acme/repo2"]
@@ -940,8 +986,7 @@ class TestMappingDelete:
     @pytest.mark.django_db
     def test_deleting_last_mapping_leaves_none(self, session_client, workspace, project, installation, enabled_repo):
         a_id = _attach(session_client, workspace, project, enabled_repo).data["id"]
-        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
-            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
+        resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
         assert resp.status_code == status.HTTP_204_NO_CONTENT
         assert not RepoProjectMapping.objects.filter(project=project).exists()
 
@@ -953,13 +998,28 @@ class TestMappingDelete:
         b_id = _attach(session_client, workspace, project, second_repo).data["id"]
         _attach(session_client, workspace, project, third_repo)
 
-        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
-            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
+        resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
         assert resp.status_code == status.HTTP_204_NO_CONTENT
         assert sorted(RepoProjectMapping.objects.filter(project=project).values_list("github_repo", "is_default")) == [
             ("s2-acme/repo3", False),
             ("s2-acme/widgets", True),
         ]
+
+    @pytest.mark.django_db
+    def test_mapping_of_another_project_or_workspace_is_404(
+        self, session_client, workspace, project, other_project, installation, enabled_repo, second_workspace
+    ):
+        other_id = _attach(session_client, workspace, other_project, enabled_repo).data["id"]
+        foreign_project = Project.objects.create(
+            name="Foreign", identifier="FRN", workspace=second_workspace, created_by=project.created_by
+        )
+        foreign = RepoProjectMapping.objects.create(
+            project=foreign_project, github_installation_id=1, github_repo="other-org/api"
+        )
+        for pk in (other_id, foreign.pk):
+            resp = session_client.delete(_mapping_detail_url(workspace.slug, project.id, pk))
+            assert resp.status_code == status.HTTP_404_NOT_FOUND
+            assert RepoProjectMapping.objects.filter(pk=pk).exists()
 
 
 @pytest.mark.contract

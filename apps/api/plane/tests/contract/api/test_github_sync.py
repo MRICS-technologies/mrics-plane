@@ -301,6 +301,26 @@ class TestIssueCreateBranchAPI:
         link = IssueGitLink.objects.get(issue_id=issue.id, kind="branch", ref="feature/TP-3-ui")
         assert link.github_repo == "acme/frontend"
 
+    @pytest.mark.django_db
+    def test_create_branch_without_repo_uses_oldest_mapping_when_no_default(
+        self, session_client, workspace, project, issue, mapping
+    ):
+        _configure_webhook_app()
+        RepoProjectMapping.objects.create(
+            project=project, github_installation_id=456, github_repo="acme/frontend", is_default=False
+        )
+        RepoProjectMapping.objects.filter(pk=mapping.pk).update(is_default=False)
+        create_result = {"branch_name": "feature/TP-4", "url": "https://github.example/x", "sha": "abc123"}
+        url = _create_branch_url(workspace.slug, project.id, issue.id)
+        with (
+            patch("plane.app.views.github_sync.GitHubClient.get_branch_sha", return_value=None),
+            patch("plane.app.views.github_sync.GitHubClient.create_branch", return_value=create_result) as mock_create,
+        ):
+            response = session_client.post(url, {"branch_name": "feature/TP-4"}, format="json")
+
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        mock_create.assert_called_once_with("acme", "widgets", "feature/TP-4", "dev")
+
 
 def _set_github_app_webhook_secret(secret):
     InstanceConfiguration.objects.update_or_create(
