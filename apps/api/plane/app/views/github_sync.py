@@ -500,9 +500,13 @@ class GitHubWebhookView(BaseAPIView):
         seen_issue_ids = set()
         if head_ref:
             for mapping in mappings:
-                branch_links = IssueGitLink.objects.filter(
-                    project=mapping.project, github_repo=repo_full_name, kind="branch", ref=head_ref
-                ).select_related("issue").order_by("issue_id")
+                branch_links = (
+                    IssueGitLink.objects.filter(
+                        project=mapping.project, github_repo=repo_full_name, kind="branch", ref=head_ref
+                    )
+                    .select_related("issue")
+                    .order_by("issue_id")
+                )
                 for branch_link in branch_links:
                     if branch_link.issue_id in seen_issue_ids:
                         continue

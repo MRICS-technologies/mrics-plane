@@ -206,9 +206,7 @@ class TestIssueCreateBranchAPI:
 
         with (
             patch("plane.app.views.github_sync.GitHubClient.get_branch_sha", return_value=None),
-            patch(
-                "plane.app.views.github_sync.GitHubClient.create_branch", return_value=create_result
-            ) as mock_create,
+            patch("plane.app.views.github_sync.GitHubClient.create_branch", return_value=create_result) as mock_create,
         ):
             response = session_client.post(url, {"branch_name": "feature/TP-2-new-thing"}, format="json")
 
@@ -258,9 +256,7 @@ class TestIssueCreateBranchAPI:
         assert response.data["linked_existing"] is True
         mock_create.assert_not_called()
 
-        links = IssueGitLink.objects.filter(
-            github_repo=mapping.github_repo, kind="branch", ref="feature/shared-branch"
-        )
+        links = IssueGitLink.objects.filter(github_repo=mapping.github_repo, kind="branch", ref="feature/shared-branch")
         assert links.count() == 2
         assert set(links.values_list("issue_id", flat=True)) == {issue.id, other_issue.id}
 
@@ -355,7 +351,6 @@ class TestGitHubWebhookAPI:
         )
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
 
 
 def _configure_webhook_app(secret="test-webhook-secret"):
@@ -642,7 +637,6 @@ class TestGitHubPullRequestWebhookContract:
             == status.HTTP_200_OK
         )
         assert not IssueGitLink.objects.filter(kind="pr", issue=second_issue).exists()
-
 
     @pytest.mark.django_db
     def test_existing_pr_updates_without_a_current_issue_key(self, api_client, webhook_context):
