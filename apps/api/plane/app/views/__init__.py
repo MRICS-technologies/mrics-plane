@@ -82,6 +82,12 @@ from .workspace.module import WorkspaceModulesEndpoint
 from .workspace.cycle import WorkspaceCyclesEndpoint
 from .workspace.quick_link import QuickLinkViewSet
 from .workspace.sticky import WorkspaceStickyViewSet
+from .workspace.team import (
+    WorkspaceTeamEndpoint,
+    WorkspaceTeamDetailEndpoint,
+    WorkspaceTeamMembersEndpoint,
+    WorkspaceTeamMemberDetailEndpoint,
+)
 
 from .state.base import StateViewSet, IntakeStateEndpoint
 from .view.base import (
