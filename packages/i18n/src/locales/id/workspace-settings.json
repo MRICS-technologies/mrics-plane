@@ -69,6 +69,46 @@
         "description": "Kelola akses ke ruang kerja ini.",
         "leave_title": "Tinggalkan ruang kerja?"
       },
+      "teams": {
+        "title": "Tim",
+        "description": "Kelompokkan anggota ruang kerja ke dalam tim. Seorang anggota hanya dapat bergabung dalam satu tim. Saat anggota membuat branch dari item kerja, repositori bawaan tim mereka dipilih terlebih dahulu jika repositori tersebut terhubung ke proyek.",
+        "create": "Buat tim",
+        "empty": {
+          "title": "Belum ada tim",
+          "description": "Tim mengelompokkan anggota dan memberi mereka repositori GitHub bawaan untuk branch baru."
+        },
+        "member_count": "{count, plural, one {# anggota} other {# anggota}}",
+        "no_members": "Belum ada anggota",
+        "add_member": "Tambah anggota",
+        "remove_member_aria_label": "Keluarkan {name} dari tim",
+        "default_repository": "Repositori bawaan",
+        "no_default_repository": "Tanpa repositori bawaan",
+        "no_repositories_hint": "Hubungkan GitHub dan aktifkan repositori di pengaturan GitHub untuk memilih repositori bawaan.",
+        "rename": "Ganti nama",
+        "form": {
+          "create_title": "Buat tim",
+          "rename_title": "Ganti nama tim",
+          "name_label": "Nama",
+          "name_placeholder": "mis. Frontend",
+          "name_required": "Nama wajib diisi",
+          "save": "Simpan"
+        },
+        "delete_modal": {
+          "title": "Hapus tim",
+          "content": "Hapus tim {name}? Anggotanya tidak akan lagi tergabung dalam tim mana pun."
+        },
+        "move_modal": {
+          "title": "Pindahkan anggota",
+          "content": "{member} berada di tim {from} dan akan dipindahkan ke {to}.",
+          "confirm": "Pindahkan"
+        },
+        "errors": {
+          "load_failed": "Tim tidak dapat dimuat.",
+          "duplicate_name": "Tim dengan nama ini sudah ada.",
+          "save_failed": "Tim tidak dapat disimpan.",
+          "forbidden": "Hanya admin ruang kerja yang dapat mengubah tim."
+        }
+      },
       "billing_and_plans": {
         "heading": "Penagihan & Rencana",
         "description": "Pilih rencana Anda, kelola langganan, dan tingkatkan dengan mudah seiring pertumbuhan kebutuhan Anda.",

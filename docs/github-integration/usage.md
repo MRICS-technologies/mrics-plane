@@ -78,12 +78,39 @@ frontend repo). Manage them in **Project Settings → GitHub**:
 What the default means:
 
 - In the issue panel, **Create / link branch** shows a **repository selector**
-  with the default pre-selected. A branch-create request that names no
-  repository uses the default
+  with the default pre-selected (unless your team's default repository applies,
+  see below). A branch-create request that names no repository uses the default
 - Pull requests are linked from **every** attached repository, default or not
 - Linked branches and PRs show their repository name (the full `owner/repo`
   on hover) when the project has more than one repository or the issue has
   links from several repositories
+
+## Teams and the team default repository
+
+Workspace admins group members into teams in **Workspace Settings → Teams**
+(admins and members can view the page; only admins can change it):
+
+- **Create team**, **Rename**, **Delete**. Deleting a team removes its members
+  from it; they can join another team right away
+- A member belongs to **one team**. Adding a member who is already in another
+  team asks for confirmation, then moves them
+- Each team can have one **default repository**, picked from the workspace's
+  enabled repositories (the picker is disabled until GitHub is connected and a
+  repository is enabled)
+
+Which repository a branch goes to when you create it from an issue:
+
+1. The repository you pick in the selector (or `repo` in the API request)
+2. Otherwise your team's default repository, **if this project has it
+   attached**. A legacy mapping without a linked enabled repository matches by
+   name (case-insensitive)
+3. Otherwise the project default (the oldest mapping if none is marked default)
+
+Step 2 is skipped when you are in no team, the team has no default, the
+repository is disabled or removed, the installation is inactive, or you are
+no longer an active workspace member. The issue panel pre-selects the same
+repository the server would pick, and **Project Settings → GitHub** shows
+"Team default for: …" under each repository that is a team's default.
 
 ## Time tracking (the other MRICS feature)
 

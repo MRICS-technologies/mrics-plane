@@ -69,6 +69,46 @@
         "description": "Gestiona el acceso a este espacio de trabajo.",
         "leave_title": "¿Abandonar el espacio de trabajo?"
       },
+      "teams": {
+        "title": "Equipos",
+        "description": "Agrupe a los miembros del espacio de trabajo en equipos. Un miembro solo puede pertenecer a un equipo. Cuando un miembro crea una rama desde un elemento de trabajo, se preselecciona el repositorio predeterminado de su equipo si está vinculado al proyecto.",
+        "create": "Crear equipo",
+        "empty": {
+          "title": "Aún no hay equipos",
+          "description": "Los equipos agrupan a los miembros y les asignan un repositorio de GitHub predeterminado para las nuevas ramas."
+        },
+        "member_count": "{count, plural, one {# miembro} other {# miembros}}",
+        "no_members": "Aún no hay miembros",
+        "add_member": "Agregar miembro",
+        "remove_member_aria_label": "Quitar a {name} del equipo",
+        "default_repository": "Repositorio predeterminado",
+        "no_default_repository": "Sin repositorio predeterminado",
+        "no_repositories_hint": "Conecte GitHub y habilite repositorios en la configuración de GitHub para elegir un repositorio predeterminado.",
+        "rename": "Cambiar nombre",
+        "form": {
+          "create_title": "Crear equipo",
+          "rename_title": "Cambiar nombre del equipo",
+          "name_label": "Nombre",
+          "name_placeholder": "p. ej., Frontend",
+          "name_required": "El nombre es obligatorio",
+          "save": "Guardar"
+        },
+        "delete_modal": {
+          "title": "Eliminar equipo",
+          "content": "¿Eliminar el equipo {name}? Sus miembros ya no pertenecerán a ningún equipo."
+        },
+        "move_modal": {
+          "title": "Mover miembro",
+          "content": "{member} está en el equipo {from} y se moverá a {to}.",
+          "confirm": "Mover"
+        },
+        "errors": {
+          "load_failed": "No se pudieron cargar los equipos.",
+          "duplicate_name": "Ya existe un equipo con este nombre.",
+          "save_failed": "No se pudo guardar el equipo.",
+          "forbidden": "Solo los administradores del espacio de trabajo pueden modificar los equipos."
+        }
+      },
       "billing_and_plans": {
         "heading": "Facturación y Planes",
         "description": "Elige tu plan, gestiona las suscripciones y actualiza fácilmente a medida que crecen tus necesidades.",

@@ -69,6 +69,46 @@
         "description": "Beheer de toegang tot deze werkruimte.",
         "leave_title": "Werkruimte verlaten?"
       },
+      "teams": {
+        "title": "Teams",
+        "description": "Verdeel de leden van de werkruimte over teams. Een lid kan maar bij één team horen. Wanneer een lid vanuit een werkitem een branch aanmaakt, wordt de standaardrepository van het team vooraf geselecteerd als die aan het project is gekoppeld.",
+        "create": "Team aanmaken",
+        "empty": {
+          "title": "Nog geen teams",
+          "description": "Teams groeperen leden en geven ze een standaardrepository op GitHub voor nieuwe branches."
+        },
+        "member_count": "{count, plural, one {# lid} other {# leden}}",
+        "no_members": "Nog geen leden",
+        "add_member": "Lid toevoegen",
+        "remove_member_aria_label": "{name} uit het team verwijderen",
+        "default_repository": "Standaardrepository",
+        "no_default_repository": "Geen standaardrepository",
+        "no_repositories_hint": "Verbind GitHub en schakel repositories in via de GitHub-instellingen om een standaardrepository te kiezen.",
+        "rename": "Naam wijzigen",
+        "form": {
+          "create_title": "Team aanmaken",
+          "rename_title": "Teamnaam wijzigen",
+          "name_label": "Naam",
+          "name_placeholder": "bijv. Frontend",
+          "name_required": "Naam is verplicht",
+          "save": "Opslaan"
+        },
+        "delete_modal": {
+          "title": "Team verwijderen",
+          "content": "Team {name} verwijderen? De leden horen dan niet meer bij een team."
+        },
+        "move_modal": {
+          "title": "Lid verplaatsen",
+          "content": "{member} zit in team {from} en wordt verplaatst naar {to}.",
+          "confirm": "Verplaatsen"
+        },
+        "errors": {
+          "load_failed": "Teams konden niet worden geladen.",
+          "duplicate_name": "Er bestaat al een team met deze naam.",
+          "save_failed": "Het team kon niet worden opgeslagen.",
+          "forbidden": "Alleen beheerders van de werkruimte kunnen teams wijzigen."
+        }
+      },
       "billing_and_plans": {
         "heading": "Facturering & plannen",
         "description": "Kies je plan, beheer abonnementen en upgrade eenvoudig naarmate je behoeften groeien.",

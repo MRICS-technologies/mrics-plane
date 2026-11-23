@@ -12,10 +12,12 @@ def _clear_api_key_throttle_keys():
     ``ApiKeyRateThrottle.get_cache_key`` returns ``api_key:<token>``, so scoping
     the pattern to ``api_key:`` removes just this throttle's entries instead of
     wiping unrelated cache state. ``throttle_anon_*`` is DRF's per-IP anonymous
-    throttle (30/minute), which the GitHub webhook tests would otherwise exhaust.
+    throttle (30/minute), which the GitHub webhook tests would otherwise exhaust,
+    and ``throttle_github_webhook_*`` is the per-IP bucket for signed deliveries.
     """
     cache.delete_pattern("api_key:*")
     cache.delete_pattern("throttle_anon_*")
+    cache.delete_pattern("throttle_github_webhook_*")
 
 
 @pytest.fixture(autouse=True)

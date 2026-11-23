@@ -71,6 +71,8 @@ from .workspace import (
     WorkspaceMember,
     WorkspaceMemberInvite,
     WorkspaceTheme,
+    Team,
+    TeamMember,
     WorkspaceUserProperties,
     WorkspaceUserLink,
     WorkspaceHomePreference,

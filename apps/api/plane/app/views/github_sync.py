@@ -20,6 +20,7 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 
 # Module imports
 from .base import BaseAPIView, BaseViewSet
@@ -37,6 +38,7 @@ from plane.db.models.integration.github_app import GithubAppInstallation, Github
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import get_github_app_credentials
 from plane.services.github.installations import soft_delete_installations
+from plane.services.github.team_repo import mapping_team_hints, pick_branch_mapping
 from plane.services.github.setup_state import (
     consume as consume_setup_state,
     issue as issue_setup_state,
@@ -94,8 +96,13 @@ class RepoProjectMappingViewSet(BaseViewSet):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def list(self, request, slug, project_id):
-        serializer = self.serializer_class(self.get_queryset().order_by("-is_default", "created_at"), many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        mappings = list(self.get_queryset().select_related("repository").order_by("-is_default", "created_at"))
+        hints = mapping_team_hints(slug, request.user, mappings)
+        data = [
+            {**item, **hints[mapping.id]}
+            for item, mapping in zip(self.serializer_class(mappings, many=True).data, mappings)
+        ]
+        return Response(data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN])
     def create(self, request, slug, project_id):
@@ -231,13 +238,7 @@ class IssueCreateBranchEndpoint(BaseAPIView):
         if not branch_name:
             return Response({"error": "branch_name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        repo = request.data.get("repo")
-        mapping_qs = RepoProjectMapping.objects.filter(workspace__slug=slug, project_id=project_id)
-        mapping = (
-            mapping_qs.filter(github_repo=repo).first()
-            if repo
-            else mapping_qs.order_by("-is_default", "created_at").first()
-        )
+        mapping = pick_branch_mapping(slug, project_id, request.user, request.data.get("repo"))
         if not mapping:
             return Response(
                 {"error": "No GitHub repository mapping configured for this project"},
@@ -355,9 +356,36 @@ class IssueCreateBranchEndpoint(BaseAPIView):
 # ---------------------------------------------------------------------------
 
 
+class GitHubWebhookThrottle(AnonRateThrottle):
+    """Per-IP bucket for signed GitHub deliveries (GITHUB_WEBHOOK_RATE_LIMIT)."""
+
+    scope = "github_webhook"
+
+    def throttle_failure(self):
+        # GitHub does not retry a failed delivery, so make the drop visible.
+        # "plane.api" has a handler in production LOGGING; this module's logger does not.
+        logging.getLogger("plane.api").warning(
+            "GitHub webhook: signed delivery throttled, raise GITHUB_WEBHOOK_RATE_LIMIT and redeliver it"
+        )
+        return False
+
+
 class GitHubWebhookView(BaseAPIView):
     authentication_classes = []
     permission_classes = [AllowAny]
+    # Throttled in post() after the signature check: signed deliveries are
+    # charged to GitHubWebhookThrottle, everything else to the usual anon
+    # bucket. Counting first would let anyone burning the anon budget from a
+    # shared IP (or the proxy's, when NUM_PROXIES does not match the
+    # deployment) get real GitHub deliveries 429'd. The cost: an unsigned
+    # request now pays one config read and an HMAC over a body capped at
+    # MAX_WEBHOOK_BODY_BYTES before it counts.
+    throttle_classes = []
+
+    def _throttle(self, request, throttle):
+        # Same 429 + Retry-After DRF returns when throttle_classes trip.
+        if not throttle.allow_request(request, self):
+            self.throttled(request, throttle.wait())
 
     def _verify_signature(self, request):
         try:
@@ -372,7 +400,8 @@ class GitHubWebhookView(BaseAPIView):
 
         secret = credentials.webhook_secret
         signature = request.headers.get("X-Hub-Signature-256", "")
-        if not signature.startswith("sha256="):
+        # compare_digest raises TypeError on non-ASCII str; treat it as a mismatch.
+        if not signature.isascii() or not signature.startswith("sha256="):
             return False
 
         expected = "sha256=" + hmac.new(secret.encode(), request.body, hashlib.sha256).hexdigest()
@@ -384,7 +413,9 @@ class GitHubWebhookView(BaseAPIView):
         if len(request.body) > MAX_WEBHOOK_BODY_BYTES:
             return Response(status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         if not self._verify_signature(request):
+            self._throttle(request, AnonRateThrottle())
             return Response({"error": "Invalid signature"}, status=status.HTTP_401_UNAUTHORIZED)
+        self._throttle(request, GitHubWebhookThrottle())
 
         event = request.headers.get("X-GitHub-Event", "")
         delivery_id = request.headers.get("X-GitHub-Delivery", "")

@@ -263,6 +263,15 @@ class Team(BaseModel):
     description = models.TextField(verbose_name="Team Description", blank=True)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="workspace_team")
     logo_props = models.JSONField(default=dict)
+    # Preferred repository when a member creates a branch from an issue; only
+    # used when the project has this repository attached.
+    default_repository = models.ForeignKey(
+        "db.GithubEnabledRepository",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="default_for_teams",
+    )
 
     def __str__(self):
         """Return name of the team"""
@@ -280,6 +289,39 @@ class Team(BaseModel):
         verbose_name = "Team"
         verbose_name_plural = "Teams"
         db_table = "teams"
+        ordering = ("-created_at",)
+
+
+class TeamMember(BaseModel):
+    """A workspace member's team. Rows are hard-deleted (never soft-deleted)
+    so a removed membership never blocks re-adding the member."""
+
+    workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="team_members")
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="team_members")
+    member = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="team_memberships")
+
+    def __str__(self):
+        return f"{self.member_id} <{self.team_id}>"
+
+    class Meta:
+        constraints = [
+            # One team per member for now. Allowing several teams later means
+            # replacing this constraint (and the move in the members endpoint)
+            # with a (team, member) rule plus a primary flag.
+            models.UniqueConstraint(
+                fields=["workspace", "member"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="team_member_one_team_per_member_when_deleted_at_null",
+            ),
+            models.UniqueConstraint(
+                fields=["team", "member"],
+                condition=models.Q(deleted_at__isnull=True),
+                name="team_member_unique_team_member_when_deleted_at_null",
+            ),
+        ]
+        verbose_name = "Team Member"
+        verbose_name_plural = "Team Members"
+        db_table = "team_members"
         ordering = ("-created_at",)
 
 

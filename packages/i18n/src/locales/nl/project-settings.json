@@ -210,6 +210,7 @@
         "description": "Koppel een of meer GitHub-repositories om pull requests te koppelen en branches aan te maken vanuit werkitems. De standaardrepository wordt gebruikt wanneer een branch wordt aangemaakt zonder er een te kiezen.",
         "label": "Label: {label}",
         "base_branch": "Basisbranch: {branch}",
+        "team_default_for": "Standaard voor teams: {teams}",
         "attach_button": "GitHub-repository koppelen (aanbevolen)",
         "attach_repository": "Repository koppelen",
         "remove_aria_label": "{repo} verwijderen",

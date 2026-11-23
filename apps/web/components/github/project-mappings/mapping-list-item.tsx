@@ -62,6 +62,13 @@ export function MappingListItem(props: Props) {
           {t("project_settings.github.mapping.base_branch", { branch: mapping.base_branch ?? "—" })}
           {mapping.repo_label ? ` · ${t("project_settings.github.mapping.label", { label: mapping.repo_label })}` : ""}
         </span>
+        {mapping.default_for_teams?.length ? (
+          <span className="text-11 text-tertiary">
+            {t("project_settings.github.mapping.team_default_for", {
+              teams: mapping.default_for_teams.map((team) => team.name).join(", "),
+            })}
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-shrink-0 items-center gap-2">
         {!mapping.is_default && (

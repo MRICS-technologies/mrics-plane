@@ -210,6 +210,7 @@
         "description": "Associez un ou plusieurs dépôts GitHub pour lier les pull requests et créer des branches depuis les éléments de travail. Le dépôt par défaut est utilisé lorsqu'une branche est créée sans choisir de dépôt.",
         "label": "Libellé : {label}",
         "base_branch": "Branche de base : {branch}",
+        "team_default_for": "Par défaut pour les équipes : {teams}",
         "attach_button": "Associer un dépôt GitHub (recommandé)",
         "attach_repository": "Associer un dépôt",
         "remove_aria_label": "Retirer {repo}",

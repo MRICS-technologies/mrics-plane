@@ -69,6 +69,46 @@
         "description": "管理此工作區的存取權限。",
         "leave_title": "離開工作區？"
       },
+      "teams": {
+        "title": "團隊",
+        "description": "將工作區成員分組為團隊。每位成員只能屬於一個團隊。成員從工作事項建立分支時，若專案已連結其團隊的預設儲存庫，系統會預先選取該儲存庫。",
+        "create": "建立團隊",
+        "empty": {
+          "title": "尚無團隊",
+          "description": "團隊可將成員分組，並為新分支提供預設的 GitHub 儲存庫。"
+        },
+        "member_count": "{count, plural, one {# 位成員} other {# 位成員}}",
+        "no_members": "尚無成員",
+        "add_member": "新增成員",
+        "remove_member_aria_label": "將 {name} 從團隊中移除",
+        "default_repository": "預設儲存庫",
+        "no_default_repository": "無預設儲存庫",
+        "no_repositories_hint": "請連結 GitHub 並在 GitHub 設定中啟用儲存庫，以選擇預設儲存庫。",
+        "rename": "重新命名",
+        "form": {
+          "create_title": "建立團隊",
+          "rename_title": "重新命名團隊",
+          "name_label": "名稱",
+          "name_placeholder": "例如：前端",
+          "name_required": "名稱為必填",
+          "save": "儲存"
+        },
+        "delete_modal": {
+          "title": "刪除團隊",
+          "content": "要刪除團隊 {name} 嗎？其成員將不再屬於任何團隊。"
+        },
+        "move_modal": {
+          "title": "移動成員",
+          "content": "{member} 目前在團隊 {from} 中，將移至 {to}。",
+          "confirm": "移動"
+        },
+        "errors": {
+          "load_failed": "無法載入團隊。",
+          "duplicate_name": "已有同名的團隊。",
+          "save_failed": "無法儲存團隊。",
+          "forbidden": "只有工作區管理員可以變更團隊。"
+        }
+      },
       "billing_and_plans": {
         "heading": "計費與方案",
         "description": "選擇您的方案、管理訂閱，並在需求增加時輕鬆升級。",

@@ -42,9 +42,20 @@ The root should return `200`. The second endpoint should return `401` when no us
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `401 Invalid signature`         | GitHub and Plane do not share the same webhook secret, or the request was altered before it reached Plane.     | Re-enter the same secret directly in both admin UIs; check reverse-proxy handling of request bodies.              |
 | `413`                           | Payload exceeds the 1 MiB webhook limit.                                                                       | Do not raise the limit casually; inspect the event and confirm the endpoint receives only intended PR deliveries. |
+| `429`                           | The webhook rate limit for this client IP was hit; the delivery was not processed.                             | Redeliver it from GitHub, then see [Webhook rate limit](#webhook-rate-limit).                                     |
 | `200` but no link               | The delivery may be duplicated, unsupported, disabled, unmapped, ambiguous, or not tied to a resolvable issue. | Check the installation, repository state, project mapping, branch link, and issue key.                            |
 | Duplicate links                 | Unexpected; replay protection and PR uniqueness should prevent this.                                           | Disable the repository mapping, preserve non-secret metadata, and investigate before re-enabling.                 |
 | Link appears on the wrong issue | Treat as a correlation defect.                                                                                 | Disable the mapping and preserve PR number, delivery ID, project identifiers, and timestamps only.                |
+
+## Webhook rate limit
+
+Deliveries with a valid signature are limited per client IP by `GITHUB_WEBHOOK_RATE_LIMIT` (default `600/minute`). Requests with a missing or invalid signature, or any request while the GitHub App is not configured, stay on the shared anonymous limit (`30/minute` per IP) and never use the webhook budget. A `413` is returned before either limit is counted. Both limits are counted after the signature check, so junk traffic from the same IP cannot crowd out real deliveries; the trade-off is that every unsigned request costs one configuration read and an HMAC over at most 1 MiB before it is counted.
+
+GitHub does not retry failed deliveries. A `429` shows the delivery as failed in the GitHub App's **Advanced → Recent deliveries**, and the PR update is missing in Plane until you redeliver it from there; the API logs `signed delivery throttled` when this happens. If it does, raise `GITHUB_WEBHOOK_RATE_LIMIT` (`<count>/<second|minute|hour|day>`; an invalid value logs a warning and falls back to `600/minute`) and check that `NUM_PROXIES` matches the number of proxies in front of the API, so the limit is keyed on GitHub's address rather than the proxy's or a client-supplied header.
+
+Raise the per-minute count rather than using a huge count over a long window: DRF stores one timestamp per counted request in the cache entry, so a value like `50000/hour` makes every delivery read and write a list of up to 50,000 timestamps.
+
+On the Coolify stack (`deployments/docker/docker-compose.yml`), the variable is passed to the API through the compose `backend-env` block; the default works without any configuration.
 
 ## Safe pause and rollback
 

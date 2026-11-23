@@ -37,6 +37,12 @@ on:
       - apps/api/plane/db/migrations/0126_github_webhook_pr_linking.py
       - apps/api/plane/db/migrations/0128_remove_issuegitlink_issuegitlink_unique_repo_pr_number_when_pr_and_deleted_at_null_and_more.py
       - apps/api/plane/db/migrations/0129_github_discovery_fields.py
+      - apps/api/plane/db/migrations/0132_team_member_team_default_repository.py
+      - apps/api/plane/db/models/workspace.py
+      - apps/api/plane/app/views/workspace/team.py
+      - apps/api/plane/app/serializers/team.py
+      - apps/api/plane/app/urls/workspace.py
+      - apps/api/plane/tests/contract/api/test_workspace_teams.py
       - apps/api/pyproject.toml
       - apps/api/uv.lock
       - .github/workflows/test-github-app-configuration.yml
@@ -110,5 +116,6 @@ jobs:
           plane/tests/contract/api/test_github_workspace_installation_models.py
           plane/tests/contract/api/test_github_s2_mapping_api.py
           plane/tests/contract/api/test_github_setup_flow.py
+          plane/tests/contract/api/test_workspace_teams.py
           --create-db
           -q

@@ -59,6 +59,10 @@ export type TRepoProjectMapping = {
   repository_detail: TRepoProjectMappingRepositoryDetail | null;
   created_at: string;
   updated_at: string;
+  /** Teams whose default repository is this mapping. List endpoint only. */
+  default_for_teams?: { id: string; name: string }[];
+  /** This mapping is the requesting user's team default repository. List endpoint only. */
+  is_my_team_default?: boolean;
 };
 
 export type TCreateMappingPayload = {
