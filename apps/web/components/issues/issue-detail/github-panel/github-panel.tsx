@@ -68,6 +68,8 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
   const isLoading = isMappingsLoading || isGitLinksLoading;
   const hasMapping = Boolean(mappings && mappings.length > 0);
   const hasGitLinks = Boolean(gitLinks && gitLinks.length > 0);
+  // Also when links span repos the project no longer has attached.
+  const showRepo = (mappings?.length ?? 0) > 1 || new Set(gitLinks?.map((l) => l.github_repo)).size > 1;
 
   // Hijazi's call for Phase 1 1.5c: an unmapped project hides branch
   // creation entirely (no hint, no disabled state) rather than nudging --
@@ -89,7 +91,7 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
         {hasGitLinks && (
           <div className="space-y-1.5">
             {gitLinks?.map((link) => (
-              <GitLinkItem key={link.id} link={link} showRepo={(mappings?.length ?? 0) > 1} />
+              <GitLinkItem key={link.id} link={link} showRepo={showRepo} />
             ))}
           </div>
         )}

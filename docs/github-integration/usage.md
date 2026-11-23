@@ -81,8 +81,9 @@ What the default means:
   with the default pre-selected. A branch-create request that names no
   repository uses the default
 - Pull requests are linked from **every** attached repository, default or not
-- Linked branches and PRs show their repository (`owner/repo`) when the
-  project has more than one
+- Linked branches and PRs show their repository name (the full `owner/repo`
+  on hover) when the project has more than one repository or the issue has
+  links from several repositories
 
 ## Time tracking (the other MRICS feature)
 

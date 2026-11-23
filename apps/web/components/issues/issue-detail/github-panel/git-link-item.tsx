@@ -29,7 +29,6 @@ export const GitLinkItem = (props: Props) => {
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
   const Icon = link.kind === "pr" ? GitPullRequestOutline : GitBranchOutline;
-  const [repoOwner, repoName] = link.github_repo.split("/");
   const stateLabel =
     link.kind === "branch" ? t("work_item.github.link.state.linked") : t(`work_item.github.link.state.${link.state}`);
 
@@ -44,11 +43,8 @@ export const GitLinkItem = (props: Props) => {
             </a>
           </Tooltip>
           {showRepo && (
-            // The owner truncates first so the repository name, which tells
-            // a project's repositories apart, stays visible.
-            <span className="flex text-caption-sm-regular text-tertiary" title={link.github_repo}>
-              <span className="truncate">{repoOwner}</span>
-              <span className="max-w-full flex-shrink-0 truncate">/{repoName}</span>
+            <span className="truncate text-caption-sm-regular text-tertiary" title={link.github_repo}>
+              {link.github_repo.split("/").pop()}
             </span>
           )}
         </div>
