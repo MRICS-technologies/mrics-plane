@@ -69,6 +69,46 @@
         "description": "Gestisci l'accesso a questo spazio di lavoro.",
         "leave_title": "Lasciare lo spazio di lavoro?"
       },
+      "teams": {
+        "title": "Team",
+        "description": "I membri dello spazio di lavoro possono essere raggruppati in team. Un membro può appartenere a un solo team. Quando un membro crea un branch da un elemento di lavoro, il repository predefinito del suo team viene preselezionato se è collegato al progetto.",
+        "create": "Crea team",
+        "empty": {
+          "title": "Ancora nessun team",
+          "description": "I team raggruppano i membri e assegnano loro un repository GitHub predefinito per i nuovi branch."
+        },
+        "member_count": "{count, plural, one {# membro} many {# membri} other {# membri}}",
+        "no_members": "Ancora nessun membro",
+        "add_member": "Aggiungi membro",
+        "remove_member_aria_label": "Rimuovi {name} dal team",
+        "default_repository": "Repository predefinito",
+        "no_default_repository": "Nessun repository predefinito",
+        "no_repositories_hint": "Per scegliere un repository predefinito, collegare GitHub e abilitare i repository nelle impostazioni di GitHub.",
+        "rename": "Rinomina",
+        "form": {
+          "create_title": "Crea team",
+          "rename_title": "Rinomina team",
+          "name_label": "Nome",
+          "name_placeholder": "ad es. Frontend",
+          "name_required": "Il nome è obbligatorio",
+          "save": "Salva"
+        },
+        "delete_modal": {
+          "title": "Elimina team",
+          "content": "Eliminare il team {name}? I suoi membri non faranno più parte di alcun team."
+        },
+        "move_modal": {
+          "title": "Sposta membro",
+          "content": "{member} fa parte del team {from} e passerà al team {to}.",
+          "confirm": "Sposta"
+        },
+        "errors": {
+          "load_failed": "Impossibile caricare i team.",
+          "duplicate_name": "Esiste già un team con questo nome.",
+          "save_failed": "Impossibile salvare il team.",
+          "forbidden": "Solo gli amministratori dello spazio di lavoro possono modificare i team."
+        }
+      },
       "billing_and_plans": {
         "heading": "Fatturazione e piani",
         "description": "Scegli il tuo piano, gestisci gli abbonamenti e aggiorna facilmente man mano che le tue esigenze crescono.",

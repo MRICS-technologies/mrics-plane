@@ -69,6 +69,46 @@
         "description": "Bu çalışma alanına erişimi yönetin.",
         "leave_title": "Çalışma alanından ayrılmak istiyor musunuz?"
       },
+      "teams": {
+        "title": "Takımlar",
+        "description": "Çalışma alanı üyelerini takımlar halinde gruplayın. Bir üye yalnızca bir takıma ait olabilir. Bir üye bir iş öğesinden dal oluşturduğunda, takımının varsayılan deposu projeye bağlıysa önceden seçili gelir.",
+        "create": "Takım oluştur",
+        "empty": {
+          "title": "Henüz takım yok",
+          "description": "Takımlar üyeleri gruplar ve onlara yeni dallar için varsayılan bir GitHub deposu atar."
+        },
+        "member_count": "{count, plural, one {# üye} other {# üye}}",
+        "no_members": "Henüz üye yok",
+        "add_member": "Üye ekle",
+        "remove_member_aria_label": "{name} adlı üyeyi takımdan çıkar",
+        "default_repository": "Varsayılan depo",
+        "no_default_repository": "Varsayılan depo yok",
+        "no_repositories_hint": "Varsayılan bir depo seçmek için GitHub'ı bağlayın ve GitHub ayarlarında depoları etkinleştirin.",
+        "rename": "Yeniden adlandır",
+        "form": {
+          "create_title": "Takım oluştur",
+          "rename_title": "Takımı yeniden adlandır",
+          "name_label": "Ad",
+          "name_placeholder": "ör. Frontend",
+          "name_required": "Ad gerekli",
+          "save": "Kaydet"
+        },
+        "delete_modal": {
+          "title": "Takımı sil",
+          "content": "{name} takımı silinsin mi? Üyeleri artık hiçbir takımda olmayacak."
+        },
+        "move_modal": {
+          "title": "Üyeyi taşı",
+          "content": "{member}, {from} takımında ve {to} takımına taşınacak.",
+          "confirm": "Taşı"
+        },
+        "errors": {
+          "load_failed": "Takımlar yüklenemedi.",
+          "duplicate_name": "Bu ada sahip bir takım zaten var.",
+          "save_failed": "Takım kaydedilemedi.",
+          "forbidden": "Takımları yalnızca çalışma alanı yöneticileri değiştirebilir."
+        }
+      },
       "billing_and_plans": {
         "heading": "Faturalandırma ve Planlar",
         "description": "Planınızı seçin, abonelikleri yönetin ve ihtiyaçlarınız arttıkça kolayca yükseltin.",

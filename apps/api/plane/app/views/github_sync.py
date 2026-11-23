@@ -38,6 +38,7 @@ from plane.db.models.integration.github_app import GithubAppInstallation, Github
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import get_github_app_credentials
 from plane.services.github.installations import soft_delete_installations
+from plane.services.github.team_repo import mapping_team_hints, pick_branch_mapping
 from plane.services.github.setup_state import (
     consume as consume_setup_state,
     issue as issue_setup_state,
@@ -95,8 +96,13 @@ class RepoProjectMappingViewSet(BaseViewSet):
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def list(self, request, slug, project_id):
-        serializer = self.serializer_class(self.get_queryset().order_by("-is_default", "created_at"), many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        mappings = list(self.get_queryset().select_related("repository").order_by("-is_default", "created_at"))
+        hints = mapping_team_hints(slug, request.user, mappings)
+        data = [
+            {**item, **hints[mapping.id]}
+            for item, mapping in zip(self.serializer_class(mappings, many=True).data, mappings)
+        ]
+        return Response(data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN])
     def create(self, request, slug, project_id):
@@ -232,13 +238,7 @@ class IssueCreateBranchEndpoint(BaseAPIView):
         if not branch_name:
             return Response({"error": "branch_name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        repo = request.data.get("repo")
-        mapping_qs = RepoProjectMapping.objects.filter(workspace__slug=slug, project_id=project_id)
-        mapping = (
-            mapping_qs.filter(github_repo=repo).first()
-            if repo
-            else mapping_qs.order_by("-is_default", "created_at").first()
-        )
+        mapping = pick_branch_mapping(slug, project_id, request.user, request.data.get("repo"))
         if not mapping:
             return Response(
                 {"error": "No GitHub repository mapping configured for this project"},

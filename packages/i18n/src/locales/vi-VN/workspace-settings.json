@@ -69,6 +69,46 @@
         "description": "Quản lý quyền truy cập vào không gian làm việc này.",
         "leave_title": "Rời khỏi không gian làm việc?"
       },
+      "teams": {
+        "title": "Nhóm",
+        "description": "Sắp xếp các thành viên trong không gian làm việc vào các nhóm. Mỗi thành viên chỉ có thể thuộc một nhóm. Khi một thành viên tạo nhánh từ một mục công việc, kho lưu trữ mặc định của nhóm sẽ được chọn sẵn nếu kho đó đã được gắn vào dự án.",
+        "create": "Tạo nhóm",
+        "empty": {
+          "title": "Chưa có nhóm nào",
+          "description": "Nhóm tập hợp các thành viên và cung cấp cho họ một kho lưu trữ GitHub mặc định cho các nhánh mới."
+        },
+        "member_count": "{count, plural, one {# thành viên} other {# thành viên}}",
+        "no_members": "Chưa có thành viên nào",
+        "add_member": "Thêm thành viên",
+        "remove_member_aria_label": "Xóa {name} khỏi nhóm",
+        "default_repository": "Kho lưu trữ mặc định",
+        "no_default_repository": "Không có kho lưu trữ mặc định",
+        "no_repositories_hint": "Kết nối GitHub và bật các kho lưu trữ trong phần cài đặt GitHub để chọn kho lưu trữ mặc định.",
+        "rename": "Đổi tên",
+        "form": {
+          "create_title": "Tạo nhóm",
+          "rename_title": "Đổi tên nhóm",
+          "name_label": "Tên",
+          "name_placeholder": "ví dụ: Frontend",
+          "name_required": "Tên là bắt buộc",
+          "save": "Lưu"
+        },
+        "delete_modal": {
+          "title": "Xóa nhóm",
+          "content": "Xóa nhóm {name}? Các thành viên của nhóm sẽ không còn thuộc nhóm nào."
+        },
+        "move_modal": {
+          "title": "Chuyển thành viên",
+          "content": "{member} đang ở nhóm {from} và sẽ được chuyển sang nhóm {to}.",
+          "confirm": "Chuyển"
+        },
+        "errors": {
+          "load_failed": "Không thể tải các nhóm.",
+          "duplicate_name": "Đã có nhóm với tên này.",
+          "save_failed": "Không thể lưu nhóm.",
+          "forbidden": "Chỉ quản trị viên không gian làm việc mới có thể thay đổi nhóm."
+        }
+      },
       "billing_and_plans": {
         "heading": "Thanh toán và Kế hoạch",
         "description": "Chọn gói của bạn, quản lý đăng ký và dễ dàng nâng cấp khi nhu cầu của bạn phát triển.",

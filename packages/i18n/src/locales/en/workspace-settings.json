@@ -69,6 +69,46 @@
         "description": "Manage access to this workspace.",
         "leave_title": "Leave workspace?"
       },
+      "teams": {
+        "title": "Teams",
+        "description": "Group workspace members into teams. A member belongs to one team. When a member creates a branch from a work item, their team's default repository is preselected if the project has it attached.",
+        "create": "Create team",
+        "empty": {
+          "title": "No teams yet",
+          "description": "Teams group members and give them a default GitHub repository for new branches."
+        },
+        "member_count": "{count, plural, one {# member} other {# members}}",
+        "no_members": "No members yet",
+        "add_member": "Add member",
+        "remove_member_aria_label": "Remove {name} from the team",
+        "default_repository": "Default repository",
+        "no_default_repository": "No default repo",
+        "no_repositories_hint": "Connect GitHub and enable repositories in the GitHub settings to choose a default repository.",
+        "rename": "Rename",
+        "form": {
+          "create_title": "Create team",
+          "rename_title": "Rename team",
+          "name_label": "Name",
+          "name_placeholder": "e.g. Frontend",
+          "name_required": "Name is required",
+          "save": "Save"
+        },
+        "delete_modal": {
+          "title": "Delete team",
+          "content": "Delete the team {name}? Its members will no longer be in a team."
+        },
+        "move_modal": {
+          "title": "Move member",
+          "content": "{member} is in team {from} and will be moved to {to}.",
+          "confirm": "Move"
+        },
+        "errors": {
+          "load_failed": "Teams could not be loaded.",
+          "duplicate_name": "A team with this name already exists.",
+          "save_failed": "The team could not be saved.",
+          "forbidden": "Only workspace admins can change teams."
+        }
+      },
       "billing_and_plans": {
         "heading": "Billing & Plans",
         "description": "Choose your plan, manage subscriptions, and easily upgrade as your needs grow.",

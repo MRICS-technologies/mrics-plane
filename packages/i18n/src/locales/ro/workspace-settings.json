@@ -69,6 +69,46 @@
         "description": "Gestionează accesul la acest spațiu de lucru.",
         "leave_title": "Părăsești spațiul de lucru?"
       },
+      "teams": {
+        "title": "Echipe",
+        "description": "Grupați membrii spațiului de lucru în echipe. Un membru poate face parte dintr-o singură echipă. Când un membru creează o ramură dintr-o activitate, repozitoriul implicit al echipei sale este preselectat dacă este atașat proiectului.",
+        "create": "Creează echipă",
+        "empty": {
+          "title": "Nicio echipă încă",
+          "description": "Echipele grupează membrii și le atribuie un repozitoriu GitHub implicit pentru ramurile noi."
+        },
+        "member_count": "{count, plural, one {# membru} few {# membri} other {# de membri}}",
+        "no_members": "Niciun membru încă",
+        "add_member": "Adaugă membru",
+        "remove_member_aria_label": "Elimină {name} din echipă",
+        "default_repository": "Repozitoriu implicit",
+        "no_default_repository": "Fără repozitoriu implicit",
+        "no_repositories_hint": "Conectați GitHub și activați repozitorii în setările GitHub pentru a alege un repozitoriu implicit.",
+        "rename": "Redenumește",
+        "form": {
+          "create_title": "Creează echipă",
+          "rename_title": "Redenumește echipa",
+          "name_label": "Nume",
+          "name_placeholder": "de ex. Frontend",
+          "name_required": "Numele este obligatoriu",
+          "save": "Salvează"
+        },
+        "delete_modal": {
+          "title": "Șterge echipa",
+          "content": "Ștergeți echipa {name}? Membrii săi nu vor mai face parte din nicio echipă."
+        },
+        "move_modal": {
+          "title": "Mută membrul",
+          "content": "{member} face parte din echipa {from} și va trece în echipa {to}.",
+          "confirm": "Mută"
+        },
+        "errors": {
+          "load_failed": "Echipele nu au putut fi încărcate.",
+          "duplicate_name": "Există deja o echipă cu acest nume.",
+          "save_failed": "Echipa nu a putut fi salvată.",
+          "forbidden": "Doar administratorii spațiului de lucru pot modifica echipele."
+        }
+      },
       "billing_and_plans": {
         "heading": "Facturare și abonamente",
         "description": "Alege abonamentul tău, gestionează abonamentele și actualizează cu ușurință pe măsură ce nevoile tale cresc.",

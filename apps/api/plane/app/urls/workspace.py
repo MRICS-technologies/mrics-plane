@@ -36,6 +36,10 @@ from plane.app.views import (
     WorkspaceHomePreferenceViewSet,
     WorkspaceStickyViewSet,
     WorkspaceUserPreferenceViewSet,
+    WorkspaceTeamEndpoint,
+    WorkspaceTeamDetailEndpoint,
+    WorkspaceTeamMembersEndpoint,
+    WorkspaceTeamMemberDetailEndpoint,
 )
 
 
@@ -256,5 +260,26 @@ urlpatterns = [
         "workspaces/<str:slug>/sidebar-preferences/",
         WorkspaceUserPreferenceViewSet.as_view(),
         name="workspace-user-preference",
+    ),
+    # Teams
+    path(
+        "workspaces/<str:slug>/teams/",
+        WorkspaceTeamEndpoint.as_view(),
+        name="workspace-teams",
+    ),
+    path(
+        "workspaces/<str:slug>/teams/<uuid:team_id>/",
+        WorkspaceTeamDetailEndpoint.as_view(),
+        name="workspace-team-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/teams/<uuid:team_id>/members/",
+        WorkspaceTeamMembersEndpoint.as_view(),
+        name="workspace-team-members",
+    ),
+    path(
+        "workspaces/<str:slug>/teams/<uuid:team_id>/members/<uuid:member_id>/",
+        WorkspaceTeamMemberDetailEndpoint.as_view(),
+        name="workspace-team-member-detail",
     ),
 ]

@@ -69,6 +69,46 @@
         "description": "Verwalten Sie den Zugriff auf diesen Arbeitsbereich.",
         "leave_title": "Arbeitsbereich verlassen?"
       },
+      "teams": {
+        "title": "Teams",
+        "description": "Gruppieren Sie die Mitglieder des Arbeitsbereichs in Teams. Ein Mitglied kann nur einem Team angehören. Wenn ein Mitglied aus einem Arbeitselement einen Branch erstellt, wird das Standard-Repository seines Teams vorausgewählt, sofern es mit dem Projekt verknüpft ist.",
+        "create": "Team erstellen",
+        "empty": {
+          "title": "Noch keine Teams",
+          "description": "Teams fassen Mitglieder zusammen und weisen ihnen ein Standard-GitHub-Repository für neue Branches zu."
+        },
+        "member_count": "{count, plural, one {# Mitglied} other {# Mitglieder}}",
+        "no_members": "Noch keine Mitglieder",
+        "add_member": "Mitglied hinzufügen",
+        "remove_member_aria_label": "{name} aus dem Team entfernen",
+        "default_repository": "Standard-Repository",
+        "no_default_repository": "Kein Standard-Repository",
+        "no_repositories_hint": "Verbinden Sie GitHub und aktivieren Sie Repositories in den GitHub-Einstellungen, um ein Standard-Repository auszuwählen.",
+        "rename": "Umbenennen",
+        "form": {
+          "create_title": "Team erstellen",
+          "rename_title": "Team umbenennen",
+          "name_label": "Name",
+          "name_placeholder": "z. B. Frontend",
+          "name_required": "Name ist erforderlich",
+          "save": "Speichern"
+        },
+        "delete_modal": {
+          "title": "Team löschen",
+          "content": "Team {name} löschen? Seine Mitglieder gehören dann keinem Team mehr an."
+        },
+        "move_modal": {
+          "title": "Mitglied verschieben",
+          "content": "{member} ist im Team {from} und wird zu {to} verschoben.",
+          "confirm": "Verschieben"
+        },
+        "errors": {
+          "load_failed": "Teams konnten nicht geladen werden.",
+          "duplicate_name": "Ein Team mit diesem Namen existiert bereits.",
+          "save_failed": "Das Team konnte nicht gespeichert werden.",
+          "forbidden": "Nur Administratoren des Arbeitsbereichs können Teams ändern."
+        }
+      },
       "billing_and_plans": {
         "heading": "Abrechnung und Pläne",
         "description": "Wählen Sie Ihren Plan, verwalten Sie Abonnements und führen Sie bei Bedarf ein Upgrade durch.",

@@ -104,6 +104,7 @@ export const GITHUB_AVAILABLE_REPOSITORIES_KEY = (workspaceSlug: string) =>
 // mapping in settings revalidates the issue panel instead of leaving it stale.
 export const GITHUB_PROJECT_MAPPINGS_KEY = (workspaceSlug: string, projectId: string) =>
   `GITHUB_PROJECT_MAPPINGS_${workspaceSlug.toUpperCase()}_${projectId.toUpperCase()}`;
+export const WORKSPACE_TEAMS_KEY = (workspaceSlug: string) => `WORKSPACE_TEAMS_${workspaceSlug.toUpperCase()}`;
 export const GITHUB_ISSUE_GIT_LINKS_KEY = (workspaceSlug: string, projectId: string, issueId: string) =>
   `GITHUB_ISSUE_GIT_LINKS_${workspaceSlug.toUpperCase()}_${projectId.toUpperCase()}_${issueId.toUpperCase()}`;
 

@@ -69,6 +69,46 @@
         "description": "このワークスペースへのアクセスを管理します。",
         "leave_title": "ワークスペースから退出しますか？"
       },
+      "teams": {
+        "title": "チーム",
+        "description": "ワークスペースのメンバーをチームにまとめます。メンバーが所属できるチームは1つだけです。メンバーが作業項目からブランチを作成すると、チームのデフォルトのリポジトリがプロジェクトに関連付けられている場合、そのリポジトリがあらかじめ選択されます。",
+        "create": "チームを作成",
+        "empty": {
+          "title": "チームはまだありません",
+          "description": "チームはメンバーをまとめ、新しいブランチ用のデフォルトのGitHubリポジトリを割り当てます。"
+        },
+        "member_count": "{count, plural, one {メンバー#人} other {メンバー#人}}",
+        "no_members": "メンバーはまだいません",
+        "add_member": "メンバーを追加",
+        "remove_member_aria_label": "{name}をチームから削除",
+        "default_repository": "デフォルトのリポジトリ",
+        "no_default_repository": "デフォルトのリポジトリなし",
+        "no_repositories_hint": "デフォルトのリポジトリを選択するには、GitHubを接続し、GitHubの設定でリポジトリを有効にしてください。",
+        "rename": "名前を変更",
+        "form": {
+          "create_title": "チームを作成",
+          "rename_title": "チーム名を変更",
+          "name_label": "名前",
+          "name_placeholder": "例：フロントエンド",
+          "name_required": "名前は必須です",
+          "save": "保存"
+        },
+        "delete_modal": {
+          "title": "チームを削除",
+          "content": "チーム「{name}」を削除しますか？メンバーはどのチームにも所属しなくなります。"
+        },
+        "move_modal": {
+          "title": "メンバーを移動",
+          "content": "{member}は現在チーム「{from}」に所属しています。チーム「{to}」に移動します。",
+          "confirm": "移動"
+        },
+        "errors": {
+          "load_failed": "チームを読み込めませんでした。",
+          "duplicate_name": "この名前のチームはすでに存在します。",
+          "save_failed": "チームを保存できませんでした。",
+          "forbidden": "チームを変更できるのはワークスペースの管理者のみです。"
+        }
+      },
       "billing_and_plans": {
         "heading": "請求とプラン",
         "description": "プランを選択してサブスクリプションを管理し、ニーズの拡大に応じて簡単にアップグレードできます。",

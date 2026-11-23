@@ -69,6 +69,46 @@
         "description": "Spravujte prístup k tomuto pracovnému priestoru.",
         "leave_title": "Opustiť pracovný priestor?"
       },
+      "teams": {
+        "title": "Tímy",
+        "description": "Zoskupte členov pracovného priestoru do tímov. Každý člen môže patriť iba do jedného tímu. Keď člen vytvorí vetvu z pracovnej položky, predvolený repozitár jeho tímu sa vopred vyberie, ak je pripojený k projektu.",
+        "create": "Vytvoriť tím",
+        "empty": {
+          "title": "Zatiaľ žiadne tímy",
+          "description": "Tímy zoskupujú členov a priraďujú im predvolený repozitár GitHub pre nové vetvy."
+        },
+        "member_count": "{count, plural, one {# člen} few {# členovia} many {# člena} other {# členov}}",
+        "no_members": "Zatiaľ žiadni členovia",
+        "add_member": "Pridať člena",
+        "remove_member_aria_label": "Odstrániť člena {name} z tímu",
+        "default_repository": "Predvolený repozitár",
+        "no_default_repository": "Bez predvoleného repozitára",
+        "no_repositories_hint": "Ak chcete vybrať predvolený repozitár, pripojte GitHub a povoľte repozitáre v nastaveniach služby GitHub.",
+        "rename": "Premenovať",
+        "form": {
+          "create_title": "Vytvoriť tím",
+          "rename_title": "Premenovať tím",
+          "name_label": "Názov",
+          "name_placeholder": "napr. Frontend",
+          "name_required": "Názov je povinný",
+          "save": "Uložiť"
+        },
+        "delete_modal": {
+          "title": "Zmazať tím",
+          "content": "Zmazať tím {name}? Jeho členovia už nebudú v žiadnom tíme."
+        },
+        "move_modal": {
+          "title": "Presunúť člena",
+          "content": "Člen {member} je v tíme {from} a bude presunutý do tímu {to}.",
+          "confirm": "Presunúť"
+        },
+        "errors": {
+          "load_failed": "Tímy sa nepodarilo načítať.",
+          "duplicate_name": "Tím s týmto názvom už existuje.",
+          "save_failed": "Tím sa nepodarilo uložiť.",
+          "forbidden": "Tímy môžu meniť iba správcovia pracovného priestoru."
+        }
+      },
       "billing_and_plans": {
         "heading": "Fakturácia a plány",
         "description": "Vyberte si plán, spravujte predplatné a jednoducho upgradujte podľa vašich potrieb.",
