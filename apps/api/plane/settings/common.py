@@ -146,7 +146,7 @@ def _throttle_rate(env_var, default):
     raw = os.environ.get(env_var, "").strip()
     if not raw:
         return default
-    if re.fullmatch(r"[1-9]\d*/(s|sec|second|m|min|minute|h|hour|d|day)", raw):
+    if re.fullmatch(r"[1-9]\d*/(s|sec|m|min|h|d|(second|minute|hour|day)s?)", raw):
         return raw
     _logger.warning("%s: ignoring invalid value %r, using %r", env_var, raw, default)
     return default

@@ -971,9 +971,7 @@ class TestGitHubWebhookThrottle:
         assert not GithubWebhookDelivery.objects.filter(delivery_id="delivery-throttled").exists()
         # GitHub never retries the dropped delivery, so it must show up in the
         # logs, on a logger production LOGGING has a handler for.
-        assert any(
-            r.name == "plane.api" and "GITHUB_WEBHOOK_RATE_LIMIT" in r.getMessage() for r in caplog.records
-        )
+        assert any(r.name == "plane.api" and "GITHUB_WEBHOOK_RATE_LIMIT" in r.getMessage() for r in caplog.records)
 
     @pytest.mark.django_db
     def test_unsigned_requests_use_the_anon_bucket_and_spare_the_webhook_bucket(self, api_client):
@@ -1021,7 +1019,9 @@ class TestGitHubWebhookThrottle:
 
 @pytest.mark.unit
 class TestThrottleRateSetting:
-    @pytest.mark.parametrize("value", ["600/minute", "10/s", "5/sec", "100/hour", "1/d", "30/min"])
+    @pytest.mark.parametrize(
+        "value", ["600/minute", "10/s", "5/sec", "100/hour", "1/d", "30/min", "1000/minutes", "50/hours"]
+    )
     def test_valid_value_is_used(self, monkeypatch, value):
         monkeypatch.setenv("GITHUB_WEBHOOK_RATE_LIMIT", value)
         assert _throttle_rate("GITHUB_WEBHOOK_RATE_LIMIT", "600/minute") == value
