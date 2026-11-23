@@ -165,6 +165,17 @@ export class GithubSyncService extends APIService {
       });
   }
 
+  /** Makes this mapping the project's default repository; the previous default is unset server-side. */
+  async setDefaultMapping(workspaceSlug: string, projectId: string, mappingId: string): Promise<TRepoProjectMapping> {
+    return this.patch(`/api/workspaces/${workspaceSlug}/projects/${projectId}/github/mappings/${mappingId}/`, {
+      is_default: true,
+    })
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, data: error?.response?.data } as TApiError;
+      });
+  }
+
   async deleteMapping(workspaceSlug: string, projectId: string, mappingId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/github/mappings/${mappingId}/`)
       .then((response) => response?.data)

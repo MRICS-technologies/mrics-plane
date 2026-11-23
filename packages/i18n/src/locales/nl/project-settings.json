@@ -207,11 +207,13 @@
       "label": "GitHub",
       "mapping": {
         "title": "Repositorytoewijzing",
-        "description": "Wijs dit project toe aan een GitHub-repository om pull requests te koppelen en branches aan te maken vanuit werkitems.",
+        "description": "Koppel een of meer GitHub-repositories om pull requests te koppelen en branches aan te maken vanuit werkitems. De standaardrepository wordt gebruikt wanneer een branch wordt aangemaakt zonder er een te kiezen.",
         "label": "Label: {label}",
         "base_branch": "Basisbranch: {branch}",
         "attach_button": "GitHub-repository koppelen (aanbevolen)",
+        "attach_repository": "Repository koppelen",
         "remove_aria_label": "{repo} verwijderen",
+        "set_default": "Als standaard instellen",
         "empty": {
           "title": "Geen repository gekoppeld",
           "description_ready": "Koppel een van je ingeschakelde GitHub-repositories om pull requests te koppelen en branches aan te maken vanuit werkitems.",
@@ -221,7 +223,8 @@
           "load_failed": "We konden de repositorytoewijzing niet laden. Probeer het opnieuw.",
           "create_failed": "Deze repository kon niet worden gekoppeld. Probeer het opnieuw.",
           "conflict": "Dit project heeft al een toewijzing voor deze repository.",
-          "forbidden": "Je hebt geen toestemming om een repository aan dit project te koppelen."
+          "forbidden": "Je hebt geen toestemming om een repository aan dit project te koppelen.",
+          "set_default_failed": "De standaardrepository kon niet worden gewijzigd. Probeer het opnieuw."
         },
         "modal": {
           "title": "GitHub-repository koppelen",
@@ -236,6 +239,7 @@
         "delete_modal": {
           "title": "Repositorytoewijzing verwijderen",
           "content": "Hierdoor is {repo} niet langer gekoppeld aan dit project. Bestaande koppelingen met pull requests blijven zichtbaar.",
+          "content_default": "Hierdoor is {repo} niet langer gekoppeld aan dit project. Bestaande koppelingen met pull requests blijven zichtbaar. De oudste resterende repository wordt de nieuwe standaard.",
           "success": "Repositorytoewijzing verwijderd.",
           "forbidden": "Je hebt geen toestemming om deze toewijzing te verwijderen.",
           "failed": "Deze toewijzing kon niet worden verwijderd."
