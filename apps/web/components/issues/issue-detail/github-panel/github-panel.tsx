@@ -98,6 +98,9 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
 
         {hasMapping && !disabled && (
           <CreateBranchButton
+            // Remount (resetting the repo select) when a repository is
+            // added/removed or the default moves -- the list is default-first.
+            key={mappings?.map((m) => m.id).join()}
             workspaceSlug={workspaceSlug}
             projectId={projectId}
             issueId={issueId}
