@@ -89,7 +89,7 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
         {hasGitLinks && (
           <div className="space-y-1.5">
             {gitLinks?.map((link) => (
-              <GitLinkItem key={link.id} link={link} />
+              <GitLinkItem key={link.id} link={link} showRepo={(mappings?.length ?? 0) > 1} />
             ))}
           </div>
         )}

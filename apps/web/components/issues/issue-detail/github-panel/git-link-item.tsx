@@ -20,10 +20,12 @@ const STATE_BADGE_CLASSNAME: Record<TIssueGitLink["state"], string> = {
 
 type Props = {
   link: TIssueGitLink;
+  /** Show which repository the link belongs to (projects with several repositories). */
+  showRepo?: boolean;
 };
 
 export const GitLinkItem = (props: Props) => {
-  const { link } = props;
+  const { link, showRepo = false } = props;
   const { isMobile } = usePlatformOS();
   const { t } = useTranslation();
   const Icon = link.kind === "pr" ? GitPullRequestOutline : GitBranchOutline;
@@ -44,6 +46,11 @@ export const GitLinkItem = (props: Props) => {
             {link.ref}
           </a>
         </Tooltip>
+        {showRepo && (
+          <span className="max-w-[40%] flex-shrink-0 truncate text-caption-sm-regular text-tertiary">
+            {link.github_repo}
+          </span>
+        )}
       </div>
       <span
         className={cn(
