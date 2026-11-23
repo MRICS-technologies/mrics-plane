@@ -21,6 +21,7 @@ import json
 from unittest.mock import patch
 
 import pytest
+from django.core.cache import cache
 from rest_framework import status
 
 from plane.db.models import Issue, Project, ProjectMember, Workspace, WorkspaceMember
@@ -28,6 +29,15 @@ from plane.db.models.integration.github_sync import GithubWebhookDelivery, Issue
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import encrypt_data
+
+
+@pytest.fixture(autouse=True)
+def _reset_anon_throttle_cache():
+    # The webhook is anonymous (30/minute per IP); this file posts more than
+    # that within a minute, so give each test its own budget.
+    cache.delete_pattern("throttle_anon_*")
+    yield
+    cache.delete_pattern("throttle_anon_*")
 
 
 @pytest.fixture
@@ -259,6 +269,37 @@ class TestIssueCreateBranchAPI:
         links = IssueGitLink.objects.filter(github_repo=mapping.github_repo, kind="branch", ref="feature/shared-branch")
         assert links.count() == 2
         assert set(links.values_list("issue_id", flat=True)) == {issue.id, other_issue.id}
+
+    @pytest.mark.django_db
+    def test_create_branch_on_non_default_repo(self, session_client, workspace, project, issue, mapping):
+        # Multi-repo: an explicit `repo` targets that mapping, not the default.
+        _configure_webhook_app()
+        RepoProjectMapping.objects.create(
+            project=project,
+            github_installation_id=456,
+            github_repo="acme/frontend",
+            base_branch="main",
+            is_default=False,
+        )
+        create_result = {
+            "branch_name": "feature/TP-3-ui",
+            "url": "https://github.example/acme/frontend/tree/feature/TP-3-ui",
+            "sha": "abc123",
+        }
+        url = _create_branch_url(workspace.slug, project.id, issue.id)
+        with (
+            patch("plane.app.views.github_sync.GitHubClient.get_branch_sha", return_value=None) as mock_sha,
+            patch("plane.app.views.github_sync.GitHubClient.create_branch", return_value=create_result) as mock_create,
+        ):
+            response = session_client.post(
+                url, {"branch_name": "feature/TP-3-ui", "repo": "acme/frontend"}, format="json"
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED, response.data
+        mock_sha.assert_called_once_with("acme", "frontend", "feature/TP-3-ui")
+        mock_create.assert_called_once_with("acme", "frontend", "feature/TP-3-ui", "main")
+        link = IssueGitLink.objects.get(issue_id=issue.id, kind="branch", ref="feature/TP-3-ui")
+        assert link.github_repo == "acme/frontend"
 
 
 def _set_github_app_webhook_secret(secret):
@@ -637,6 +678,40 @@ class TestGitHubPullRequestWebhookContract:
             == status.HTTP_200_OK
         )
         assert not IssueGitLink.objects.filter(kind="pr", issue=second_issue).exists()
+
+    @pytest.mark.django_db
+    def test_pr_on_non_default_repo_links_issue(self, api_client, webhook_context, project, issue):
+        # Multi-repo: a PR in the project's second (non-default) repository
+        # links the issue exactly like one in the default repository.
+        installation, _ = webhook_context
+        secret = _configure_webhook_app()
+        frontend = GithubEnabledRepository.objects.create(
+            installation=installation, github_repository_id=93002, full_name="acme/frontend", is_enabled=True
+        )
+        RepoProjectMapping.objects.create(
+            workspace=project.workspace,
+            project=project,
+            repository=frontend,
+            github_installation_id=installation.installation_id,
+            github_repo=frontend.full_name,
+            is_default=False,
+        )
+        payload = _pull_request_payload(installation, frontend, number=31, title="TP-1 frontend part")
+        assert (
+            _post_signed_webhook(api_client, payload, secret, "delivery-frontend-open").status_code
+            == status.HTTP_200_OK
+        )
+        link = IssueGitLink.objects.get(kind="pr", github_repo="acme/frontend", pr_number=31)
+        assert (link.issue_id, link.state) == (issue.id, "open")
+
+        payload.update(action="closed")
+        payload["pull_request"].update(merged=True, updated_at="2026-07-31T05:00:00Z")
+        assert (
+            _post_signed_webhook(api_client, payload, secret, "delivery-frontend-merged").status_code
+            == status.HTTP_200_OK
+        )
+        link.refresh_from_db()
+        assert link.state == "merged"
 
     @pytest.mark.django_db
     def test_existing_pr_updates_without_a_current_issue_key(self, api_client, webhook_context):

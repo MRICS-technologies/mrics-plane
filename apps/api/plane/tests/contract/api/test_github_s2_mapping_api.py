@@ -67,6 +67,10 @@ def _mapping_detail_url(slug, project_id, pk):
     return f"/api/workspaces/{slug}/projects/{project_id}/github/mappings/{pk}/"
 
 
+def _attach(client, workspace, project, repo):
+    return client.post(_mappings_url(workspace.slug, project.id), {"repository_id": str(repo.pk)}, format="json")
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -102,6 +106,23 @@ def enabled_repo(db, installation):
         full_name="s2-acme/widgets",
         is_enabled=True,
     )
+
+
+@pytest.fixture
+def second_repo(db, installation):
+    return GithubEnabledRepository.objects.create(
+        installation=installation,
+        github_repository_id=88003,
+        full_name="s2-acme/repo2",
+        is_enabled=True,
+    )
+
+
+@pytest.fixture
+def other_project(db, workspace, create_user):
+    p = Project.objects.create(name="S2 Other Project", identifier="S2O", workspace=workspace, created_by=create_user)
+    ProjectMember.objects.create(workspace=workspace, project=p, member=create_user, role=20, is_active=True)
+    return p
 
 
 @pytest.fixture
@@ -724,30 +745,88 @@ class TestMappingCreate:
         assert resp.status_code == status.HTTP_400_BAD_REQUEST
 
     @pytest.mark.django_db
-    def test_second_live_mapping_on_same_project_rejected(
+    def test_second_repo_on_same_project_is_attached_as_non_default(
+        self, session_client, workspace, project, installation, enabled_repo, second_repo
+    ):
+        first = _attach(session_client, workspace, project, enabled_repo)
+        assert first.status_code == status.HTTP_201_CREATED, first.data
+        assert first.data["is_default"] is True
+
+        second = _attach(session_client, workspace, project, second_repo)
+        assert second.status_code == status.HTTP_201_CREATED, second.data
+        assert second.data["is_default"] is False
+
+        resp = session_client.get(_mappings_url(workspace.slug, project.id))
+        assert resp.status_code == status.HTTP_200_OK
+        assert [(m["github_repo"], m["is_default"]) for m in resp.data] == [
+            ("s2-acme/widgets", True),
+            ("s2-acme/repo2", False),
+        ]
+
+    @pytest.mark.django_db
+    def test_same_repo_twice_in_one_project_rejected(
         self, session_client, workspace, project, installation, enabled_repo
     ):
-        # Create first mapping.
-        resp = session_client.post(
-            _mappings_url(workspace.slug, project.id),
-            {"repository_id": str(enabled_repo.pk)},
-            format="json",
-        )
-        assert resp.status_code == status.HTTP_201_CREATED
-
-        # Second repo for same workspace.
-        repo2 = GithubEnabledRepository.objects.create(
-            installation=installation,
-            github_repository_id=99902,
-            full_name="s2-acme/repo2",
-            is_enabled=True,
-        )
-        resp = session_client.post(
-            _mappings_url(workspace.slug, project.id),
-            {"repository_id": str(repo2.pk)},
-            format="json",
-        )
+        assert _attach(session_client, workspace, project, enabled_repo).status_code == status.HTTP_201_CREATED
+        resp = _attach(session_client, workspace, project, enabled_repo)
         assert resp.status_code == status.HTTP_409_CONFLICT
+        assert resp.data["error"] == "This repository is already attached to this project."
+        assert RepoProjectMapping.objects.filter(project=project).count() == 1
+
+    @pytest.mark.django_db
+    def test_same_repo_in_two_projects_allowed(
+        self, session_client, workspace, project, other_project, installation, enabled_repo
+    ):
+        assert _attach(session_client, workspace, project, enabled_repo).status_code == status.HTTP_201_CREATED
+        resp = _attach(session_client, workspace, other_project, enabled_repo)
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        # Each project has its own default.
+        assert resp.data["is_default"] is True
+
+    @pytest.mark.django_db
+    def test_reattached_repo_is_revived_as_non_default_while_another_is_default(
+        self, session_client, workspace, project, installation, enabled_repo, second_repo
+    ):
+        _attach(session_client, workspace, project, enabled_repo)
+        b_id = _attach(session_client, workspace, project, second_repo).data["id"]
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
+
+        resp = _attach(session_client, workspace, project, second_repo)
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert str(resp.data["id"]) == str(b_id)  # soft-deleted row revived, not duplicated
+        assert resp.data["is_default"] is False
+        assert RepoProjectMapping.objects.get(project=project, is_default=True).github_repo == "s2-acme/widgets"
+
+    @pytest.mark.django_db
+    def test_reattached_repo_becomes_default_when_project_has_none(
+        self, session_client, workspace, project, installation, enabled_repo, second_repo
+    ):
+        a_id = _attach(session_client, workspace, project, enabled_repo).data["id"]
+        b_id = _attach(session_client, workspace, project, second_repo).data["id"]
+        with patch("plane.db.mixins.soft_delete_related_objects.delay"):
+            session_client.delete(_mapping_detail_url(workspace.slug, project.id, b_id))
+            session_client.delete(_mapping_detail_url(workspace.slug, project.id, a_id))
+
+        resp = _attach(session_client, workspace, project, enabled_repo)
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert str(resp.data["id"]) == str(a_id)
+        assert resp.data["is_default"] is True
+
+    @pytest.mark.django_db
+    def test_second_repo_from_another_workspace_rejected(
+        self, session_client, workspace, project, installation, enabled_repo, second_workspace
+    ):
+        _attach(session_client, workspace, project, enabled_repo)
+        foreign_installation = GithubAppInstallation.objects.create(
+            workspace=second_workspace, installation_id=99990002, account_login="other-org"
+        )
+        foreign_repo = GithubEnabledRepository.objects.create(
+            installation=foreign_installation, github_repository_id=88009, full_name="other-org/api", is_enabled=True
+        )
+        resp = _attach(session_client, workspace, project, foreign_repo)
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert RepoProjectMapping.objects.filter(project=project).count() == 1
 
     @pytest.mark.django_db
     def test_member_cannot_create(self, api_client, workspace, create_user, project, installation, enabled_repo):

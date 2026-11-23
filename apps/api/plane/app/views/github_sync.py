@@ -83,9 +83,16 @@ class RepoProjectMappingViewSet(BaseViewSet):
             workspace__slug=self.kwargs.get("slug"), project_id=self.kwargs.get("project_id")
         )
 
+    @staticmethod
+    def _lock_project(project_id):
+        # Serialises attach / set-default / delete on one project. The
+        # one-live-default constraint is not deferrable, so concurrent writers
+        # must never interleave their unset-old / set-new default steps.
+        Project.objects.select_for_update().filter(pk=project_id).first()
+
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def list(self, request, slug, project_id):
-        serializer = self.serializer_class(self.get_queryset(), many=True)
+        serializer = self.serializer_class(self.get_queryset().order_by("-is_default", "created_at"), many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN])
@@ -96,41 +103,44 @@ class RepoProjectMappingViewSet(BaseViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(data=request.data, context={"project": project})
         serializer.is_valid(raise_exception=True)
+        github_repo = serializer.validated_data["github_repo"]
 
-        # Check: project already has a live mapping? Return 409.
-        if RepoProjectMapping.objects.filter(project=project).exists():
-            return Response(
-                {"error": "This project already has a configured repository mapping."},
-                status=status.HTTP_409_CONFLICT,
-            )
-
-        try:
-            with transaction.atomic():
-                serializer.save(workspace=project.workspace, project=project)
-        except IntegrityError:
-            # F1: unique_together=["project", "github_repo"] is unconditional
-            # (no deleted_at__isnull=True partial constraint), so a
-            # soft-deleted row from a prior disconnect/reset still occupies
-            # the slot -- revive it instead of leaving reconnect permanently
-            # 409ing, mirroring _write_github_app_configuration's revival.
-            existing = RepoProjectMapping.all_objects.filter(
-                project=project,
-                github_repo=serializer.validated_data.get("github_repo"),
-                deleted_at__isnull=False,
-            ).first()
-            if not existing:
+        with transaction.atomic():
+            self._lock_project(project.pk)
+            if RepoProjectMapping.objects.filter(project=project, github_repo=github_repo).exists():
                 return Response(
-                    {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
+                    {"error": "This repository is already attached to this project."},
                     status=status.HTTP_409_CONFLICT,
                 )
-            for field, value in serializer.validated_data.items():
-                setattr(existing, field, value)
-            existing.workspace = project.workspace
-            existing.project = project
-            existing.is_default = True
-            existing.deleted_at = None
-            existing.save()
-            return Response(self.serializer_class(existing).data, status=status.HTTP_201_CREATED)
+            # The first repository attached becomes the default; later ones
+            # never steal it (the model field defaults to True).
+            is_default = not RepoProjectMapping.objects.filter(project=project, is_default=True).exists()
+
+            try:
+                with transaction.atomic():
+                    serializer.save(workspace=project.workspace, project=project, is_default=is_default)
+            except IntegrityError:
+                # F1: unique_together=["project", "github_repo"] is unconditional
+                # (no deleted_at__isnull=True partial constraint), so a
+                # soft-deleted row from a prior disconnect/reset still occupies
+                # the slot -- revive it instead of leaving reconnect permanently
+                # 409ing, mirroring _write_github_app_configuration's revival.
+                existing = RepoProjectMapping.all_objects.filter(
+                    project=project, github_repo=github_repo, deleted_at__isnull=False
+                ).first()
+                if not existing:
+                    return Response(
+                        {"error": "A mapping conflict occurred (duplicate or constraint violation)."},
+                        status=status.HTTP_409_CONFLICT,
+                    )
+                for field, value in serializer.validated_data.items():
+                    setattr(existing, field, value)
+                existing.workspace = project.workspace
+                existing.project = project
+                existing.is_default = is_default
+                existing.deleted_at = None
+                existing.save()
+                return Response(self.serializer_class(existing).data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
