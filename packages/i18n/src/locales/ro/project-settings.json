@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Repozitorii implicite ale echipelor",
+        "description": "Alegeți repozitoriul în care ajung ramurile noi ale fiecărei echipe în acest proiect. Echipele pe valoarea implicită a proiectului folosesc repozitoriul implicit de mai sus.",
+        "project_default": "Implicit pentru proiect",
+        "no_teams": "Nu există încă echipe. Creați-le în Setări spațiu de lucru → Echipe.",
+        "errors": {
+          "load_failed": "Repozitoriile implicite ale echipelor nu au putut fi încărcate. Încercați din nou.",
+          "save_failed": "Repozitoriul implicit al echipei nu a putut fi salvat. Încercați din nou."
+        }
       }
     },
     "empty_state": {

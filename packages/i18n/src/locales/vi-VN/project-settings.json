@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Kho lưu trữ mặc định của nhóm",
+        "description": "Chọn kho lưu trữ nơi các nhánh mới của từng nhóm được tạo trong dự án này. Các nhóm dùng mặc định của dự án sẽ dùng kho lưu trữ mặc định ở trên.",
+        "project_default": "Mặc định của dự án",
+        "no_teams": "Chưa có nhóm nào. Hãy tạo nhóm trong Cài đặt không gian làm việc → Nhóm.",
+        "errors": {
+          "load_failed": "Không thể tải kho lưu trữ mặc định của các nhóm. Vui lòng thử lại.",
+          "save_failed": "Không thể lưu kho lưu trữ mặc định của nhóm. Vui lòng thử lại."
+        }
       }
     },
     "empty_state": {

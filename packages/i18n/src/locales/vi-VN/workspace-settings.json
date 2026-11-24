@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Nhóm",
-        "description": "Sắp xếp các thành viên trong không gian làm việc vào các nhóm. Mỗi thành viên chỉ có thể thuộc một nhóm. Khi một thành viên tạo nhánh từ một mục công việc, kho lưu trữ mặc định của nhóm sẽ được chọn sẵn nếu kho đó đã được gắn vào dự án.",
+        "description": "Sắp xếp các thành viên trong không gian làm việc vào các nhóm. Mỗi thành viên chỉ có thể thuộc một nhóm. Trong cài đặt GitHub của từng dự án, mỗi nhóm có thể có kho lưu trữ riêng cho các nhánh mới.",
         "create": "Tạo nhóm",
         "empty": {
           "title": "Chưa có nhóm nào",
-          "description": "Nhóm tập hợp các thành viên và cung cấp cho họ một kho lưu trữ GitHub mặc định cho các nhánh mới."
+          "description": "Nhóm tập hợp các thành viên. Mỗi dự án có thể gán cho một nhóm kho lưu trữ GitHub riêng cho các nhánh mới."
         },
         "member_count": "{count, plural, one {# thành viên} other {# thành viên}}",
         "no_members": "Chưa có thành viên nào",
         "add_member": "Thêm thành viên",
         "remove_member_aria_label": "Xóa {name} khỏi nhóm",
-        "default_repository": "Kho lưu trữ mặc định",
-        "no_default_repository": "Không có kho lưu trữ mặc định",
-        "no_repositories_hint": "Kết nối GitHub và bật các kho lưu trữ trong phần cài đặt GitHub để chọn kho lưu trữ mặc định.",
         "rename": "Đổi tên",
         "form": {
           "create_title": "Tạo nhóm",

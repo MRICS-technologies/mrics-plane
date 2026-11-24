@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Repositorios predeterminados de los equipos",
+        "description": "Elija el repositorio al que van las nuevas ramas de cada equipo en este proyecto. Los equipos con el predeterminado del proyecto usan el repositorio predeterminado de arriba.",
+        "project_default": "Predeterminado del proyecto",
+        "no_teams": "Aún no hay equipos. Créelos en Configuración del espacio de trabajo → Equipos.",
+        "errors": {
+          "load_failed": "No se pudieron cargar los repositorios predeterminados de los equipos. Inténtelo de nuevo.",
+          "save_failed": "No se pudo guardar el repositorio predeterminado del equipo. Inténtelo de nuevo."
+        }
       }
     },
     "empty_state": {

@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Tímy",
-        "description": "Zoskupte členov pracovného priestoru do tímov. Každý člen môže patriť iba do jedného tímu. Keď člen vytvorí vetvu z pracovnej položky, predvolený repozitár jeho tímu sa vopred vyberie, ak je pripojený k projektu.",
+        "description": "Zoskupte členov pracovného priestoru do tímov. Každý člen môže patriť iba do jedného tímu. V nastaveniach GitHub každého projektu môže tím dostať vlastný repozitár pre nové vetvy.",
         "create": "Vytvoriť tím",
         "empty": {
           "title": "Zatiaľ žiadne tímy",
-          "description": "Tímy zoskupujú členov a priraďujú im predvolený repozitár GitHub pre nové vetvy."
+          "description": "Tímy zoskupujú členov. Každý projekt môže tímu priradiť vlastný repozitár GitHub pre nové vetvy."
         },
         "member_count": "{count, plural, one {# člen} few {# členovia} many {# člena} other {# členov}}",
         "no_members": "Zatiaľ žiadni členovia",
         "add_member": "Pridať člena",
         "remove_member_aria_label": "Odstrániť člena {name} z tímu",
-        "default_repository": "Predvolený repozitár",
-        "no_default_repository": "Bez predvoleného repozitára",
-        "no_repositories_hint": "Ak chcete vybrať predvolený repozitár, pripojte GitHub a povoľte repozitáre v nastaveniach služby GitHub.",
         "rename": "Premenovať",
         "form": {
           "create_title": "Vytvoriť tím",

@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Výchozí repozitáře týmů",
+        "description": "Vyberte repozitář, do kterého v tomto projektu půjdou nové větve jednotlivých týmů. Týmy s výchozím nastavením projektu používají výchozí repozitář uvedený výše.",
+        "project_default": "Výchozí pro projekt",
+        "no_teams": "Zatím žádné týmy. Vytvořte je v Nastavení pracovního prostoru → Týmy.",
+        "errors": {
+          "load_failed": "Výchozí repozitáře týmů se nepodařilo načíst. Zkuste to prosím znovu.",
+          "save_failed": "Výchozí repozitář týmu se nepodařilo uložit. Zkuste to prosím znovu."
+        }
       }
     },
     "empty_state": {

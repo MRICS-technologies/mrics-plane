@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Takımların varsayılan depoları",
+        "description": "Bu projede her takımın yeni dallarının oluşturulacağı depoyu seçin. Proje varsayılanındaki takımlar yukarıdaki varsayılan depoyu kullanır.",
+        "project_default": "Proje varsayılanı",
+        "no_teams": "Henüz takım yok. Takımları Çalışma Alanı Ayarları → Takımlar bölümünde oluşturun.",
+        "errors": {
+          "load_failed": "Takımların varsayılan depoları yüklenemedi. Lütfen tekrar deneyin.",
+          "save_failed": "Takımın varsayılan deposu kaydedilemedi. Lütfen tekrar deneyin."
+        }
       }
     },
     "empty_state": {

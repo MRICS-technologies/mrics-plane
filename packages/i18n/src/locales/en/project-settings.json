@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Team defaults",
+        "description": "Choose the repository each team's new branches go to in this project. Teams on Project default use the default repository above.",
+        "project_default": "Project default",
+        "no_teams": "No teams yet. Create them in Workspace settings → Teams.",
+        "errors": {
+          "load_failed": "We couldn't load the team defaults. Please try again.",
+          "save_failed": "The team default could not be saved. Please try again."
+        }
       }
     },
     "empty_state": {

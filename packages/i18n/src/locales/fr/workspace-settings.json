@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Équipes",
-        "description": "Regroupez les membres de l’espace de travail en équipes. Un membre ne peut appartenir qu’à une seule équipe. Lorsqu’un membre crée une branche depuis un élément de travail, le dépôt par défaut de son équipe est présélectionné s’il est associé au projet.",
+        "description": "Regroupez les membres de l’espace de travail en équipes. Un membre ne peut appartenir qu’à une seule équipe. Dans les paramètres GitHub de chaque projet, une équipe peut avoir son propre dépôt pour les nouvelles branches.",
         "create": "Créer une équipe",
         "empty": {
           "title": "Aucune équipe pour le moment",
-          "description": "Les équipes regroupent des membres et leur attribuent un dépôt GitHub par défaut pour les nouvelles branches."
+          "description": "Les équipes regroupent des membres. Chaque projet peut attribuer à une équipe son propre dépôt GitHub pour les nouvelles branches."
         },
         "member_count": "{count, plural, one {# membre} many {# membres} other {# membres}}",
         "no_members": "Aucun membre pour le moment",
         "add_member": "Ajouter un membre",
         "remove_member_aria_label": "Retirer {name} de l’équipe",
-        "default_repository": "Dépôt par défaut",
-        "no_default_repository": "Aucun dépôt par défaut",
-        "no_repositories_hint": "Connectez GitHub et activez des dépôts dans les paramètres GitHub pour choisir un dépôt par défaut.",
         "rename": "Renommer",
         "form": {
           "create_title": "Créer une équipe",

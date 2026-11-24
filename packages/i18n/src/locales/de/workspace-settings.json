@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Teams",
-        "description": "Gruppieren Sie die Mitglieder des Arbeitsbereichs in Teams. Ein Mitglied kann nur einem Team angehören. Wenn ein Mitglied aus einem Arbeitselement einen Branch erstellt, wird das Standard-Repository seines Teams vorausgewählt, sofern es mit dem Projekt verknüpft ist.",
+        "description": "Gruppieren Sie die Mitglieder des Arbeitsbereichs in Teams. Ein Mitglied kann nur einem Team angehören. In den GitHub-Einstellungen jedes Projekts kann ein Team ein eigenes Repository für neue Branches erhalten.",
         "create": "Team erstellen",
         "empty": {
           "title": "Noch keine Teams",
-          "description": "Teams fassen Mitglieder zusammen und weisen ihnen ein Standard-GitHub-Repository für neue Branches zu."
+          "description": "Teams fassen Mitglieder zusammen. Jedes Projekt kann einem Team ein eigenes GitHub-Repository für neue Branches zuweisen."
         },
         "member_count": "{count, plural, one {# Mitglied} other {# Mitglieder}}",
         "no_members": "Noch keine Mitglieder",
         "add_member": "Mitglied hinzufügen",
         "remove_member_aria_label": "{name} aus dem Team entfernen",
-        "default_repository": "Standard-Repository",
-        "no_default_repository": "Kein Standard-Repository",
-        "no_repositories_hint": "Verbinden Sie GitHub und aktivieren Sie Repositories in den GitHub-Einstellungen, um ein Standard-Repository auszuwählen.",
         "rename": "Umbenennen",
         "form": {
           "create_title": "Team erstellen",

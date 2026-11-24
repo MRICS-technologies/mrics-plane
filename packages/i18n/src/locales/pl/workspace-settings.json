@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Zespoły",
-        "description": "Członków przestrzeni roboczej można grupować w zespoły. Członek może należeć tylko do jednego zespołu. Gdy członek tworzy gałąź z elementu pracy, domyślne repozytorium jego zespołu jest wstępnie wybierane, jeśli jest powiązane z projektem.",
+        "description": "Członków przestrzeni roboczej można grupować w zespoły. Członek może należeć tylko do jednego zespołu. W ustawieniach GitHub każdego projektu zespół może otrzymać własne repozytorium dla nowych gałęzi.",
         "create": "Utwórz zespół",
         "empty": {
           "title": "Brak zespołów",
-          "description": "Zespoły grupują członków i przypisują im domyślne repozytorium GitHub dla nowych gałęzi."
+          "description": "Zespoły grupują członków. Każdy projekt może przypisać zespołowi własne repozytorium GitHub dla nowych gałęzi."
         },
         "member_count": "{count, plural, one {# członek} few {# członkowie} many {# członków} other {# członka}}",
         "no_members": "Brak członków",
         "add_member": "Dodaj członka",
         "remove_member_aria_label": "Usuń {name} z zespołu",
-        "default_repository": "Domyślne repozytorium",
-        "no_default_repository": "Brak domyślnego repozytorium",
-        "no_repositories_hint": "Aby wybrać domyślne repozytorium, należy połączyć GitHub i włączyć repozytoria w ustawieniach GitHub.",
         "rename": "Zmień nazwę",
         "form": {
           "create_title": "Utwórz zespół",

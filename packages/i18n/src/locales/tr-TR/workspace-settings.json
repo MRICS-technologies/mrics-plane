@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Takımlar",
-        "description": "Çalışma alanı üyelerini takımlar halinde gruplayın. Bir üye yalnızca bir takıma ait olabilir. Bir üye bir iş öğesinden dal oluşturduğunda, takımının varsayılan deposu projeye bağlıysa önceden seçili gelir.",
+        "description": "Çalışma alanı üyelerini takımlar halinde gruplayın. Bir üye yalnızca bir takıma ait olabilir. Her projenin GitHub ayarlarında bir takıma yeni dallar için kendi deposu atanabilir.",
         "create": "Takım oluştur",
         "empty": {
           "title": "Henüz takım yok",
-          "description": "Takımlar üyeleri gruplar ve onlara yeni dallar için varsayılan bir GitHub deposu atar."
+          "description": "Takımlar üyeleri gruplar. Her proje, bir takıma yeni dallar için kendi GitHub deposunu atayabilir."
         },
         "member_count": "{count, plural, one {# üye} other {# üye}}",
         "no_members": "Henüz üye yok",
         "add_member": "Üye ekle",
         "remove_member_aria_label": "{name} adlı üyeyi takımdan çıkar",
-        "default_repository": "Varsayılan depo",
-        "no_default_repository": "Varsayılan depo yok",
-        "no_repositories_hint": "Varsayılan bir depo seçmek için GitHub'ı bağlayın ve GitHub ayarlarında depoları etkinleştirin.",
         "rename": "Yeniden adlandır",
         "form": {
           "create_title": "Takım oluştur",
