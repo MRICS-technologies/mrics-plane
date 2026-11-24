@@ -16,12 +16,13 @@ from django.db.models import Q
 from django.utils import timezone
 
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
-from plane.db.models.integration.github_sync import IssueGitLink, RepoProjectMapping
+from plane.db.models.integration.github_sync import IssueGitLink, ProjectTeamRepository, RepoProjectMapping
 
 
 def soft_delete_installations(installations, *, include_git_links: bool = False) -> dict:
     """Soft-delete `installations` plus their enabled repos and project
-    mappings (and, if `include_git_links`, their issue git links).
+    mappings (and, if `include_git_links`, their issue git links). The team
+    repositories pointing at those mappings are hard-deleted.
 
     `installations` may be a `GithubAppInstallation` queryset or any plain
     iterable of instances (e.g. `[installation]`).
@@ -50,11 +51,20 @@ def soft_delete_installations(installations, *, include_git_links: bool = False)
         # id -- with `repository` left null, so they are invisible to the
         # `repository__installation_id__in` filter alone and would survive a
         # force-disconnect / app-id reset.
-        mapping_count = RepoProjectMapping.all_objects.filter(
-            Q(repository__installation_id__in=inst_ids)
-            | Q(repository__isnull=True, github_installation_id__in=external_installation_ids),
-            deleted_at__isnull=True,
-        ).update(deleted_at=now, updated_at=now)
+        mapping_ids = list(
+            RepoProjectMapping.all_objects.filter(
+                Q(repository__installation_id__in=inst_ids)
+                | Q(repository__isnull=True, github_installation_id__in=external_installation_ids),
+                deleted_at__isnull=True,
+            ).values_list("id", flat=True)
+        )
+        # Mappings first: the update locks them, so a concurrent team
+        # repository write (which locks its mapping) either lands before and
+        # is deleted here, or finds the mapping gone.
+        mapping_count = RepoProjectMapping.all_objects.filter(id__in=mapping_ids, deleted_at__isnull=True).update(
+            deleted_at=now, updated_at=now
+        )
+        ProjectTeamRepository.all_objects.filter(mapping_id__in=mapping_ids).delete()
 
         git_link_count = 0
         if include_git_links:

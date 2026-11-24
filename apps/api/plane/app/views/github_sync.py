@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 # Third party imports
 import requests
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Count, F, OuterRef, Q, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -29,11 +29,17 @@ from plane.app.serializers.github_sync import (
     GithubAppInstallationSerializer,
     GithubEnabledRepositorySerializer,
     IssueGitLinkSerializer,
+    ProjectTeamRepositoryWriteSerializer,
     RepoProjectMappingSerializer,
 )
 from plane.authentication.utils.host import base_host
-from plane.db.models import Issue, Project, Workspace
-from plane.db.models.integration.github_sync import GithubWebhookDelivery, IssueGitLink, RepoProjectMapping
+from plane.db.models import Issue, Project, Team, Workspace
+from plane.db.models.integration.github_sync import (
+    GithubWebhookDelivery,
+    IssueGitLink,
+    ProjectTeamRepository,
+    RepoProjectMapping,
+)
 from plane.db.models.integration.github_app import GithubAppInstallation, GithubEnabledRepository
 from plane.services.github.client import GitHubClient
 from plane.services.github.credentials import get_github_app_credentials
@@ -92,12 +98,12 @@ class RepoProjectMappingViewSet(BaseViewSet):
         # must never interleave their unset-old / set-new default steps.
         # no_key: still excludes other writers here, but lets concurrent FK
         # inserts that reference the project (new issues, ...) through.
-        Project.objects.select_for_update(no_key=True).filter(pk=project_id).first()
+        return Project.objects.select_for_update(no_key=True).filter(pk=project_id).first()
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
     def list(self, request, slug, project_id):
         mappings = list(self.get_queryset().select_related("repository").order_by("-is_default", "created_at"))
-        hints = mapping_team_hints(slug, request.user, mappings)
+        hints = mapping_team_hints(slug, project_id, request.user, mappings)
         data = [
             {**item, **hints[mapping.id]}
             for item, mapping in zip(self.serializer_class(mappings, many=True).data, mappings)
@@ -190,10 +196,11 @@ class RepoProjectMappingViewSet(BaseViewSet):
                 mapping = self.get_queryset().get(pk=pk)
             except RepoProjectMapping.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-            # Direct soft delete: nothing references a mapping, so
-            # SoftDeleteModel.delete()'s Celery cascade has nothing to do.
+            # Direct soft delete; the team repositories pointing at it (the
+            # only rows referencing a mapping) go with it, hard-deleted.
             mapping.deleted_at = timezone.now()
             mapping.save(update_fields=["deleted_at", "updated_at"])
+            ProjectTeamRepository.all_objects.filter(mapping=mapping).delete()
             if mapping.is_default:
                 # Keep the project with a default while any repository is left.
                 successor = self.get_queryset().order_by("created_at").first()
@@ -201,6 +208,80 @@ class RepoProjectMappingViewSet(BaseViewSet):
                     successor.is_default = True
                     successor.save(update_fields=["is_default", "updated_at"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProjectTeamRepositoryViewSet(BaseViewSet):
+    """Per workspace team, the project mapping its members' branches go to in
+    this project; mapping_id null means the project default."""
+
+    model = ProjectTeamRepository
+
+    @staticmethod
+    def _teams(slug, project_id):
+        override = ProjectTeamRepository.objects.filter(
+            team=OuterRef("pk"), project_id=project_id, mapping__deleted_at__isnull=True
+        )
+        # Members who left the workspace are not counted (as on the Teams page).
+        return Team.objects.filter(workspace__slug=slug).annotate(
+            mapping_id=Subquery(override.values("mapping_id")[:1]),
+            member_count=Count(
+                "team_members",
+                filter=Q(
+                    team_members__deleted_at__isnull=True,
+                    team_members__member__member_workspace__workspace=F("workspace"),
+                    team_members__member__member_workspace__is_active=True,
+                    team_members__member__member_workspace__deleted_at__isnull=True,
+                ),
+                distinct=True,
+            ),
+        )
+
+    @staticmethod
+    def _row(team):
+        return {
+            "team": {"id": str(team.id), "name": team.name, "member_count": team.member_count},
+            "mapping_id": str(team.mapping_id) if team.mapping_id else None,
+        }
+
+    @allow_permission([ROLE.ADMIN, ROLE.MEMBER])
+    def list(self, request, slug, project_id):
+        return Response([self._row(team) for team in self._teams(slug, project_id).order_by("name")])
+
+    @allow_permission([ROLE.ADMIN])
+    def update(self, request, slug, project_id, team_id):
+        serializer = ProjectTeamRepositoryWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        mapping_id = serializer.validated_data["mapping_id"]
+        with transaction.atomic():
+            # The project lock orders this after a concurrent mapping removal;
+            # the team and mapping row locks after a team delete or a GitHub
+            # disconnect, which soft-delete those rows before dropping their
+            # team repositories.
+            project = RepoProjectMappingViewSet._lock_project(project_id)
+            team = (
+                Team.objects.select_for_update(no_key=True, of=("self",))
+                .filter(workspace__slug=slug, pk=team_id)
+                .first()
+            )
+            if not project or not team:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+            if mapping_id is None:
+                ProjectTeamRepository.all_objects.filter(project=project, team=team).delete()
+            else:
+                mapping = (
+                    RepoProjectMapping.objects.select_for_update(no_key=True, of=("self",))
+                    .filter(workspace__slug=slug, project=project, pk=mapping_id)
+                    .first()
+                )
+                if not mapping:
+                    return Response(
+                        {"mapping_id": ["Must be a repository attached to this project."]},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                ProjectTeamRepository.objects.update_or_create(
+                    project=project, team=team, defaults={"mapping": mapping}
+                )
+        return Response(self._row(self._teams(slug, project_id).get(pk=team.pk)), status=status.HTTP_200_OK)
 
 
 # ---------------------------------------------------------------------------

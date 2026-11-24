@@ -255,6 +255,7 @@ from .github_sync import (
     WorkspaceRepositoryDetailEndpoint,
     WorkspaceAvailableRepositoriesEndpoint,
     RepoProjectMappingViewSet,
+    ProjectTeamRepositoryViewSet,
     IssueGitLinkViewSet,
     IssueCreateBranchEndpoint,
     GitHubWebhookView,
