@@ -245,6 +245,16 @@
           "forbidden": "Vous n'avez pas la permission de supprimer cette association.",
           "failed": "Cette association n'a pas pu être supprimée."
         }
+      },
+      "team_defaults": {
+        "title": "Dépôts par défaut des équipes",
+        "description": "Choisissez le dépôt où vont les nouvelles branches de chaque équipe dans ce projet. Les équipes sur la valeur par défaut du projet utilisent le dépôt par défaut ci-dessus.",
+        "project_default": "Par défaut du projet",
+        "no_teams": "Aucune équipe pour l’instant. Créez-en dans Paramètres de l’espace de travail → Équipes.",
+        "errors": {
+          "load_failed": "Impossible de charger les dépôts par défaut des équipes. Veuillez réessayer.",
+          "save_failed": "Impossible d’enregistrer le dépôt par défaut de l’équipe. Veuillez réessayer."
+        }
       }
     },
     "empty_state": {

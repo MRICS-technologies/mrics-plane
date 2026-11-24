@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Equipos",
-        "description": "Agrupe a los miembros del espacio de trabajo en equipos. Un miembro solo puede pertenecer a un equipo. Cuando un miembro crea una rama desde un elemento de trabajo, se preselecciona el repositorio predeterminado de su equipo si está vinculado al proyecto.",
+        "description": "Agrupe a los miembros del espacio de trabajo en equipos. Un miembro solo puede pertenecer a un equipo. En la configuración de GitHub de cada proyecto, un equipo puede tener su propio repositorio para las nuevas ramas.",
         "create": "Crear equipo",
         "empty": {
           "title": "Aún no hay equipos",
-          "description": "Los equipos agrupan a los miembros y les asignan un repositorio de GitHub predeterminado para las nuevas ramas."
+          "description": "Los equipos agrupan a los miembros. Cada proyecto puede asignar a un equipo su propio repositorio de GitHub para las nuevas ramas."
         },
         "member_count": "{count, plural, one {# miembro} other {# miembros}}",
         "no_members": "Aún no hay miembros",
         "add_member": "Agregar miembro",
         "remove_member_aria_label": "Quitar a {name} del equipo",
-        "default_repository": "Repositorio predeterminado",
-        "no_default_repository": "Sin repositorio predeterminado",
-        "no_repositories_hint": "Conecte GitHub y habilite repositorios en la configuración de GitHub para elegir un repositorio predeterminado.",
         "rename": "Cambiar nombre",
         "form": {
           "create_title": "Crear equipo",

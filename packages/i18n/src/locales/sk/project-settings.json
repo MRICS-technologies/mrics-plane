@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Predvolené repozitáre tímov",
+        "description": "Vyberte repozitár, do ktorého v tomto projekte idú nové vetvy jednotlivých tímov. Tímy s predvoleným nastavením projektu používajú predvolený repozitár uvedený vyššie.",
+        "project_default": "Predvolený pre projekt",
+        "no_teams": "Zatiaľ žiadne tímy. Vytvorte ich v Nastavenia pracovného priestoru → Tímy.",
+        "errors": {
+          "load_failed": "Predvolené repozitáre tímov sa nepodarilo načítať. Skúste to znova.",
+          "save_failed": "Predvolený repozitár tímu sa nepodarilo uložiť. Skúste to znova."
+        }
       }
     },
     "empty_state": {

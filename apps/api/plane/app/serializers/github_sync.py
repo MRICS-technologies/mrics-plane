@@ -107,6 +107,12 @@ class GithubEnabledRepositoryNestedSerializer(BaseSerializer):
         fields = ["id", "github_repository_id", "full_name", "is_enabled", "default_branch"]
 
 
+class ProjectTeamRepositoryWriteSerializer(serializers.Serializer):
+    """PUT body of a team's repository in a project; null means the project default."""
+
+    mapping_id = serializers.UUIDField(allow_null=True)
+
+
 # ---------------------------------------------------------------------------
 # S2: Hardened RepoProjectMappingSerializer (explicit fields, no __all__)
 # ---------------------------------------------------------------------------

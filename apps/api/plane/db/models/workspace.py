@@ -263,15 +263,6 @@ class Team(BaseModel):
     description = models.TextField(verbose_name="Team Description", blank=True)
     workspace = models.ForeignKey(Workspace, on_delete=models.CASCADE, related_name="workspace_team")
     logo_props = models.JSONField(default=dict)
-    # Preferred repository when a member creates a branch from an issue; only
-    # used when the project has this repository attached.
-    default_repository = models.ForeignKey(
-        "db.GithubEnabledRepository",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="default_for_teams",
-    )
 
     def __str__(self):
         """Return name of the team"""

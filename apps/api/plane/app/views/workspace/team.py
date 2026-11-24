@@ -14,7 +14,7 @@ from rest_framework.response import Response
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
 from plane.app.serializers.team import TeamMembersSerializer, TeamWriteSerializer, serialize_team
-from plane.db.models import Team, TeamMember, Workspace, WorkspaceMember
+from plane.db.models import ProjectTeamRepository, Team, TeamMember, Workspace, WorkspaceMember
 from ..base import BaseAPIView
 
 DUPLICATE_NAME = {"name": ["A team with this name already exists in this workspace."]}
@@ -29,11 +29,7 @@ def _teams(slug):
             )
         )
     )
-    return (
-        Team.objects.filter(workspace__slug=slug)
-        .select_related("default_repository")
-        .prefetch_related(Prefetch("team_members", queryset=active_members))
-    )
+    return Team.objects.filter(workspace__slug=slug).prefetch_related(Prefetch("team_members", queryset=active_members))
 
 
 class WorkspaceTeamEndpoint(BaseAPIView):
@@ -43,17 +39,14 @@ class WorkspaceTeamEndpoint(BaseAPIView):
 
     @allow_permission([ROLE.ADMIN], level="WORKSPACE")
     def post(self, request, slug):
-        serializer = TeamWriteSerializer(data=request.data, context={"workspace_slug": slug})
+        serializer = TeamWriteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         workspace = Workspace.objects.get(slug=slug)
         data = serializer.validated_data
         try:
             with transaction.atomic():
                 team = Team.objects.create(
-                    workspace=workspace,
-                    name=data["name"],
-                    description=data.get("description", ""),
-                    default_repository_id=data.get("default_repository_id"),
+                    workspace=workspace, name=data["name"], description=data.get("description", "")
                 )
         except IntegrityError:
             return Response(DUPLICATE_NAME, status=status.HTTP_409_CONFLICT)
@@ -66,7 +59,7 @@ class WorkspaceTeamDetailEndpoint(BaseAPIView):
         team = _teams(slug).filter(pk=team_id).first()
         if not team:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        serializer = TeamWriteSerializer(data=request.data, partial=True, context={"workspace_slug": slug})
+        serializer = TeamWriteSerializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         for field, value in data.items():
@@ -84,12 +77,16 @@ class WorkspaceTeamDetailEndpoint(BaseAPIView):
         if not team:
             return Response(status=status.HTTP_404_NOT_FOUND)
         with transaction.atomic():
-            # Memberships are hard-deleted so the members can join another
-            # team; the team itself is soft-deleted (its name is freed) by a
-            # direct update: Team.delete() would queue the soft-delete cascade.
-            TeamMember.all_objects.filter(team=team).delete()
+            # The team is soft-deleted (its name is freed) by a direct update:
+            # Team.delete() would queue the soft-delete cascade. Updating first
+            # locks the row, so a concurrent project team repository write
+            # (which locks it too) either lands before and is deleted below,
+            # or finds the team gone. Memberships are hard-deleted so the
+            # members can join another team.
             now = timezone.now()
             Team.objects.filter(pk=team.pk).update(deleted_at=now, updated_at=now)
+            TeamMember.all_objects.filter(team=team).delete()
+            ProjectTeamRepository.all_objects.filter(team=team).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

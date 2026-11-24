@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Týmy",
-        "description": "Seskupte členy pracovního prostoru do týmů. Každý člen může patřit pouze do jednoho týmu. Když člen vytvoří větev z pracovní položky, předvybere se výchozí repozitář jeho týmu, pokud je připojen k projektu.",
+        "description": "Seskupte členy pracovního prostoru do týmů. Každý člen může patřit pouze do jednoho týmu. V nastavení GitHub každého projektu můžete týmu přiřadit vlastní repozitář pro nové větve.",
         "create": "Vytvořit tým",
         "empty": {
           "title": "Zatím žádné týmy",
-          "description": "Týmy seskupují členy a přiřazují jim výchozí repozitář GitHub pro nové větve."
+          "description": "Týmy seskupují členy. Každý projekt může týmu přiřadit vlastní repozitář GitHub pro nové větve."
         },
         "member_count": "{count, plural, one {# člen} few {# členové} many {# člena} other {# členů}}",
         "no_members": "Zatím žádní členové",
         "add_member": "Přidat člena",
         "remove_member_aria_label": "Odebrat člena {name} z týmu",
-        "default_repository": "Výchozí repozitář",
-        "no_default_repository": "Bez výchozího repozitáře",
-        "no_repositories_hint": "Chcete-li vybrat výchozí repozitář, připojte GitHub a povolte repozitáře v nastavení služby GitHub.",
         "rename": "Přejmenovat",
         "form": {
           "create_title": "Vytvořit tým",

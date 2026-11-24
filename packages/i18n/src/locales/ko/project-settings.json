@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "팀 기본 레포지토리",
+        "description": "이 프로젝트에서 각 팀의 새 브랜치가 생성될 레포지토리를 선택합니다. 프로젝트 기본값을 사용하는 팀은 위의 기본 레포지토리를 사용합니다.",
+        "project_default": "프로젝트 기본값",
+        "no_teams": "아직 팀이 없습니다. 작업 공간 설정 → 팀에서 팀을 만들 수 있습니다.",
+        "errors": {
+          "load_failed": "팀 기본 레포지토리를 불러올 수 없습니다. 다시 시도해 주세요.",
+          "save_failed": "팀 기본 레포지토리를 저장할 수 없습니다. 다시 시도해 주세요."
+        }
       }
     },
     "empty_state": {

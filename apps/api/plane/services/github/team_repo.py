@@ -2,43 +2,45 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
-"""Team default repository: which project mapping a member's branch goes to.
+"""Team repository per project: which project mapping a member's branch goes to.
 
-Order when no repository is named: the member's team default repository if
-the project has it attached, else the project default mapping. The matching
-rule lives only here; the mapping list exposes it to the web picker.
+Order when no repository is named: the mapping the member's team uses in this
+project (ProjectTeamRepository), else the project default mapping. A team
+mapping whose repository is disabled on GitHub, or whose installation is gone,
+is skipped. The rule lives only here; the mapping list exposes it to the web
+picker.
 """
 
-from plane.db.models import Team, WorkspaceMember
-from plane.db.models.integration.github_app import GithubEnabledRepository
-from plane.db.models.integration.github_sync import RepoProjectMapping
+from django.db.models import Exists, Q
+
+from plane.db.models import WorkspaceMember
+from plane.db.models.integration.github_sync import ProjectTeamRepository, RepoProjectMapping
 
 
-def usable_repositories(workspace_slug):
-    """Enabled repositories of the workspace's live, active installation."""
-    return GithubEnabledRepository.objects.filter(
-        is_enabled=True,
-        installation__deleted_at__isnull=True,
-        installation__is_active=True,
-        installation__workspace__slug=workspace_slug,
+def _overrides(workspace_slug, project_id):
+    # Overrides are hard-deleted with their mapping or team; the two deleted_at
+    # filters keep a missed cleanup path falling back to the project default.
+    # Legacy mappings have no repository row and stay usable.
+    usable_repository = Q(mapping__repository__isnull=True) | Q(
+        mapping__repository__is_enabled=True,
+        mapping__repository__deleted_at__isnull=True,
+        mapping__repository__installation__deleted_at__isnull=True,
+        mapping__repository__installation__is_active=True,
+    )
+    return ProjectTeamRepository.objects.filter(
+        usable_repository,
+        workspace__slug=workspace_slug,
+        project_id=project_id,
+        mapping__deleted_at__isnull=True,
+        team__deleted_at__isnull=True,
     )
 
 
-def team_default_repository(workspace_slug, user):
-    """The usable default repository of the user's team, or None."""
-    if not WorkspaceMember.objects.filter(workspace__slug=workspace_slug, member=user, is_active=True).exists():
-        return None
-    my_team = Team.objects.filter(
-        workspace__slug=workspace_slug, team_members__member=user, team_members__deleted_at__isnull=True
+def _my_overrides(workspace_slug, project_id, user):
+    active_member = WorkspaceMember.objects.filter(workspace__slug=workspace_slug, member=user, is_active=True)
+    return _overrides(workspace_slug, project_id).filter(
+        Exists(active_member), team__team_members__member=user, team__team_members__deleted_at__isnull=True
     )
-    return usable_repositories(workspace_slug).filter(default_for_teams__in=my_team).first()
-
-
-def mapping_matches(mapping, repository):
-    """A mapping points at the repository by FK; legacy rows (no FK) by name."""
-    if mapping.repository_id:
-        return mapping.repository_id == repository.id
-    return mapping.github_repo.lower() == repository.full_name.lower()
 
 
 def pick_branch_mapping(workspace_slug, project_id, user, repo=None):
@@ -46,31 +48,22 @@ def pick_branch_mapping(workspace_slug, project_id, user, repo=None):
     mappings = RepoProjectMapping.objects.filter(workspace__slug=workspace_slug, project_id=project_id)
     if repo:
         return mappings.filter(github_repo=repo).first()
-    ordered = list(mappings.order_by("-is_default", "created_at"))
-    team_repo = team_default_repository(workspace_slug, user)
-    if team_repo:
-        for mapping in ordered:
-            if mapping_matches(mapping, team_repo):
-                return mapping
-    return ordered[0] if ordered else None
+    override = _my_overrides(workspace_slug, project_id, user).select_related("mapping").first()
+    return override.mapping if override else mappings.order_by("-is_default", "created_at").first()
 
 
-def mapping_team_hints(workspace_slug, user, mappings):
-    """{mapping.id: {"default_for_teams": [{id, name}], "is_my_team_default": bool}}."""
-    teams = list(
-        Team.objects.filter(workspace__slug=workspace_slug, default_repository__in=usable_repositories(workspace_slug))
-        .select_related("default_repository")
-        .order_by("name")
-    )
-    my_repo = team_default_repository(workspace_slug, user)
+def mapping_team_hints(workspace_slug, project_id, user, mappings):
+    """{mapping.id: {"default_for_teams": [{id, name}], "is_my_team_default": bool}} for this project."""
+    overrides = list(_overrides(workspace_slug, project_id).select_related("team").order_by("team__name"))
+    my_mapping_id = _my_overrides(workspace_slug, project_id, user).values_list("mapping_id", flat=True).first()
     return {
         mapping.id: {
             "default_for_teams": [
-                {"id": str(team.id), "name": team.name}
-                for team in teams
-                if mapping_matches(mapping, team.default_repository)
+                {"id": str(override.team_id), "name": override.team.name}
+                for override in overrides
+                if override.mapping_id == mapping.id
             ],
-            "is_my_team_default": bool(my_repo and mapping_matches(mapping, my_repo)),
+            "is_my_team_default": mapping.id == my_mapping_id,
         }
         for mapping in mappings
     }

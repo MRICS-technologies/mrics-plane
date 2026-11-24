@@ -6,6 +6,7 @@ from django.urls import path
 
 from plane.app.views import (
     RepoProjectMappingViewSet,
+    ProjectTeamRepositoryViewSet,
     IssueGitLinkViewSet,
     IssueCreateBranchEndpoint,
     GitHubWebhookView,
@@ -27,6 +28,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/github/mappings/<uuid:pk>/",
         RepoProjectMappingViewSet.as_view({"patch": "partial_update", "delete": "destroy"}),
         name="github-repo-project-mapping-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/github/team-repositories/",
+        ProjectTeamRepositoryViewSet.as_view({"get": "list"}),
+        name="github-project-team-repositories",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/github/team-repositories/<uuid:team_id>/",
+        ProjectTeamRepositoryViewSet.as_view({"put": "update"}),
+        name="github-project-team-repository-detail",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/issues/<uuid:issue_id>/git-links/",

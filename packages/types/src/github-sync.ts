@@ -59,10 +59,16 @@ export type TRepoProjectMapping = {
   repository_detail: TRepoProjectMappingRepositoryDetail | null;
   created_at: string;
   updated_at: string;
-  /** Teams whose default repository is this mapping. List endpoint only. */
+  /** Teams whose repository in this project is this mapping. List endpoint only. */
   default_for_teams?: { id: string; name: string }[];
-  /** This mapping is the requesting user's team default repository. List endpoint only. */
+  /** This mapping is the requesting user's team repository in this project. List endpoint only. */
   is_my_team_default?: boolean;
+};
+
+/** A workspace team and the mapping its branches go to in one project; null means the project default. */
+export type TProjectTeamRepository = {
+  team: { id: string; name: string; member_count: number };
+  mapping_id: string | null;
 };
 
 export type TCreateMappingPayload = {

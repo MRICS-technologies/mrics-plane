@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Team",
-        "description": "I membri dello spazio di lavoro possono essere raggruppati in team. Un membro può appartenere a un solo team. Quando un membro crea un branch da un elemento di lavoro, il repository predefinito del suo team viene preselezionato se è collegato al progetto.",
+        "description": "I membri dello spazio di lavoro possono essere raggruppati in team. Un membro può appartenere a un solo team. Nelle impostazioni GitHub di ogni progetto, un team può avere un proprio repository per i nuovi branch.",
         "create": "Crea team",
         "empty": {
           "title": "Ancora nessun team",
-          "description": "I team raggruppano i membri e assegnano loro un repository GitHub predefinito per i nuovi branch."
+          "description": "I team raggruppano i membri. Ogni progetto può assegnare a un team un proprio repository GitHub per i nuovi branch."
         },
         "member_count": "{count, plural, one {# membro} many {# membri} other {# membri}}",
         "no_members": "Ancora nessun membro",
         "add_member": "Aggiungi membro",
         "remove_member_aria_label": "Rimuovi {name} dal team",
-        "default_repository": "Repository predefinito",
-        "no_default_repository": "Nessun repository predefinito",
-        "no_repositories_hint": "Per scegliere un repository predefinito, collegare GitHub e abilitare i repository nelle impostazioni di GitHub.",
         "rename": "Rinomina",
         "form": {
           "create_title": "Crea team",

@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Echipe",
-        "description": "Grupați membrii spațiului de lucru în echipe. Un membru poate face parte dintr-o singură echipă. Când un membru creează o ramură dintr-o activitate, repozitoriul implicit al echipei sale este preselectat dacă este atașat proiectului.",
+        "description": "Grupați membrii spațiului de lucru în echipe. Un membru poate face parte dintr-o singură echipă. În setările GitHub ale fiecărui proiect, o echipă poate primi propriul repozitoriu pentru ramurile noi.",
         "create": "Creează echipă",
         "empty": {
           "title": "Nicio echipă încă",
-          "description": "Echipele grupează membrii și le atribuie un repozitoriu GitHub implicit pentru ramurile noi."
+          "description": "Echipele grupează membrii. Fiecare proiect poate atribui unei echipe propriul repozitoriu GitHub pentru ramurile noi."
         },
         "member_count": "{count, plural, one {# membru} few {# membri} other {# de membri}}",
         "no_members": "Niciun membru încă",
         "add_member": "Adaugă membru",
         "remove_member_aria_label": "Elimină {name} din echipă",
-        "default_repository": "Repozitoriu implicit",
-        "no_default_repository": "Fără repozitoriu implicit",
-        "no_repositories_hint": "Conectați GitHub și activați repozitorii în setările GitHub pentru a alege un repozitoriu implicit.",
         "rename": "Redenumește",
         "form": {
           "create_title": "Creează echipă",

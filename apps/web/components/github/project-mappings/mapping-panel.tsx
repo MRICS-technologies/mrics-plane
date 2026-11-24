@@ -6,12 +6,16 @@
 
 import { useState } from "react";
 import { WarningTriangleOutline } from "@makeplane/propel/icons";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 // plane imports
 import { Button } from "@makeplane/propel/components/button";
 import { EmptyStateCompact } from "@plane/blocks/empty-state";
 import { Loader } from "@plane/blocks/skeleton";
-import { GITHUB_PROJECT_MAPPINGS_KEY, GITHUB_REPOSITORIES_KEY } from "@plane/constants";
+import {
+  GITHUB_PROJECT_MAPPINGS_KEY,
+  GITHUB_PROJECT_TEAM_REPOSITORIES_KEY,
+  GITHUB_REPOSITORIES_KEY,
+} from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { TCreateMappingPayload, TRepoProjectMapping } from "@plane/types";
 // components
@@ -21,6 +25,7 @@ import { GithubSyncService } from "@/services/github-sync.service";
 // local imports
 import { CreateMappingModal } from "./create-mapping-modal";
 import { MappingListItem } from "./mapping-list-item";
+import { TeamDefaults } from "./team-defaults";
 
 const githubSyncService = new GithubSyncService();
 
@@ -82,7 +87,8 @@ export function MappingPanel(props: Props) {
 
   const handleDelete = async (mapping: TRepoProjectMapping) => {
     await githubSyncService.deleteMapping(workspaceSlug, projectId, mapping.id);
-    await mutateMappings();
+    // Teams that used this repository are back on the project default.
+    await Promise.all([mutateMappings(), mutate(GITHUB_PROJECT_TEAM_REPOSITORIES_KEY(workspaceSlug, projectId))]);
   };
 
   return (
@@ -132,15 +138,23 @@ export function MappingPanel(props: Props) {
           />
         </div>
       ) : hasMapping ? (
-        <div>
-          {mappings?.map((mapping) => (
-            <MappingListItem
-              key={mapping.id}
-              mapping={mapping}
-              onSetDefault={handleSetDefault}
-              onDelete={handleDelete}
-            />
-          ))}
+        <div className="flex flex-col gap-6">
+          <div>
+            {mappings?.map((mapping) => (
+              <MappingListItem
+                key={mapping.id}
+                mapping={mapping}
+                onSetDefault={handleSetDefault}
+                onDelete={handleDelete}
+              />
+            ))}
+          </div>
+          <TeamDefaults
+            workspaceSlug={workspaceSlug}
+            projectId={projectId}
+            mappings={mappings ?? []}
+            onChange={() => mutateMappings()}
+          />
         </div>
       ) : (
         <EmptyStateCompact
