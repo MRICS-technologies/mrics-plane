@@ -11,7 +11,6 @@ import { Button } from "@makeplane/propel/components/button";
 import { CloseCircleOutline } from "@makeplane/propel/icons";
 // plane imports
 import { ConfirmDialog } from "@plane/blocks/dialog";
-import { Select } from "@plane/blocks/select";
 import { setToast } from "@plane/blocks/toast";
 import { useTranslation } from "@plane/i18n";
 import type { TApiError, TWorkspaceTeam } from "@plane/types";
@@ -27,8 +26,6 @@ import { TeamFormModal } from "./team-form-modal";
 
 const workspaceTeamService = new WorkspaceTeamService();
 
-export type TTeamRepositoryOption = { id: string; full_name: string };
-
 /** i18n key of the toast for a failed team write. */
 export const teamErrorKey = (error: unknown) => {
   const status = (error as TApiError)?.status;
@@ -42,14 +39,12 @@ type Props = {
   team: TWorkspaceTeam;
   /** Every team of the workspace, to tell which team a picked member is moved from. */
   teams: TWorkspaceTeam[];
-  /** Enabled repositories of the workspace's GitHub installation; undefined while loading. */
-  repositories: TTeamRepositoryOption[] | undefined;
   isAdmin: boolean;
   onChange: () => Promise<unknown>;
 };
 
 export const TeamListItem = observer(function TeamListItem(props: Props) {
-  const { workspaceSlug, team, teams, repositories, isAdmin, onChange } = props;
+  const { workspaceSlug, team, teams, isAdmin, onChange } = props;
   const { t } = useTranslation();
   const {
     workspace: { workspaceMemberIds, getWorkspaceMemberDetails },
@@ -64,19 +59,6 @@ export const TeamListItem = observer(function TeamListItem(props: Props) {
   const addableMemberIds = (workspaceMemberIds ?? []).filter(
     (memberId) => getWorkspaceMemberDetails(memberId)?.is_active !== false && !team.member_ids.includes(memberId)
   );
-  const none: TTeamRepositoryOption = {
-    id: "",
-    full_name: t("workspace_settings.settings.teams.no_default_repository"),
-  };
-  const current = team.default_repository;
-  const hasNoRepositories = repositories?.length === 0;
-  // A default repository disabled since it was picked still shows as the value.
-  const repositoryOptions = [
-    none,
-    ...(repositories ?? []),
-    ...(current && !repositories?.some((repository) => repository.id === current.id) ? [current] : []),
-  ];
-
   const run = async (write: () => Promise<unknown>) => {
     try {
       await write();
@@ -178,44 +160,6 @@ export const TeamListItem = observer(function TeamListItem(props: Props) {
               onClick={() => setIsDeleteOpen(true)}
             />
           </div>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <span className="text-11 font-medium text-tertiary">
-          {t("workspace_settings.settings.teams.default_repository")}
-        </span>
-        {isAdmin ? (
-          <div className="flex flex-col gap-1">
-            <div className="w-72 max-w-full">
-              <Select<TTeamRepositoryOption>
-                getValues={() => repositoryOptions}
-                value={repositoryOptions.find((option) => option.id === (current?.id ?? "")) ?? none}
-                onChange={(id) =>
-                  void runQuietly(() =>
-                    workspaceTeamService.update(workspaceSlug, team.id, { default_repository_id: id || null })
-                  )
-                }
-                getOptionValue={(option) => option.id}
-                getOptionLabel={(option) => option.full_name}
-                disabled={hasNoRepositories && !current}
-                contentSizing="anchor"
-              >
-                <Select.Trigger<TTeamRepositoryOption> variant="select-md">
-                  <Select.Value />
-                </Select.Trigger>
-              </Select>
-            </div>
-            {hasNoRepositories && (
-              <span className="text-11 text-tertiary">
-                {t("workspace_settings.settings.teams.no_repositories_hint")}
-              </span>
-            )}
-          </div>
-        ) : (
-          <span className="text-13">
-            {current?.full_name ?? t("workspace_settings.settings.teams.no_default_repository")}
-          </span>
         )}
       </div>
 

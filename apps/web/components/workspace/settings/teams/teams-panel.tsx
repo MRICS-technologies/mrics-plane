@@ -12,18 +12,16 @@ import { WarningTriangleOutline } from "@makeplane/propel/icons";
 import { EmptyStateCompact } from "@plane/blocks/empty-state";
 import { Loader } from "@plane/blocks/skeleton";
 import { setToast } from "@plane/blocks/toast";
-import { GITHUB_REPOSITORIES_KEY, WORKSPACE_TEAMS_KEY } from "@plane/constants";
+import { WORKSPACE_TEAMS_KEY } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 // components
 import { SettingsHeading } from "@/components/settings/heading";
 // services
-import { GithubSyncService } from "@/services/github-sync.service";
 import { WorkspaceTeamService } from "@/services/workspace-team.service";
 // local imports
 import { TeamFormModal } from "./team-form-modal";
 import { TeamListItem, teamErrorKey } from "./team-list-item";
 
-const githubSyncService = new GithubSyncService();
 const workspaceTeamService = new WorkspaceTeamService();
 
 type Props = {
@@ -42,12 +40,6 @@ export function TeamsPanel(props: Props) {
     isLoading,
     mutate,
   } = useSWR(WORKSPACE_TEAMS_KEY(workspaceSlug), () => workspaceTeamService.list(workspaceSlug));
-  // Same cache entry as the GitHub settings page; [] without an installation.
-  const { data: repositories } = useSWR(GITHUB_REPOSITORIES_KEY(workspaceSlug), () =>
-    githubSyncService.getRepositories(workspaceSlug)
-  );
-  // undefined while loading, so the list items don't show the "no repositories" state yet.
-  const enabledRepositories = repositories?.filter((repository) => repository.is_enabled);
 
   const handleCreate = async (name: string) => {
     try {
@@ -118,7 +110,6 @@ export function TeamsPanel(props: Props) {
               workspaceSlug={workspaceSlug}
               team={team}
               teams={teams}
-              repositories={enabledRepositories}
               isAdmin={isAdmin}
               onChange={() => mutate()}
             />

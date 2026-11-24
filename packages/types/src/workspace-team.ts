@@ -8,7 +8,6 @@ export type TWorkspaceTeam = {
   id: string;
   name: string;
   description: string;
-  default_repository: { id: string; full_name: string } | null;
   member_ids: string[];
   created_at: string;
 };
@@ -16,5 +15,4 @@ export type TWorkspaceTeam = {
 export type TWorkspaceTeamPayload = {
   name?: string;
   description?: string;
-  default_repository_id?: string | null;
 };
