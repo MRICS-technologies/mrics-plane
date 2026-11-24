@@ -117,7 +117,8 @@ GitHub removes the team defaults that pointed at it, so those teams are back
 on the project default. A team whose repository is disabled on GitHub
 (removed from the GitHub App's repository access, or the installation is
 suspended) also falls back to the project default; its choice is kept and
-applies again once GitHub gives the App access to the repository again.
+applies again once the installation is unsuspended or a workspace admin
+enables the repository again (see [admin setup](admin-setup.md), step 4).
 The issue panel pre-selects the same repository the
 server would pick, and the repository list shows "Team default for: …" under
 each repository that teams use in this project.
