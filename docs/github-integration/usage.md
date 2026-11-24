@@ -114,7 +114,11 @@ Step 2 is skipped when you are in no team, your team is on **Project
 default** in this project, or you are no longer an active workspace member.
 Removing a repository from the project, deleting the team or disconnecting
 GitHub removes the team defaults that pointed at it, so those teams are back
-on the project default. The issue panel pre-selects the same repository the
+on the project default. A team whose repository is disabled on GitHub
+(removed from the GitHub App's repository access, or the installation is
+suspended) also falls back to the project default; its choice is kept and
+applies again once GitHub gives the App access to the repository again.
+The issue panel pre-selects the same repository the
 server would pick, and the repository list shows "Team default for: …" under
 each repository that teams use in this project.
 

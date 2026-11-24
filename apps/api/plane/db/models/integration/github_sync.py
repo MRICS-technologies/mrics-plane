@@ -55,8 +55,9 @@ class RepoProjectMapping(ProjectBaseModel):
 
 class ProjectTeamRepository(ProjectBaseModel):
     """The repository a team's branches go to in one project, instead of the
-    project default. Rows are hard-deleted (never soft-deleted), together with
-    their mapping or team."""
+    project default. Mapping removal, team delete and GitHub disconnect
+    hard-delete the rows; deleting the whole project or workspace soft-deletes
+    them through the usual cascade, and reads ignore soft-deleted rows."""
 
     team = models.ForeignKey("db.Team", on_delete=models.CASCADE, related_name="project_repositories")
     mapping = models.ForeignKey(RepoProjectMapping, on_delete=models.CASCADE, related_name="team_overrides")

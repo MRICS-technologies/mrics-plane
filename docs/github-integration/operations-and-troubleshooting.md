@@ -78,3 +78,20 @@ A successful image build does not prove the running service pulled it. For a dev
 5. Run the real GitHub delivery smoke test.
 
 If Coolify reports an aggregate health warning while public probes are good, investigate the specific container health check before declaring the feature accepted.
+
+### Migration 0132 was replaced (team repositories)
+
+`0132_team_member_team_default_repository` (from PR #44, never released to production) was replaced by `0132_team_member_project_team_repository`. A database that applied the old 0132 (a dev database, or any environment deployed from `mrics/dev` that is not re-cloned from production) must undo it before the new code migrates; otherwise `migrate` fails with `relation "team_members" already exists`. Either:
+
+- before switching, on the old code: `python manage.py migrate db 0131`; or
+- after switching (this loses team memberships):
+
+  ```sql
+  BEGIN;
+  DROP TABLE team_members;
+  ALTER TABLE teams DROP COLUMN default_repository_id;
+  DELETE FROM django_migrations WHERE app = 'db' AND name = '0132_team_member_team_default_repository';
+  COMMIT;
+  ```
+
+then run `python manage.py migrate`. Production (at 0131) and staging (re-cloned from production) need nothing.
