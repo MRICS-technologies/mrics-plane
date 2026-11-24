@@ -102,6 +102,7 @@ export function TeamDefaults(props: Props) {
                   getOptionValue={(option) => option.id}
                   getOptionLabel={(option) => option.label}
                   placeholder={row.team.name}
+                  pinSelected={false}
                   contentSizing="anchor"
                 >
                   <Select.Trigger<TRepositoryOption> variant="select-md">
