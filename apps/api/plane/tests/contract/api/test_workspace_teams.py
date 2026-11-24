@@ -840,6 +840,39 @@ class TestBranchUsesTeamRepository:
         RepoProjectMapping.objects.filter(pk=mapping_b.pk).update(repository=None, github_repo="ACME/Web")
         _override(project, frontend, mapping_b)
         assert _create_branch(admin_client, project, issue) == "ACME/Web"
+        assert [m["is_my_team_default"] for m in admin_client.get(_mappings_url(project)).data] == [False, True]
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize(
+        "row, field",
+        [
+            ("repository", "is_enabled"),
+            ("repository", "deleted_at"),
+            ("installation", "is_active"),
+            ("installation", "deleted_at"),
+        ],
+    )
+    def test_override_on_an_unusable_repository_falls_back(
+        self, row, field, admin_client, project, issue, repo_b, mapping_b, frontend
+    ):
+        # Disabled on GitHub or its installation gone: the project default is used.
+        _override(project, frontend, mapping_b)
+        target = repo_b if row == "repository" else repo_b.installation
+        rows = type(target).all_objects.filter(pk=target.pk)
+        unusable, usable = (timezone.now(), None) if field == "deleted_at" else (False, True)
+
+        def my_team_repos():
+            return [m["github_repo"] for m in admin_client.get(_mappings_url(project)).data if m["is_my_team_default"]]
+
+        rows.update(**{field: unusable})
+        assert _create_branch(admin_client, project, issue) == "acme/api"
+        assert my_team_repos() == []
+        # Admins still see the saved choice.
+        assert admin_client.get(_team_repos_url(project)).data[0]["mapping_id"] == str(mapping_b.id)
+
+        rows.update(**{field: usable})
+        assert _create_branch(admin_client, project, issue) == "acme/web"
+        assert my_team_repos() == ["acme/web"]
 
     @pytest.mark.django_db
     def test_inactive_workspace_member_has_no_team_repository(
