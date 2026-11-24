@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Tim",
-        "description": "Kelompokkan anggota ruang kerja ke dalam tim. Seorang anggota hanya dapat bergabung dalam satu tim. Saat anggota membuat branch dari item kerja, repositori bawaan tim mereka dipilih terlebih dahulu jika repositori tersebut terhubung ke proyek.",
+        "description": "Kelompokkan anggota ruang kerja ke dalam tim. Seorang anggota hanya dapat bergabung dalam satu tim. Di pengaturan GitHub setiap proyek, sebuah tim dapat memiliki repositori sendiri untuk branch baru.",
         "create": "Buat tim",
         "empty": {
           "title": "Belum ada tim",
-          "description": "Tim mengelompokkan anggota dan memberi mereka repositori GitHub bawaan untuk branch baru."
+          "description": "Tim mengelompokkan anggota. Setiap proyek dapat memberi tim repositori GitHub sendiri untuk branch baru."
         },
         "member_count": "{count, plural, one {# anggota} other {# anggota}}",
         "no_members": "Belum ada anggota",
         "add_member": "Tambah anggota",
         "remove_member_aria_label": "Keluarkan {name} dari tim",
-        "default_repository": "Repositori bawaan",
-        "no_default_repository": "Tanpa repositori bawaan",
-        "no_repositories_hint": "Hubungkan GitHub dan aktifkan repositori di pengaturan GitHub untuk memilih repositori bawaan.",
         "rename": "Ganti nama",
         "form": {
           "create_title": "Buat tim",

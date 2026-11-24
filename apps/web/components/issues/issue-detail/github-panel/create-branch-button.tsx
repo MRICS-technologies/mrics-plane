@@ -33,7 +33,7 @@ export const CreateBranchButton = observer(function CreateBranchButton(props: Pr
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [branchName, setBranchName] = useState(suggestedBranchName);
-  // The user's team default repository first, then the project default.
+  // The repository of the user's team in this project first, then the project default.
   const [repo, setRepo] = useState(
     (
       mappings.find((mapping) => mapping.is_my_team_default) ??

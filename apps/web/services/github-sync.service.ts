@@ -13,6 +13,7 @@ import type {
   TGithubEnabledRepository,
   TGithubInstallation,
   TIssueGitLink,
+  TProjectTeamRepository,
   TRepoProjectMapping,
   TWorkspaceGitHubInstallURLResponse,
 } from "@plane/types";
@@ -26,6 +27,7 @@ export type {
   TGithubEnabledRepository,
   TGithubInstallation,
   TIssueGitLink,
+  TProjectTeamRepository,
   TRepoProjectMapping,
   TWorkspaceGitHubInstallURLResponse,
 };
@@ -178,6 +180,31 @@ export class GithubSyncService extends APIService {
 
   async deleteMapping(workspaceSlug: string, projectId: string, mappingId: string): Promise<void> {
     return this.delete(`/api/workspaces/${workspaceSlug}/projects/${projectId}/github/mappings/${mappingId}/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, data: error?.response?.data } as TApiError;
+      });
+  }
+
+  /** Every workspace team with the mapping its branches go to in this project. */
+  async getTeamRepositories(workspaceSlug: string, projectId: string): Promise<TProjectTeamRepository[]> {
+    return this.get(`/api/workspaces/${workspaceSlug}/projects/${projectId}/github/team-repositories/`)
+      .then((response) => response?.data)
+      .catch((error) => {
+        throw { status: error?.response?.status, data: error?.response?.data } as TApiError;
+      });
+  }
+
+  /** Sets the team's repository in this project; null falls back to the project default. */
+  async setTeamRepository(
+    workspaceSlug: string,
+    projectId: string,
+    teamId: string,
+    mappingId: string | null
+  ): Promise<TProjectTeamRepository> {
+    return this.put(`/api/workspaces/${workspaceSlug}/projects/${projectId}/github/team-repositories/${teamId}/`, {
+      mapping_id: mappingId,
+    })
       .then((response) => response?.data)
       .catch((error) => {
         throw { status: error?.response?.status, data: error?.response?.data } as TApiError;

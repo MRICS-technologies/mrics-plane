@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "团队默认仓库",
+        "description": "选择此项目中每个团队的新分支所使用的仓库。使用项目默认值的团队将使用上方的默认仓库。",
+        "project_default": "项目默认",
+        "no_teams": "暂无团队。请在工作区设置 → 团队中创建。",
+        "errors": {
+          "load_failed": "无法加载团队默认仓库，请重试。",
+          "save_failed": "无法保存团队默认仓库，请重试。"
+        }
       }
     },
     "empty_state": {

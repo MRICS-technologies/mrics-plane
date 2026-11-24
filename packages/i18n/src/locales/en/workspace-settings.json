@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Teams",
-        "description": "Group workspace members into teams. A member belongs to one team. When a member creates a branch from a work item, their team's default repository is preselected if the project has it attached.",
+        "description": "Group workspace members into teams. A member belongs to one team. In each project's GitHub settings, a team can get its own repository for new branches.",
         "create": "Create team",
         "empty": {
           "title": "No teams yet",
-          "description": "Teams group members and give them a default GitHub repository for new branches."
+          "description": "Teams group members. Each project can give a team its own GitHub repository for new branches."
         },
         "member_count": "{count, plural, one {# member} other {# members}}",
         "no_members": "No members yet",
         "add_member": "Add member",
         "remove_member_aria_label": "Remove {name} from the team",
-        "default_repository": "Default repository",
-        "no_default_repository": "No default repo",
-        "no_repositories_hint": "Connect GitHub and enable repositories in the GitHub settings to choose a default repository.",
         "rename": "Rename",
         "form": {
           "create_title": "Create team",

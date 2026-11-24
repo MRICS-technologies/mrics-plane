@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Repository predefiniti dei team",
+        "description": "Scelga il repository in cui finiscono i nuovi branch di ogni team in questo progetto. I team sul predefinito del progetto usano il repository predefinito indicato sopra.",
+        "project_default": "Predefinito del progetto",
+        "no_teams": "Nessun team ancora. Li crei in Impostazioni dello spazio di lavoro → Team.",
+        "errors": {
+          "load_failed": "Impossibile caricare i repository predefiniti dei team. Riprovi.",
+          "save_failed": "Impossibile salvare il repository predefinito del team. Riprovi."
+        }
       }
     },
     "empty_state": {

@@ -100,7 +100,7 @@ export const GitHubPanel = observer(function GitHubPanel(props: Props) {
           <CreateBranchButton
             // Remount (resetting the repo select) when a repository is
             // added/removed, the default moves (the list is default-first) or
-            // the user's team default repository changes.
+            // the user's team repository in this project changes.
             key={mappings?.map((m) => `${m.id}${m.is_my_team_default ? "*" : ""}`).join()}
             workspaceSlug={workspaceSlug}
             projectId={projectId}

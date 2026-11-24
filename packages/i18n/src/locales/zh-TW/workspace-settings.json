@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "團隊",
-        "description": "將工作區成員分組為團隊。每位成員只能屬於一個團隊。成員從工作事項建立分支時，若專案已連結其團隊的預設儲存庫，系統會預先選取該儲存庫。",
+        "description": "將工作區成員分組為團隊。每位成員只能屬於一個團隊。在每個專案的 GitHub 設定中，可以為團隊指定新分支使用的儲存庫。",
         "create": "建立團隊",
         "empty": {
           "title": "尚無團隊",
-          "description": "團隊可將成員分組，並為新分支提供預設的 GitHub 儲存庫。"
+          "description": "團隊可將成員分組。每個專案都可以為團隊指定新分支使用的 GitHub 儲存庫。"
         },
         "member_count": "{count, plural, one {# 位成員} other {# 位成員}}",
         "no_members": "尚無成員",
         "add_member": "新增成員",
         "remove_member_aria_label": "將 {name} 從團隊中移除",
-        "default_repository": "預設儲存庫",
-        "no_default_repository": "無預設儲存庫",
-        "no_repositories_hint": "請連結 GitHub 並在 GitHub 設定中啟用儲存庫，以選擇預設儲存庫。",
         "rename": "重新命名",
         "form": {
           "create_title": "建立團隊",

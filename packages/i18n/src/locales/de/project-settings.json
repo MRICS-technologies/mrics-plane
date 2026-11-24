@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Standard-Repositorys der Teams",
+        "description": "Wählen Sie, in welches Repository die neuen Branches jedes Teams in diesem Projekt gehen. Teams mit dem Projektstandard verwenden das Standard-Repository oben.",
+        "project_default": "Projektstandard",
+        "no_teams": "Noch keine Teams. Erstellen Sie sie unter Arbeitsbereich-Einstellungen → Teams.",
+        "errors": {
+          "load_failed": "Die Standard-Repositorys der Teams konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
+          "save_failed": "Das Standard-Repository des Teams konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."
+        }
       }
     },
     "empty_state": {

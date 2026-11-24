@@ -53,6 +53,32 @@ class RepoProjectMapping(ProjectBaseModel):
         ordering = ("-created_at",)
 
 
+class ProjectTeamRepository(ProjectBaseModel):
+    """The repository a team's branches go to in one project, instead of the
+    project default. Mapping removal, team delete and GitHub disconnect
+    hard-delete the rows; deleting the whole project or workspace soft-deletes
+    them through the usual cascade, and reads ignore soft-deleted rows."""
+
+    team = models.ForeignKey("db.Team", on_delete=models.CASCADE, related_name="project_repositories")
+    mapping = models.ForeignKey(RepoProjectMapping, on_delete=models.CASCADE, related_name="team_overrides")
+
+    def __str__(self):
+        return f"{self.team_id} -> {self.mapping_id} <{self.project_id}>"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "team"],
+                condition=Q(deleted_at__isnull=True),
+                name="project_team_repo_unique_project_team_when_deleted_at_null",
+            )
+        ]
+        verbose_name = "Project Team Repository"
+        verbose_name_plural = "Project Team Repositories"
+        db_table = "project_team_repositories"
+        ordering = ("-created_at",)
+
+
 class IssueGitLink(ProjectBaseModel):
     KIND_CHOICES = (("branch", "Branch"), ("pr", "Pull Request"))
     STATE_CHOICES = (

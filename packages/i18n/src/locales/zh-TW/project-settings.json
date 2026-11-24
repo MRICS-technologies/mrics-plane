@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "團隊預設儲存庫",
+        "description": "選擇此專案中每個團隊的新分支所使用的儲存庫。使用專案預設值的團隊會使用上方的預設儲存庫。",
+        "project_default": "專案預設",
+        "no_teams": "尚無團隊。請在工作區設定 → 團隊中建立。",
+        "errors": {
+          "load_failed": "無法載入團隊預設儲存庫，請再試一次。",
+          "save_failed": "無法儲存團隊預設儲存庫，請再試一次。"
+        }
       }
     },
     "empty_state": {

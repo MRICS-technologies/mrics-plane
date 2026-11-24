@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Repositori bawaan tim",
+        "description": "Pilih repositori tujuan branch baru setiap tim di proyek ini. Tim yang memakai bawaan proyek menggunakan repositori bawaan di atas.",
+        "project_default": "Bawaan proyek",
+        "no_teams": "Belum ada tim. Buat tim di Pengaturan ruang kerja → Tim.",
+        "errors": {
+          "load_failed": "Repositori bawaan tim tidak dapat dimuat. Silakan coba lagi.",
+          "save_failed": "Repositori bawaan tim tidak dapat disimpan. Silakan coba lagi."
+        }
       }
     },
     "empty_state": {

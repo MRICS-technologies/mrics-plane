@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "Domyślne repozytoria zespołów",
+        "description": "Repozytorium, do którego trafiają nowe gałęzie każdego zespołu w tym projekcie. Zespoły z ustawieniem domyślnym projektu używają domyślnego repozytorium podanego powyżej.",
+        "project_default": "Domyślne dla projektu",
+        "no_teams": "Brak zespołów. Zespoły można utworzyć w Ustawienia przestrzeni roboczej → Zespoły.",
+        "errors": {
+          "load_failed": "Nie udało się wczytać domyślnych repozytoriów zespołów. Prosimy spróbować ponownie.",
+          "save_failed": "Nie udało się zapisać domyślnego repozytorium zespołu. Prosimy spróbować ponownie."
+        }
       }
     },
     "empty_state": {

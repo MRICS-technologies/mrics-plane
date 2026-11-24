@@ -245,6 +245,16 @@
           "forbidden": "You don't have permission to remove this mapping.",
           "failed": "This mapping could not be removed."
         }
+      },
+      "team_defaults": {
+        "title": "チームのデフォルトリポジトリ",
+        "description": "このプロジェクトで各チームの新しいブランチを作成するリポジトリを選択します。「プロジェクトのデフォルト」のチームは、上のデフォルトのリポジトリを使用します。",
+        "project_default": "プロジェクトのデフォルト",
+        "no_teams": "チームはまだありません。ワークスペース設定 → チームで作成してください。",
+        "errors": {
+          "load_failed": "チームのデフォルトリポジトリを読み込めませんでした。もう一度お試しください。",
+          "save_failed": "チームのデフォルトリポジトリを保存できませんでした。もう一度お試しください。"
+        }
       }
     },
     "empty_state": {

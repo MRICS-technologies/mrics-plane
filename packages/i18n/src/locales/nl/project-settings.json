@@ -245,6 +245,16 @@
           "forbidden": "Je hebt geen toestemming om deze toewijzing te verwijderen.",
           "failed": "Deze toewijzing kon niet worden verwijderd."
         }
+      },
+      "team_defaults": {
+        "title": "Standaardrepository's van teams",
+        "description": "Kies naar welke repository de nieuwe branches van elk team in dit project gaan. Teams op de projectstandaard gebruiken de standaardrepository hierboven.",
+        "project_default": "Projectstandaard",
+        "no_teams": "Nog geen teams. Maak ze aan in Werkruimte-instellingen → Teams.",
+        "errors": {
+          "load_failed": "We konden de standaardrepository's van de teams niet laden. Probeer het opnieuw.",
+          "save_failed": "De standaardrepository van het team kon niet worden opgeslagen. Probeer het opnieuw."
+        }
       }
     },
     "empty_state": {

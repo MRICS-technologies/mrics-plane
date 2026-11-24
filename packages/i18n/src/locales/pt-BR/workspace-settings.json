@@ -71,19 +71,16 @@
       },
       "teams": {
         "title": "Equipes",
-        "description": "Agrupe os membros do espaço de trabalho em equipes. Um membro só pode pertencer a uma equipe. Quando um membro cria um branch a partir de um item de trabalho, o repositório padrão da equipe é pré-selecionado se estiver vinculado ao projeto.",
+        "description": "Agrupe os membros do espaço de trabalho em equipes. Um membro só pode pertencer a uma equipe. Nas configurações do GitHub de cada projeto, uma equipe pode ter seu próprio repositório para novos branches.",
         "create": "Criar equipe",
         "empty": {
           "title": "Nenhuma equipe ainda",
-          "description": "As equipes agrupam membros e definem para eles um repositório padrão do GitHub para novos branches."
+          "description": "As equipes agrupam membros. Cada projeto pode definir para uma equipe seu próprio repositório do GitHub para novos branches."
         },
         "member_count": "{count, plural, one {# membro} many {# membros} other {# membros}}",
         "no_members": "Nenhum membro ainda",
         "add_member": "Adicionar membro",
         "remove_member_aria_label": "Remover {name} da equipe",
-        "default_repository": "Repositório padrão",
-        "no_default_repository": "Sem repositório padrão",
-        "no_repositories_hint": "Conecte o GitHub e ative repositórios nas configurações do GitHub para escolher um repositório padrão.",
         "rename": "Renomear",
         "form": {
           "create_title": "Criar equipe",
