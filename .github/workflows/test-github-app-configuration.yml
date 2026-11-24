@@ -37,7 +37,7 @@ on:
       - apps/api/plane/db/migrations/0126_github_webhook_pr_linking.py
       - apps/api/plane/db/migrations/0128_remove_issuegitlink_issuegitlink_unique_repo_pr_number_when_pr_and_deleted_at_null_and_more.py
       - apps/api/plane/db/migrations/0129_github_discovery_fields.py
-      - apps/api/plane/db/migrations/0132_team_member_team_default_repository.py
+      - apps/api/plane/db/migrations/0132_team_member_project_team_repository.py
       - apps/api/plane/db/models/workspace.py
       - apps/api/plane/app/views/workspace/team.py
       - apps/api/plane/app/serializers/team.py

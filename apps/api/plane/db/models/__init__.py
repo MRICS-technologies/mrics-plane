@@ -25,6 +25,7 @@ from .integration import (
     GithubRepository,
     GithubRepositorySync,
     Integration,
+    ProjectTeamRepository,
     SlackProjectSync,
     WorkspaceIntegration,
 )
