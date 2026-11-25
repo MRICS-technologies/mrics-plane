@@ -21,10 +21,30 @@ from django.db.models import F, Min
 from django.utils import timezone
 
 from plane.bgtasks.project_add_user_email_task import project_add_user_email
-from plane.db.models import ProjectMember, ProjectTeam, ProjectUserProperty, WorkspaceMember
+from plane.db.models import ProjectMember, ProjectTeam, ProjectUserProperty, Team, WorkspaceMember
 from plane.utils.host import base_host
 
 ADMIN = 20
+
+
+def locked_teams(slug):
+    """Live teams of the workspace, row-locked (in id order) when evaluated."""
+    return Team.objects.select_for_update(no_key=True, of=("self",)).filter(workspace__slug=slug).order_by("pk")
+
+
+def sync_team_members(workspace_id, user_ids, *, team_id=None, actor, request):
+    """After user_ids joined team_id, or left their team: sync the projects
+    team_id is attached to and every project where they hold a team-sourced
+    membership (the only ones a lost team can change)."""
+    user_ids = list(user_ids)
+    project_ids = set(
+        ProjectMember.objects.filter(
+            workspace_id=workspace_id, member_id__in=user_ids, is_active=True, source_team__isnull=False
+        ).values_list("project_id", flat=True)
+    )
+    if team_id:
+        project_ids |= set(ProjectTeam.objects.filter(team_id=team_id).values_list("project_id", flat=True))
+    return sync_project_members(project_ids, user_ids, actor=actor, request=request)
 
 
 def sync_project_members(project_ids, user_ids, *, actor, request):

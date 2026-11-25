@@ -44,12 +44,14 @@ def active_team_members():
 
 
 def serialize_team(team):
-    """Read shape shared by every team endpoint; expects active_team_members() prefetched."""
+    """Read shape shared by every team endpoint; expects active_team_members()
+    and the project links prefetched."""
     return {
         "id": str(team.id),
         "name": team.name,
         "description": team.description,
         "member_ids": [str(row.member_id) for row in team.team_members.all()],
+        "project_ids": [str(link.project_id) for link in team.project_links.all()],
         "created_at": team.created_at,
     }
 

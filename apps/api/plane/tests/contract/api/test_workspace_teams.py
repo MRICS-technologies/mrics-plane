@@ -273,7 +273,7 @@ class TestTeamCrud:
         assert resp.status_code == status.HTTP_200_OK
         assert [team["name"] for team in resp.data] == ["Alpha", "Zeta"]
         alpha = resp.data[0]
-        assert set(alpha) == {"id", "name", "description", "member_ids", "created_at"}
+        assert set(alpha) == {"id", "name", "description", "member_ids", "project_ids", "created_at"}
         assert alpha["member_ids"] == [str(member_user.id)]
 
     @pytest.mark.django_db
@@ -1322,3 +1322,170 @@ class TestProjectTeamPermissions:
             ]
             assert [resp.status_code for resp in responses] == [403, 403], user.email
         assert not ProjectTeam.all_objects.exists()
+
+
+def _leader(project, team):
+    return ProjectTeam.objects.values_list("leader_id", flat=True).get(project=project, team=team)
+
+
+@pytest.mark.contract
+class TestTeamMembershipSync:
+    @pytest.mark.django_db
+    def test_moving_a_member_follows_the_new_teams_projects(self, admin_client, workspace, project, project_y):
+        dev = _ws_user(workspace, "dev@plane.so")
+        t1 = _team(workspace, "T1", members=[dev])
+        t2 = _team(workspace, "T2")
+        nowhere = _team(workspace, "Nowhere")
+        _attach(admin_client, project, t1)
+        _attach(admin_client, project, t2)
+        _attach(admin_client, project_y, t2)
+        assert _membership(project, dev) == (True, 15, t1.id)
+
+        resp = admin_client.post(_members_url(workspace.slug, t2.id), {"member_ids": [str(dev.id)]}, format="json")
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert _membership(project, dev) == (True, 15, t2.id)
+        assert _membership(project_y, dev) == (True, 15, t2.id)
+
+        admin_client.post(_members_url(workspace.slug, nowhere.id), {"member_ids": [str(dev.id)]}, format="json")
+
+        assert _membership(project, dev) == (False, 15, None)
+        assert _membership(project_y, dev) == (False, 15, None)
+
+    @pytest.mark.django_db
+    def test_a_new_member_joins_every_attached_project(self, admin_client, workspace, project, project_y):
+        dev = _ws_user(workspace, "dev@plane.so")
+        squad = _team(workspace, "Squad")
+        _attach(admin_client, project, squad)
+
+        admin_client.post(_members_url(workspace.slug, squad.id), {"member_ids": [str(dev.id)]}, format="json")
+
+        assert _membership(project, dev) == (True, 15, squad.id)
+        assert _membership(project_y, dev) is None
+
+    @pytest.mark.django_db
+    def test_a_removed_member_leaves_the_teams_projects(self, admin_client, workspace, project, project_y):
+        dev = _ws_user(workspace, "dev@plane.so")
+        promoted = _ws_user(workspace, "promoted@plane.so")
+        squad = _team(workspace, "Squad", members=[dev, promoted])
+        _attach(admin_client, project, squad)
+        _attach(admin_client, project_y, squad)
+        ProjectMember.objects.filter(project=project, member=promoted).update(role=20)
+
+        for user in (dev, promoted):
+            assert admin_client.delete(_member_url(workspace.slug, squad.id, user.id)).status_code == 204
+
+        assert _membership(project, dev) == (False, 15, None)
+        assert _membership(project_y, dev) == (False, 15, None)
+        # A project admin stays, as an individual member.
+        assert _membership(project, promoted) == (True, 20, None)
+        assert _membership(project_y, promoted) == (False, 15, None)
+
+    @pytest.mark.django_db
+    def test_deleting_a_team_removes_its_members_from_its_projects(
+        self, admin_client, workspace, project, project_y, member_user
+    ):
+        dev = _ws_user(workspace, "dev@plane.so")
+        squad = _team(workspace, "Squad", members=[dev, member_user])
+        _attach(admin_client, project, squad)
+        _attach(admin_client, project_y, squad)
+
+        assert admin_client.delete(_team_url(workspace.slug, squad.id)).status_code == 204
+
+        assert _membership(project, dev) == (False, 15, None)
+        assert _membership(project_y, dev) == (False, 15, None)
+        assert _membership(project, member_user) == (True, 15, None)
+        assert _membership(project_y, member_user) == (True, 15, None)
+        assert not ProjectTeam.all_objects.filter(team=squad).exists()
+
+    @pytest.mark.django_db
+    def test_workspace_teams_list_their_projects(self, admin_client, workspace, project, project_y):
+        squad = _team(workspace, "Squad")
+        _team(workspace, "Idle")
+        _attach(admin_client, project, squad)
+        _attach(admin_client, project_y, squad)
+
+        teams = {team["name"]: team for team in admin_client.get(_teams_url(workspace.slug)).data}
+
+        assert sorted(teams["Squad"]["project_ids"]) == sorted([str(project.id), str(project_y.id)])
+        assert teams["Idle"]["project_ids"] == []
+        resp = admin_client.patch(_team_url(workspace.slug, squad.id), {"name": "Squad 2"}, format="json")
+        assert sorted(resp.data["project_ids"]) == sorted([str(project.id), str(project_y.id)])
+
+
+@pytest.mark.contract
+class TestProjectTeamLeader:
+    @pytest.fixture
+    def squad(self, admin_client, workspace, project, project_y):
+        team = _team(workspace, "Squad", members=[_ws_user(workspace, "a@plane.so"), _ws_user(workspace, "b@plane.so")])
+        _attach(admin_client, project, team)
+        _attach(admin_client, project_y, team)
+        return team
+
+    @staticmethod
+    def _set(client, project, team, leader):
+        return client.patch(
+            _project_team_url(project, team.id), {"leader_id": str(leader.id) if leader else None}, format="json"
+        )
+
+    @pytest.mark.django_db
+    def test_each_project_has_its_own_leader(self, admin_client, project, project_y, squad):
+        a, b = User.objects.get(email="a@plane.so"), User.objects.get(email="b@plane.so")
+
+        resp = self._set(admin_client, project, squad, a)
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["leader_id"] == str(a.id)
+        assert self._set(admin_client, project_y, squad, b).data["leader_id"] == str(b.id)
+
+        assert admin_client.get(_project_teams_url(project)).data[0]["leader_id"] == str(a.id)
+        assert admin_client.get(_project_teams_url(project_y)).data[0]["leader_id"] == str(b.id)
+
+        resp = self._set(admin_client, project, squad, None)
+        assert resp.status_code == status.HTTP_200_OK
+        assert (_leader(project, squad), _leader(project_y, squad)) == (None, b.id)
+
+    @pytest.mark.django_db
+    def test_leader_must_be_a_member_of_the_team(
+        self, admin_client, workspace, other_workspace, project, squad, member_user
+    ):
+        stranger = _user("stranger@plane.so")
+        WorkspaceMember.objects.create(workspace=other_workspace, member=stranger, role=15)
+        _team(other_workspace, "Foreign", members=[stranger])
+        left = _ws_user(workspace, "left@plane.so")
+        TeamMember.objects.create(workspace=workspace, team=squad, member=left)
+        WorkspaceMember.objects.filter(workspace=workspace, member=left).update(is_active=False)
+
+        for user in (member_user, stranger, left):
+            resp = self._set(admin_client, project, squad, user)
+            assert resp.status_code == status.HTTP_400_BAD_REQUEST, user.email
+            assert "leader_id" in resp.data
+        url = _project_team_url(project, squad.id)
+        for body in ({}, {"leader_id": "nope"}):
+            assert admin_client.patch(url, body, format="json").status_code == 400, body
+        assert _leader(project, squad) is None
+
+    @pytest.mark.django_db
+    def test_team_not_attached_is_404(self, admin_client, workspace, other_workspace, project, create_user):
+        idle = _team(workspace, "Idle", members=[create_user])
+        foreign = _team(other_workspace, "Foreign", members=[create_user])
+        for team in (idle, foreign):
+            assert self._set(admin_client, project, team, create_user).status_code == 404, team.name
+
+    @pytest.mark.django_db
+    def test_leaving_the_team_clears_the_leader_of_its_projects(
+        self, admin_client, workspace, project, project_y, squad
+    ):
+        a, b = User.objects.get(email="a@plane.so"), User.objects.get(email="b@plane.so")
+        self._set(admin_client, project, squad, a)
+        self._set(admin_client, project_y, squad, b)
+        other = _team(workspace, "Other")
+        _attach(admin_client, project, other)
+        ProjectTeam.objects.filter(project=project, team=other).update(leader=a)
+
+        assert admin_client.delete(_member_url(workspace.slug, squad.id, a.id)).status_code == 204
+        assert (_leader(project, squad), _leader(project_y, squad)) == (None, b.id)
+        # Only the team they left.
+        assert _leader(project, other) == a.id
+
+        admin_client.post(_members_url(workspace.slug, other.id), {"member_ids": [str(b.id)]}, format="json")
+        assert _leader(project_y, squad) is None

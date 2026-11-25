@@ -19,8 +19,8 @@ from plane.app.serializers.team import (
     active_team_members,
     serialize_project_team,
 )
-from plane.db.models import Project, ProjectMember, ProjectTeam, ProjectTeamRepository, Team, TeamMember
-from plane.services.teams.project_sync import sync_project_members
+from plane.db.models import Project, ProjectMember, ProjectTeam, ProjectTeamRepository, TeamMember
+from plane.services.teams.project_sync import locked_teams, sync_project_members
 from ..base import BaseAPIView
 
 
@@ -33,7 +33,7 @@ def _links(slug, project_id):
 
 
 def _lock_team(slug, team_id):
-    return Team.objects.select_for_update(no_key=True, of=("self",)).filter(workspace__slug=slug, pk=team_id).first()
+    return locked_teams(slug).filter(pk=team_id).first()
 
 
 def _lock_project_and_team(slug, project_id, team_id):
