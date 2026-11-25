@@ -13,6 +13,7 @@ from plane.app.serializers import (
     ProjectMemberSerializer,
     ProjectMemberAdminSerializer,
     ProjectMemberRoleSerializer,
+    ProjectMemberRoleTeamSerializer,
     ProjectMemberPreferenceSerializer,
 )
 
@@ -99,10 +100,11 @@ class ProjectMemberViewSet(BaseViewSet):
         ):
             project_member.role = member_roles[str(project_member.member_id)]
             project_member.is_active = True
+            project_member.source_team = None
             bulk_project_members.append(project_member)
 
         # Update the roles of the existing members
-        ProjectMember.objects.bulk_update(bulk_project_members, ["is_active", "role"], batch_size=100)
+        ProjectMember.objects.bulk_update(bulk_project_members, ["is_active", "role", "source_team"], batch_size=100)
 
         # Get the minimum sort_order for each member in the workspace
         member_sort_orders = (
@@ -142,6 +144,10 @@ class ProjectMemberViewSet(BaseViewSet):
 
         # Bulk create the project members and issue properties
         project_members = ProjectMember.objects.bulk_create(bulk_project_members, batch_size=10, ignore_conflicts=True)
+        # A row the team sync inserted concurrently (the insert above skipped it) is individual too.
+        ProjectMember.objects.filter(
+            project_id=project_id, member_id__in=[member.get("member_id") for member in members]
+        ).update(source_team=None)
 
         _ = ProjectUserProperty.objects.bulk_create(bulk_issue_props, batch_size=10, ignore_conflicts=True)
 
@@ -175,9 +181,19 @@ class ProjectMemberViewSet(BaseViewSet):
             member__member_workspace__is_active=True,
         ).select_related("project", "member", "workspace")
 
-        serializer = ProjectMemberRoleSerializer(
-            project_members, fields=("id", "member", "role", "original_role", "created_at"), many=True
+        fields = ("id", "member", "role", "original_role", "created_at")
+        requester_role = (
+            ProjectMember.objects.filter(
+                project_id=project_id, workspace__slug=slug, member=request.user, is_active=True
+            )
+            .values_list("role", flat=True)
+            .first()
         )
+        # Same rule as retrieve and the team endpoints: guests do not see team data.
+        if requester_role is not None and requester_role > ROLE.GUEST.value:
+            serializer = ProjectMemberRoleTeamSerializer(project_members, fields=fields + ("source_team",), many=True)
+        else:
+            serializer = ProjectMemberRoleSerializer(project_members, fields=fields, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])

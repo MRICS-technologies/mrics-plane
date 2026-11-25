@@ -42,6 +42,51 @@
         "select_co_worker": "Select co-worker"
       }
     },
+    "teams": {
+      "label": "Teams",
+      "description": "Attach workspace teams. Their members join this project and stay in sync with the team.",
+      "add_team": "Add team",
+      "search_teams": "Search teams",
+      "all_attached": "Every workspace team is already attached.",
+      "no_workspace_teams": "Your workspace has no teams yet. Create them in {link}.",
+      "no_workspace_teams_ask_admin": "Your workspace has no teams yet. Ask a workspace admin to create them.",
+      "workspace_teams_link": "Workspace settings → Teams",
+      "leader": "Leader",
+      "leader_of": "{team} leader",
+      "no_leader": "No leader",
+      "remove": "Remove",
+      "remove_aria_label": "Remove {team} from this project",
+      "via_team": "via {team}",
+      "empty": {
+        "title": "No teams attached",
+        "description_admin": "Attach a workspace team to add its members to this project and keep them in sync.",
+        "description": "No workspace teams are attached to this project yet."
+      },
+      "remove_modal": {
+        "title": "Remove {team} from this project?",
+        "content": "Members who joined this project through {team} will be removed from it. Project admins, workspace admins and people added by hand stay. The team’s GitHub default repository for this project is cleared too.",
+        "confirm": "Remove team",
+        "confirming": "Removing…"
+      },
+      "toasts": {
+        "attached": "{team} attached",
+        "members_added": "{count, plural, =0 {No new members were added.} one {# member added to the project.} other {# members added to the project.}}",
+        "removed": "{team} removed",
+        "already_removed": "{team} was already removed from this project",
+        "members_removed": "{removed, plural, =0 {No members removed} one {# member removed} other {# members removed}}, {kept, plural, one {# kept} other {# kept}}.",
+        "leader_set": "{name} now leads {team} in this project.",
+        "leader_cleared": "{team} has no leader in this project now."
+      },
+      "errors": {
+        "load_failed": "The project’s teams could not be loaded.",
+        "workspace_teams_load_failed": "The workspace’s teams could not be loaded.",
+        "attach_failed": "The team could not be attached. Please try again.",
+        "remove_failed": "The team could not be removed. Please try again.",
+        "leader_failed": "The leader could not be changed. Please try again.",
+        "leader_not_member": "This person isn’t a member of {team} anymore.",
+        "forbidden": "Only project admins can change the project’s teams."
+      }
+    },
     "states": {
       "heading": "States",
       "description": "Define and customize workflow states to track the progress of your work items.",
@@ -250,7 +295,8 @@
         "title": "Team defaults",
         "description": "Choose the repository each team's new branches go to in this project. Teams on Project default use the default repository above.",
         "project_default": "Project default",
-        "no_teams": "No teams yet. Create them in Workspace settings → Teams.",
+        "no_teams": "No teams attached to this project yet. Attach them in {link}.",
+        "no_teams_link": "Project settings → Teams",
         "errors": {
           "load_failed": "We couldn't load the team defaults. Please try again.",
           "save_failed": "The team default could not be saved. Please try again."

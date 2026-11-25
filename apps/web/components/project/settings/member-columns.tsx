@@ -22,14 +22,17 @@ import { getFileURL } from "@plane/utils";
 // hooks
 import { useMember } from "@/hooks/store/use-member";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
+// local imports
+import { ProjectMemberTeamTag } from "./teams/member-team-tag";
 
-export interface RowData extends Pick<TProjectMembership, "original_role"> {
+export interface RowData extends Pick<TProjectMembership, "original_role" | "source_team"> {
   member: IWorkspaceMember;
 }
 
 type NameProps = {
   rowData: RowData;
   workspaceSlug: string;
+  projectId: string;
   isAdmin: boolean;
   currentUser: IUser | undefined;
   setRemoveMemberModal: (rowData: RowData) => void;
@@ -48,7 +51,7 @@ type AccountTypeProps = {
 };
 
 export function NameColumn(props: NameProps) {
-  const { rowData, workspaceSlug, isAdmin, currentUser, setRemoveMemberModal } = props;
+  const { rowData, workspaceSlug, projectId, isAdmin, currentUser, setRemoveMemberModal } = props;
   // plane hooks
   const { t } = useTranslation();
   // derived values
@@ -64,6 +67,9 @@ export function NameColumn(props: NameProps) {
           <span className="truncate">
             {first_name} {last_name}
           </span>
+          {rowData.source_team && (
+            <ProjectMemberTeamTag workspaceSlug={workspaceSlug} projectId={projectId} teamId={rowData.source_team} />
+          )}
         </div>
         {(isAdmin || id === currentUser?.id) && (
           <Menu>
@@ -114,17 +120,15 @@ export const AccountTypeColumn = observer(function AccountTypeColumn(props: Acco
   const roleLabel = ROLE[rowData.original_role ?? EUserPermissions.GUEST];
   const isCurrentUser = currentUser?.id === rowData.member.id;
   const isRowDataWorkspaceAdmin = [EUserPermissions.ADMIN].includes(
-    Number(getWorkspaceMemberDetails(rowData.member.id)?.role) ?? EUserPermissions.GUEST
+    Number(getWorkspaceMemberDetails(rowData.member.id)?.role)
   );
   const isCurrentUserWorkspaceAdmin = currentUser
-    ? [EUserPermissions.ADMIN].includes(
-        Number(getWorkspaceMemberDetails(currentUser.id)?.role) ?? EUserPermissions.GUEST
-      )
+    ? [EUserPermissions.ADMIN].includes(Number(getWorkspaceMemberDetails(currentUser.id)?.role))
     : false;
   const currentProjectRole = getProjectRoleByWorkspaceSlugAndProjectId(workspaceSlug, projectId);
 
   const isCurrentUserProjectAdmin = currentProjectRole
-    ? ![EUserPermissions.MEMBER, EUserPermissions.GUEST].includes(Number(currentProjectRole) ?? EUserPermissions.GUEST)
+    ? ![EUserPermissions.MEMBER, EUserPermissions.GUEST].includes(Number(currentProjectRole))
     : false;
 
   // logic

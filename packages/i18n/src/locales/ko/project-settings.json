@@ -42,6 +42,51 @@
         "select_co_worker": "동료 선택"
       }
     },
+    "teams": {
+      "label": "팀",
+      "description": "작업 공간 팀을 연결합니다. 팀 멤버가 이 프로젝트에 참여하고 팀과 계속 동기화됩니다.",
+      "add_team": "팀 추가",
+      "search_teams": "팀 검색",
+      "all_attached": "모든 작업 공간 팀이 이미 연결되어 있습니다.",
+      "no_workspace_teams": "작업 공간에 아직 팀이 없습니다. {link}에서 팀을 만드세요.",
+      "no_workspace_teams_ask_admin": "작업 공간에 아직 팀이 없습니다. 작업 공간 관리자에게 팀 생성을 요청하세요.",
+      "workspace_teams_link": "작업 공간 설정 → 팀",
+      "leader": "리더",
+      "leader_of": "{team} 리더",
+      "no_leader": "리더 없음",
+      "remove": "제거",
+      "remove_aria_label": "이 프로젝트에서 {team} 제거",
+      "via_team": "{team} 경유",
+      "empty": {
+        "title": "연결된 팀이 없습니다",
+        "description_admin": "작업 공간 팀을 연결하면 팀 멤버가 이 프로젝트에 추가되고 계속 동기화됩니다.",
+        "description": "이 프로젝트에 아직 연결된 작업 공간 팀이 없습니다."
+      },
+      "remove_modal": {
+        "title": "이 프로젝트에서 {team} 팀을 제거하시겠습니까?",
+        "content": "{team} 팀을 통해 이 프로젝트에 참여한 멤버는 프로젝트에서 제거됩니다. 프로젝트 관리자, 작업 공간 관리자, 직접 추가된 사람은 유지됩니다. 이 프로젝트에 대한 팀의 GitHub 기본 레포지토리 설정도 해제됩니다.",
+        "confirm": "팀 제거",
+        "confirming": "제거 중…"
+      },
+      "toasts": {
+        "attached": "{team} 팀이 연결되었습니다",
+        "members_added": "{count, plural, =0 {새로 추가된 멤버가 없습니다.} one {프로젝트에 멤버 #명이 추가되었습니다.} other {프로젝트에 멤버 #명이 추가되었습니다.}}",
+        "removed": "{team} 팀이 제거되었습니다",
+        "already_removed": "{team} 팀은 이미 이 프로젝트에서 제거되었습니다",
+        "members_removed": "{removed, plural, =0 {제거된 멤버 없음} one {#명 제거됨} other {#명 제거됨}}, {kept, plural, one {#명 유지됨} other {#명 유지됨}}.",
+        "leader_set": "이제 이 프로젝트에서 {name} 님이 {team} 팀을 이끕니다.",
+        "leader_cleared": "이제 이 프로젝트에서 {team} 팀에 리더가 없습니다."
+      },
+      "errors": {
+        "load_failed": "프로젝트 팀을 불러올 수 없습니다.",
+        "workspace_teams_load_failed": "작업 공간의 팀을 불러올 수 없습니다.",
+        "attach_failed": "팀을 연결할 수 없습니다. 다시 시도해 주세요.",
+        "remove_failed": "팀을 제거할 수 없습니다. 다시 시도해 주세요.",
+        "leader_failed": "리더를 변경할 수 없습니다. 다시 시도해 주세요.",
+        "leader_not_member": "이 사용자는 더 이상 {team} 팀의 멤버가 아닙니다.",
+        "forbidden": "프로젝트 관리자만 프로젝트의 팀을 변경할 수 있습니다."
+      }
+    },
     "states": {
       "heading": "상태",
       "description": "작업 항목의 진행 상황을 추적하기 위해 워크플로우 상태를 정의하고 사용자 정의하세요.",
@@ -250,7 +295,8 @@
         "title": "팀 기본 레포지토리",
         "description": "이 프로젝트에서 각 팀의 새 브랜치가 생성될 레포지토리를 선택합니다. 프로젝트 기본값을 사용하는 팀은 위의 기본 레포지토리를 사용합니다.",
         "project_default": "프로젝트 기본값",
-        "no_teams": "아직 팀이 없습니다. 작업 공간 설정 → 팀에서 팀을 만들 수 있습니다.",
+        "no_teams": "이 프로젝트에 아직 연결된 팀이 없습니다. {link}에서 연결하세요.",
+        "no_teams_link": "프로젝트 설정 → 팀",
         "errors": {
           "load_failed": "팀 기본 레포지토리를 불러올 수 없습니다. 다시 시도해 주세요.",
           "save_failed": "팀 기본 레포지토리를 저장할 수 없습니다. 다시 시도해 주세요."

@@ -92,17 +92,20 @@ Workspace admins group members into teams in **Workspace Settings → Teams**
 (admins and members can view the page; only admins can change it):
 
 - **Create team**, **Rename**, **Delete**. Deleting a team removes its members
-  from it (they can join another team right away) and its team defaults in
-  every project
+  from it (they can join another team right away), its team defaults in every
+  project, and the project memberships it brought in (see
+  [Project teams](../teams/project-teams.md))
 - A member belongs to **one team**. Adding a member who is already in another
   team asks for confirmation, then moves them
 
 Which repository a team's branches go to is set **per project**, in
 **Project Settings → GitHub → Team defaults** (project admins; shown once the
-project has a repository attached). Each workspace team gets a select with
+project has a repository attached). Each team **attached to the project** (see
+[Project teams](../teams/project-teams.md)) gets a select with
 **Project default** and the repositories attached to this project, so the same
 team can use repository A in one project and repository B in another. A
-change is saved as soon as you pick it.
+change is saved as soon as you pick it. Teams that are not attached are not
+listed; detaching a team removes its team default in that project.
 
 Which repository a branch goes to when you create it from an issue:
 
@@ -112,8 +115,8 @@ Which repository a branch goes to when you create it from an issue:
 
 Step 2 is skipped when you are in no team, your team is on **Project
 default** in this project, or you are no longer an active workspace member.
-Removing a repository from the project, deleting the team or disconnecting
-GitHub removes the team defaults that pointed at it, so those teams are back
+Removing a repository from the project, detaching or deleting the team, or
+disconnecting GitHub removes the team defaults that pointed at it, so those teams are back
 on the project default. A team whose repository is disabled on GitHub
 (removed from the GitHub App's repository access, or the installation is
 suspended) also falls back to the project default; its choice is kept and

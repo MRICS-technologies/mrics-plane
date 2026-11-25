@@ -42,6 +42,51 @@
         "select_co_worker": "Vybrat spolupracovníka"
       }
     },
+    "teams": {
+      "label": "Týmy",
+      "description": "Přiřaďte týmy z pracovního prostoru. Jejich členové se připojí k tomuto projektu a zůstanou synchronizovaní s týmem.",
+      "add_team": "Přidat tým",
+      "search_teams": "Hledat týmy",
+      "all_attached": "Všechny týmy pracovního prostoru jsou už přiřazené.",
+      "no_workspace_teams": "Pracovní prostor zatím nemá žádné týmy. Vytvořte je v {link}.",
+      "no_workspace_teams_ask_admin": "Pracovní prostor zatím nemá žádné týmy. Požádejte správce pracovního prostoru, aby je vytvořil.",
+      "workspace_teams_link": "Nastavení pracovního prostoru → Týmy",
+      "leader": "Vedoucí",
+      "leader_of": "Vedoucí týmu {team}",
+      "no_leader": "Bez vedoucího",
+      "remove": "Odebrat",
+      "remove_aria_label": "Odebrat {team} z tohoto projektu",
+      "via_team": "přes {team}",
+      "empty": {
+        "title": "Žádné přiřazené týmy",
+        "description_admin": "Přiřaďte tým z pracovního prostoru, aby se jeho členové přidali do tohoto projektu a zůstali synchronizovaní.",
+        "description": "K tomuto projektu zatím nejsou přiřazené žádné týmy z pracovního prostoru."
+      },
+      "remove_modal": {
+        "title": "Odebrat {team} z tohoto projektu?",
+        "content": "Členové, kteří se k tomuto projektu připojili přes tým {team}, z něj budou odebráni. Správci projektu, správci pracovního prostoru a lidé přidaní ručně zůstanou. Výchozí repozitář GitHub týmu pro tento projekt se také zruší.",
+        "confirm": "Odebrat tým",
+        "confirming": "Odebírání…"
+      },
+      "toasts": {
+        "attached": "Tým {team} přiřazen",
+        "members_added": "{count, plural, =0 {Nebyli přidáni žádní noví členové.} one {Do projektu byl přidán # člen.} few {Do projektu byli přidáni # členové.} many {Do projektu bylo přidáno # člena.} other {Do projektu bylo přidáno # členů.}}",
+        "removed": "Tým {team} odebrán",
+        "already_removed": "Tým {team} už byl z tohoto projektu odebrán",
+        "members_removed": "{removed, plural, =0 {Nikdo nebyl odebrán} one {Odebrán # člen} few {Odebráni # členové} many {Odebráno # člena} other {Odebráno # členů}}, {kept, plural, one {# zůstal} few {# zůstali} many {# zůstalo} other {# zůstalo}}.",
+        "leader_set": "{name} nyní vede tým {team} v tomto projektu.",
+        "leader_cleared": "Tým {team} teď v tomto projektu nemá vedoucího."
+      },
+      "errors": {
+        "load_failed": "Týmy projektu se nepodařilo načíst.",
+        "workspace_teams_load_failed": "Týmy pracovního prostoru se nepodařilo načíst.",
+        "attach_failed": "Tým se nepodařilo přiřadit. Zkuste to znovu.",
+        "remove_failed": "Tým se nepodařilo odebrat. Zkuste to znovu.",
+        "leader_failed": "Vedoucího se nepodařilo změnit. Zkuste to znovu.",
+        "leader_not_member": "Tato osoba už není členem týmu {team}.",
+        "forbidden": "Týmy projektu mohou měnit pouze správci projektu."
+      }
+    },
     "states": {
       "heading": "Stavy",
       "description": "Definujte a přizpůsobte stavy workflow pro sledování průběhu vašich pracovních položek.",
@@ -250,7 +295,8 @@
         "title": "Výchozí repozitáře týmů",
         "description": "Vyberte repozitář, do kterého v tomto projektu půjdou nové větve jednotlivých týmů. Týmy s výchozím nastavením projektu používají výchozí repozitář uvedený výše.",
         "project_default": "Výchozí pro projekt",
-        "no_teams": "Zatím žádné týmy. Vytvořte je v Nastavení pracovního prostoru → Týmy.",
+        "no_teams": "K tomuto projektu zatím nejsou přiřazené žádné týmy. Přiřaďte je v {link}.",
+        "no_teams_link": "Nastavení projektu → Týmy",
         "errors": {
           "load_failed": "Výchozí repozitáře týmů se nepodařilo načíst. Zkuste to prosím znovu.",
           "save_failed": "Výchozí repozitář týmu se nepodařilo uložit. Zkuste to prosím znovu."

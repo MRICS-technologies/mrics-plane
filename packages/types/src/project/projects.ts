@@ -95,6 +95,11 @@ export interface IProjectMemberLite {
 export type TProjectMembership = {
   member: string;
   role: TUserPermissions | EUserProjectRoles;
+  /**
+   * The team whose sync added this member, or `null` when added by hand. Read-only; only project
+   * members and admins get it (the list leaves it out for guests).
+   */
+  source_team?: string | null;
 } & (
   | {
       id: string;

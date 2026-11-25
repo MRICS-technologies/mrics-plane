@@ -42,6 +42,51 @@
         "select_co_worker": "Selectează colegul de echipă"
       }
     },
+    "teams": {
+      "label": "Echipe",
+      "description": "Asociați echipe din spațiul de lucru. Membrii lor se alătură acestui proiect și rămân sincronizați cu echipa.",
+      "add_team": "Adaugă echipă",
+      "search_teams": "Caută echipe",
+      "all_attached": "Toate echipele din spațiul de lucru sunt deja asociate.",
+      "no_workspace_teams": "Spațiul de lucru nu are încă echipe. Creați-le în {link}.",
+      "no_workspace_teams_ask_admin": "Spațiul de lucru nu are încă echipe. Cereți unui administrator al spațiului de lucru să le creeze.",
+      "workspace_teams_link": "Setări spațiu de lucru → Echipe",
+      "leader": "Lider",
+      "leader_of": "Liderul echipei {team}",
+      "no_leader": "Fără lider",
+      "remove": "Elimină",
+      "remove_aria_label": "Elimină {team} din acest proiect",
+      "via_team": "prin {team}",
+      "empty": {
+        "title": "Nicio echipă asociată",
+        "description_admin": "Asociați o echipă din spațiul de lucru pentru a adăuga membrii ei în acest proiect și a-i menține sincronizați.",
+        "description": "Acestui proiect nu i-a fost asociată încă nicio echipă din spațiul de lucru."
+      },
+      "remove_modal": {
+        "title": "Eliminați {team} din acest proiect?",
+        "content": "Membrii care s-au alăturat acestui proiect prin {team} vor fi eliminați din el. Administratorii proiectului, administratorii spațiului de lucru și persoanele adăugate manual rămân. Repozitoriul GitHub implicit al echipei pentru acest proiect este, de asemenea, șters.",
+        "confirm": "Elimină echipa",
+        "confirming": "Se elimină…"
+      },
+      "toasts": {
+        "attached": "Echipa {team} a fost asociată",
+        "members_added": "{count, plural, =0 {Nu a fost adăugat niciun membru nou.} one {# membru a fost adăugat în proiect.} few {# membri au fost adăugați în proiect.} other {# de membri au fost adăugați în proiect.}}",
+        "removed": "Echipa {team} a fost eliminată",
+        "already_removed": "Echipa {team} a fost deja eliminată din acest proiect",
+        "members_removed": "{removed, plural, =0 {Niciun membru eliminat} one {# membru eliminat} few {# membri eliminați} other {# de membri eliminați}}, {kept, plural, one {# rămâne} few {# rămân} other {# rămân}}.",
+        "leader_set": "{name} conduce acum echipa {team} în acest proiect.",
+        "leader_cleared": "Echipa {team} nu mai are lider în acest proiect."
+      },
+      "errors": {
+        "load_failed": "Echipele proiectului nu au putut fi încărcate.",
+        "workspace_teams_load_failed": "Echipele spațiului de lucru nu au putut fi încărcate.",
+        "attach_failed": "Echipa nu a putut fi asociată. Încercați din nou.",
+        "remove_failed": "Echipa nu a putut fi eliminată. Încercați din nou.",
+        "leader_failed": "Liderul nu a putut fi schimbat. Încercați din nou.",
+        "leader_not_member": "Această persoană nu mai este membră a echipei {team}.",
+        "forbidden": "Doar administratorii proiectului pot modifica echipele proiectului."
+      }
+    },
     "states": {
       "heading": "Stări",
       "description": "Definește și personalizează stările fluxului de lucru pentru a urmări progresul activităților tale.",
@@ -250,7 +295,8 @@
         "title": "Repozitorii implicite ale echipelor",
         "description": "Alegeți repozitoriul în care ajung ramurile noi ale fiecărei echipe în acest proiect. Echipele pe valoarea implicită a proiectului folosesc repozitoriul implicit de mai sus.",
         "project_default": "Implicit pentru proiect",
-        "no_teams": "Nu există încă echipe. Creați-le în Setări spațiu de lucru → Echipe.",
+        "no_teams": "Acestui proiect nu i-a fost asociată încă nicio echipă. Asociați-le în {link}.",
+        "no_teams_link": "Setări proiect → Echipe",
         "errors": {
           "load_failed": "Repozitoriile implicite ale echipelor nu au putut fi încărcate. Încercați din nou.",
           "save_failed": "Repozitoriul implicit al echipei nu a putut fi salvat. Încercați din nou."
