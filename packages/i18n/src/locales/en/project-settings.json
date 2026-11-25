@@ -42,6 +42,46 @@
         "select_co_worker": "Select co-worker"
       }
     },
+    "teams": {
+      "label": "Teams",
+      "description": "Attach workspace teams. Their members join this project and stay in sync with the team.",
+      "add_team": "Add team",
+      "search_teams": "Search teams",
+      "all_attached": "Every workspace team is already attached.",
+      "no_workspace_teams": "Your workspace has no teams yet. Create them in {link}.",
+      "workspace_teams_link": "Workspace settings → Teams",
+      "leader": "Leader",
+      "leader_of": "{team} leader",
+      "no_leader": "No leader",
+      "remove": "Remove",
+      "remove_aria_label": "Remove {team} from this project",
+      "empty": {
+        "title": "No teams attached",
+        "description_admin": "Attach a workspace team to add its members to this project and keep them in sync.",
+        "description": "No workspace teams are attached to this project yet."
+      },
+      "remove_modal": {
+        "title": "Remove {team} from this project?",
+        "content": "Members who joined this project through {team} will be removed from it. Project admins, workspace admins and people added by hand stay. The team’s GitHub default repository for this project is cleared too.",
+        "confirm": "Remove team",
+        "confirming": "Removing…"
+      },
+      "toasts": {
+        "attached": "{team} attached",
+        "members_added": "{count, plural, =0 {No new members were added.} one {# member added to the project.} other {# members added to the project.}}",
+        "removed": "{team} removed",
+        "members_removed": "{removed, plural, =0 {No members removed} one {# member removed} other {# members removed}}, {kept, plural, one {# kept} other {# kept}}.",
+        "leader_set": "{name} now leads {team} in this project.",
+        "leader_cleared": "{team} has no leader in this project now."
+      },
+      "errors": {
+        "load_failed": "The project’s teams could not be loaded.",
+        "attach_failed": "The team could not be attached. Please try again.",
+        "remove_failed": "The team could not be removed. Please try again.",
+        "leader_failed": "The leader could not be changed. Please try again.",
+        "forbidden": "Only project admins can change the project’s teams."
+      }
+    },
     "states": {
       "heading": "States",
       "description": "Define and customize workflow states to track the progress of your work items.",
