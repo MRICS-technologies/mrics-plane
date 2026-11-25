@@ -58,10 +58,10 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  const members = team.member_ids.flatMap((memberId) => getWorkspaceMemberDetails(memberId)?.member ?? []);
   // The API sends the ids in no particular order; sorted, the avatars keep their places between renders.
-  const members = team.member_ids
-    .flatMap((memberId) => getWorkspaceMemberDetails(memberId)?.member ?? [])
-    .toSorted((a, b) => a.display_name.localeCompare(b.display_name, currentLocale));
+  // In place on purpose: `members` is a fresh array (and `toSorted` is past this app's ES2022 lib).
+  members.sort((a, b) => a.display_name.localeCompare(b.display_name, currentLocale));
   const leaderName = leaderId ? getWorkspaceMemberDetails(leaderId)?.member.display_name : undefined;
   const forbidden = t("project_settings.teams.errors.forbidden");
 
