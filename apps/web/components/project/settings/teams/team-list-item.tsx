@@ -51,14 +51,17 @@ type Props = {
 export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: Props) {
   const { workspaceSlug, projectId, projectTeam, isAdmin, onUpdated, onRefresh, onRemoved } = props;
   const { team, leader_id: leaderId } = projectTeam;
-  const { t } = useTranslation();
+  const { t, currentLocale } = useTranslation();
   const {
     workspace: { getWorkspaceMemberDetails },
   } = useMember();
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
 
-  const members = team.member_ids.flatMap((memberId) => getWorkspaceMemberDetails(memberId)?.member ?? []);
+  // The API sends the ids in no particular order; sorted, the avatars keep their places between renders.
+  const members = team.member_ids
+    .flatMap((memberId) => getWorkspaceMemberDetails(memberId)?.member ?? [])
+    .toSorted((a, b) => a.display_name.localeCompare(b.display_name, currentLocale));
   const leaderName = leaderId ? getWorkspaceMemberDetails(leaderId)?.member.display_name : undefined;
   const forbidden = t("project_settings.teams.errors.forbidden");
 
@@ -169,11 +172,12 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
         )}
       </div>
 
-      <div className="flex flex-shrink-0 items-center gap-3">
-        <div className="flex items-center gap-2">
-          <span className="text-11 font-medium text-tertiary">{t("project_settings.teams.leader")}</span>
+      {/* Below `sm` the group takes the full width; long labels wrap Remove to its own line. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 max-sm:w-full">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+          <span className="shrink-0 text-11 font-medium text-tertiary">{t("project_settings.teams.leader")}</span>
           {isAdmin ? (
-            <div className="w-44">
+            <div className="min-w-0 flex-1 sm:w-44 sm:flex-none">
               <MemberSelect
                 testId="project-team-leader"
                 value={leaderId}
@@ -191,7 +195,7 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
               />
             </div>
           ) : (
-            <span className="text-13">{leaderName ?? t("project_settings.teams.no_leader")}</span>
+            <span className="min-w-0 truncate text-13">{leaderName ?? t("project_settings.teams.no_leader")}</span>
           )}
         </div>
         {isAdmin && (

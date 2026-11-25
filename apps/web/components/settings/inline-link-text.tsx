@@ -28,7 +28,8 @@ export function InlineLinkText(props: Props) {
   return (
     <>
       {before}
-      <Link href={href} className="text-accent-primary hover:underline">
+      {/* Underlined, not just coloured: in grey body text the colour alone doesn't mark it as a link. */}
+      <Link href={href} className="text-accent-primary underline underline-offset-2">
         {linkLabel}
       </Link>
       {rest.join("")}
