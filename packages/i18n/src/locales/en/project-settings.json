@@ -290,7 +290,8 @@
         "title": "Team defaults",
         "description": "Choose the repository each team's new branches go to in this project. Teams on Project default use the default repository above.",
         "project_default": "Project default",
-        "no_teams": "No teams yet. Create them in Workspace settings → Teams.",
+        "no_teams": "No teams attached to this project yet. Attach them in {link}.",
+        "no_teams_link": "Project settings → Teams",
         "errors": {
           "load_failed": "We couldn't load the team defaults. Please try again.",
           "save_failed": "The team default could not be saved. Please try again."

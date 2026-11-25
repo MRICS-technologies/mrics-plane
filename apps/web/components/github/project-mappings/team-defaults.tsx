@@ -14,6 +14,7 @@ import { useTranslation } from "@plane/i18n";
 import type { TRepoProjectMapping } from "@plane/types";
 // components
 import { SettingsHeading } from "@/components/settings/heading";
+import { InlineLinkText } from "@/components/settings/inline-link-text";
 // services
 import { GithubSyncService } from "@/services/github-sync.service";
 
@@ -79,7 +80,13 @@ export function TeamDefaults(props: Props) {
       ) : error ? (
         <p className="text-13 text-tertiary">{t("project_settings.github.team_defaults.errors.load_failed")}</p>
       ) : !rows?.length ? (
-        <p className="text-13 text-tertiary">{t("project_settings.github.team_defaults.no_teams")}</p>
+        <p className="text-13 text-tertiary">
+          <InlineLinkText
+            translate={(link) => t("project_settings.github.team_defaults.no_teams", { link })}
+            linkLabel={t("project_settings.github.team_defaults.no_teams_link")}
+            href={`/${workspaceSlug}/settings/projects/${projectId}/teams/`}
+          />
+        </p>
       ) : (
         <div>
           {rows.map((row) => (
