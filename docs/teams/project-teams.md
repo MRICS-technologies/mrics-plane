@@ -42,8 +42,9 @@ Detaching also deletes the team's repository choice in that project (GitHub
 
 - **NULL, individual**: every membership that existed before migration 0133,
   and every membership added by hand: Plane's **Add members**, joining a
-  project, accepting a project invite. Adding by hand also clears the source of
-  an existing team membership.
+  project, accepting a project invite, the `create_project_member` management
+  command. Adding by hand also clears the source of an existing team
+  membership. The source is not writable through any API.
 - **Set**: the team sync created or reactivated the membership.
 
 A team only ever removes memberships it sourced. When a member's attached team
@@ -132,9 +133,9 @@ team's repository in this project, then runs the sync.
 who are still active project members after the detach. `404` when the team is
 not attached.
 
-**Workspace teams** (`/api/workspaces/<workspace-slug>/teams/...`): every team
-response gains `"project_ids": [...]`, the projects the team is attached to.
-There is no leader on the workspace team API.
+**Workspace teams** (`/api/workspaces/<workspace-slug>/teams/...`): the
+response shape is unchanged. It lists no projects (that would show secret
+project ids to every workspace member) and no leader.
 
 **GitHub team defaults** (`.../github/team-repositories/`): only teams attached
 to the project are listed, and `PUT` for a team of the workspace that is not
@@ -194,9 +195,24 @@ changes to the same team are serialized.
   the validated foreign key). The column is all NULL and the table is small,
   so this takes well under a second; run it outside peak hours if
   `project_members` has grown large.
-- **After deploy**: the backfilled teams are attached but their members were
-  not synced. A project admin can attach the team again (`POST teams/`, `200`)
-  to add its members.
+- **After deploy**: **Project Settings → GitHub → Team defaults** lists only
+  the teams attached to the project. Until the **Project Settings → Teams** UI
+  ships, a project admin attaches a team through the API:
+
+  ```bash
+  curl -X POST "https://<plane-host>/api/workspaces/<workspace-slug>/projects/<project-id>/teams/" \
+    -H "Cookie: session-id=<project admin's session cookie>" \
+    -H "Content-Type: application/json" -d '{"team_id": "<team-id>"}'
+  ```
+
+  The session cookie comes from a browser signed in as a project admin. `201`
+  attaches the team; `200` means it was already attached and the sync ran
+  again.
+
+- **Backfilled teams**: teams that already had a team default were attached by
+  the 0133 backfill, but their members were not synced. Attach each of them
+  again (the same `POST`, `200`, idempotent) to add their members to the
+  project.
 - **Rollback**: with this code still deployed (it ships the 0133 file), run
   `python manage.py migrate db 0132_team_member_project_team_repository`, which
   drops the table and the column (the backfill's reverse is a no-op and the

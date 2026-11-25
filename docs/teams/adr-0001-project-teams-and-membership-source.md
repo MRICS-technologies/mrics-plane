@@ -30,7 +30,8 @@ and reactivates the same row when they come back.
    sync created or reactivated the membership. NULL means individual. A team
    only removes memberships it sourced, and never a project admin, workspace
    admin or bot (those are kept and turned individual). Every Plane path that
-   adds someone by hand (add members, project join, invite accept) clears it.
+   adds someone by hand (add members, project join, invite accept, the
+   `create_project_member` management command) clears it.
 3. **One synchronous sync in the request**: `sync_project_members(project_ids,
 user_ids)` in `plane/services/teams/project_sync.py` reconciles each
    (project, user) pair with a handful of bulk queries, inside the caller's
@@ -74,11 +75,14 @@ user_ids)` in `plane/services/teams/project_sync.py` reconciles each
 
 ## Consequences
 
-- An individual membership never becomes team-sourced; a team-sourced one
-  becomes individual when someone adds the person by hand, so a stale source
-  cannot remove them later. This needed one-line edits in Plane's
-  `ProjectMemberViewSet.create`, `UserProjectInvitationsViewset.create` and
-  `ProjectJoinEndpoint.post`.
+- An active individual membership never becomes team-sourced. An inactive
+  one (someone removed from the project) does when a team reactivates it, by
+  design: the team brought them back, so it may remove them again. A
+  team-sourced membership becomes individual when someone adds the person by
+  hand, so a stale source cannot remove them later. This needed one-line edits
+  in Plane's `ProjectMemberViewSet.create`,
+  `UserProjectInvitationsViewset.create`, `ProjectJoinEndpoint.post` and the
+  `create_project_member` command.
 - The sync never changes the role of an active member.
 - Workspace leave/rejoin is Plane's existing behaviour: leaving deactivates
   all project memberships; rejoining does not re-run the team sync.
@@ -88,6 +92,15 @@ user_ids)` in `plane/services/teams/project_sync.py` reconciles each
   serialized by the team row lock (attach and detach lock the project first),
   so two syncs for the same team never interleave.
 - Plane's removal keeps issue assignments; so does a team removal.
+
+Known limitations (Plane behaviour, not changed):
+
+- Plane's member `PATCH` (`ProjectMemberViewSet.partial_update`) saves the
+  whole row from an unlocked read, so a role change that races a team removal
+  can write the membership back as active with its old source.
+- The public API member `PATCH` (`/api/v1/.../members/<id>/`) accepts
+  `member`, so it can re-point a team-sourced row to another user, who then
+  inherits the source.
 
 ## Future: routing rules (not built)
 
@@ -100,10 +113,14 @@ ProjectTeamRoutingRule (ProjectBaseModel)
   match_kind    "label" | "epic"
   label         FK Label, null, CASCADE   -- set when match_kind = "label"
   epic          FK Issue, null, CASCADE   -- the epic, when match_kind = "epic"
-  priority      int                       -- first match wins, lowest first
+  priority      int                       -- first match wins, lowest first;
+                                          -- ties break by created_at
   action        "assign_leader"
   check: exactly one of label / epic matches match_kind
-  unique live (project_team, match_kind, label, epic)
+  unique live (project_team, label) where match_kind = "label"
+  unique live (project_team, epic)  where match_kind = "epic"
+  -- two partial constraints: one unique over all four columns would never
+  -- fire, since Postgres treats the NULL label / epic as distinct
 ```
 
 Evaluated on issue create and on label (or parent epic) change, in the issue
