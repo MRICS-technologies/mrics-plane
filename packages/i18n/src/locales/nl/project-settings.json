@@ -42,6 +42,46 @@
         "select_co_worker": "Selecteer collega"
       }
     },
+    "teams": {
+      "label": "Teams",
+      "description": "Koppel teams uit de werkruimte. Hun leden worden lid van dit project en blijven gesynchroniseerd met het team.",
+      "add_team": "Team toevoegen",
+      "search_teams": "Teams zoeken",
+      "all_attached": "Alle teams van de werkruimte zijn al gekoppeld.",
+      "no_workspace_teams": "Uw werkruimte heeft nog geen teams. Maak ze aan in {link}.",
+      "workspace_teams_link": "Werkruimte-instellingen → Teams",
+      "leader": "Leider",
+      "leader_of": "Leider van {team}",
+      "no_leader": "Geen leider",
+      "remove": "Verwijderen",
+      "remove_aria_label": "{team} uit dit project verwijderen",
+      "empty": {
+        "title": "Geen teams gekoppeld",
+        "description_admin": "Koppel een team uit de werkruimte om de leden aan dit project toe te voegen en gesynchroniseerd te houden.",
+        "description": "Er zijn nog geen teams uit de werkruimte aan dit project gekoppeld."
+      },
+      "remove_modal": {
+        "title": "{team} uit dit project verwijderen?",
+        "content": "Leden die via {team} lid zijn geworden van dit project, worden eruit verwijderd. Projectbeheerders, werkruimtebeheerders en handmatig toegevoegde personen blijven. De standaard GitHub-repository van het team voor dit project wordt ook gewist.",
+        "confirm": "Team verwijderen",
+        "confirming": "Verwijderen…"
+      },
+      "toasts": {
+        "attached": "{team} gekoppeld",
+        "members_added": "{count, plural, =0 {Er zijn geen nieuwe leden toegevoegd.} one {# lid aan het project toegevoegd.} other {# leden aan het project toegevoegd.}}",
+        "removed": "{team} verwijderd",
+        "members_removed": "{removed, plural, =0 {Geen leden verwijderd} one {# lid verwijderd} other {# leden verwijderd}}, {kept, plural, one {# behouden} other {# behouden}}.",
+        "leader_set": "{name} leidt nu {team} in dit project.",
+        "leader_cleared": "{team} heeft in dit project nu geen leider."
+      },
+      "errors": {
+        "load_failed": "De teams van het project konden niet worden geladen.",
+        "attach_failed": "Het team kon niet worden gekoppeld. Probeer het opnieuw.",
+        "remove_failed": "Het team kon niet worden verwijderd. Probeer het opnieuw.",
+        "leader_failed": "De leider kon niet worden gewijzigd. Probeer het opnieuw.",
+        "forbidden": "Alleen projectbeheerders kunnen de teams van het project wijzigen."
+      }
+    },
     "states": {
       "heading": "Statussen",
       "description": "Definieer en pas workflowstatussen aan om de voortgang van je werkitems te volgen.",
@@ -250,7 +290,8 @@
         "title": "Standaardrepository's van teams",
         "description": "Kies naar welke repository de nieuwe branches van elk team in dit project gaan. Teams op de projectstandaard gebruiken de standaardrepository hierboven.",
         "project_default": "Projectstandaard",
-        "no_teams": "Nog geen teams. Maak ze aan in Werkruimte-instellingen → Teams.",
+        "no_teams": "Er zijn nog geen teams aan dit project gekoppeld. Koppel ze in {link}.",
+        "no_teams_link": "Projectinstellingen → Teams",
         "errors": {
           "load_failed": "We konden de standaardrepository's van de teams niet laden. Probeer het opnieuw.",
           "save_failed": "De standaardrepository van het team kon niet worden opgeslagen. Probeer het opnieuw."

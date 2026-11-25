@@ -42,6 +42,46 @@
         "select_co_worker": "選擇同事"
       }
     },
+    "teams": {
+      "label": "團隊",
+      "description": "關聯工作區團隊。團隊成員會加入此專案，並與團隊保持同步。",
+      "add_team": "新增團隊",
+      "search_teams": "搜尋團隊",
+      "all_attached": "所有工作區團隊皆已關聯。",
+      "no_workspace_teams": "工作區尚無團隊。請在{link}中建立。",
+      "workspace_teams_link": "工作區設定 → 團隊",
+      "leader": "負責人",
+      "leader_of": "{team} 負責人",
+      "no_leader": "無負責人",
+      "remove": "移除",
+      "remove_aria_label": "從此專案中移除 {team}",
+      "empty": {
+        "title": "尚未關聯團隊",
+        "description_admin": "關聯工作區團隊後，其成員會加入此專案並保持同步。",
+        "description": "此專案尚未關聯任何工作區團隊。"
+      },
+      "remove_modal": {
+        "title": "要從此專案中移除 {team} 嗎？",
+        "content": "透過 {team} 加入此專案的成員將被移出此專案。專案管理員、工作區管理員和手動新增的人員會保留。該團隊在此專案中的 GitHub 預設儲存庫也會被清除。",
+        "confirm": "移除團隊",
+        "confirming": "移除中…"
+      },
+      "toasts": {
+        "attached": "已關聯 {team}",
+        "members_added": "{count, plural, =0 {沒有新增任何成員。} one {已將 # 位成員新增至專案。} other {已將 # 位成員新增至專案。}}",
+        "removed": "已移除 {team}",
+        "members_removed": "{removed, plural, =0 {未移除任何成員} one {已移除 # 位成員} other {已移除 # 位成員}}，{kept, plural, one {保留 # 位} other {保留 # 位}}。",
+        "leader_set": "{name} 現在是此專案中 {team} 的負責人。",
+        "leader_cleared": "{team} 在此專案中已沒有負責人。"
+      },
+      "errors": {
+        "load_failed": "無法載入專案的團隊。",
+        "attach_failed": "無法關聯團隊，請再試一次。",
+        "remove_failed": "無法移除團隊，請再試一次。",
+        "leader_failed": "無法變更負責人，請再試一次。",
+        "forbidden": "只有專案管理員可以變更專案的團隊。"
+      }
+    },
     "states": {
       "heading": "狀態",
       "description": "定義並自訂工作流程狀態以追蹤工作事項的進度。",
@@ -250,7 +290,8 @@
         "title": "團隊預設儲存庫",
         "description": "選擇此專案中每個團隊的新分支所使用的儲存庫。使用專案預設值的團隊會使用上方的預設儲存庫。",
         "project_default": "專案預設",
-        "no_teams": "尚無團隊。請在工作區設定 → 團隊中建立。",
+        "no_teams": "此專案尚未關聯任何團隊。請在{link}中關聯。",
+        "no_teams_link": "專案設定 → 團隊",
         "errors": {
           "load_failed": "無法載入團隊預設儲存庫，請再試一次。",
           "save_failed": "無法儲存團隊預設儲存庫，請再試一次。"

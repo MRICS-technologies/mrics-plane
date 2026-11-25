@@ -42,6 +42,46 @@
         "select_co_worker": "Wählen Sie einen Mitarbeiter"
       }
     },
+    "teams": {
+      "label": "Teams",
+      "description": "Teams des Arbeitsbereichs zuordnen. Ihre Mitglieder werden Teil dieses Projekts und bleiben mit dem Team synchron.",
+      "add_team": "Team hinzufügen",
+      "search_teams": "Teams suchen",
+      "all_attached": "Alle Teams des Arbeitsbereichs sind bereits zugeordnet.",
+      "no_workspace_teams": "Ihr Arbeitsbereich hat noch keine Teams. Erstellen Sie sie unter {link}.",
+      "workspace_teams_link": "Arbeitsbereich-Einstellungen → Teams",
+      "leader": "Leitung",
+      "leader_of": "Leitung von {team}",
+      "no_leader": "Keine Leitung",
+      "remove": "Entfernen",
+      "remove_aria_label": "{team} aus diesem Projekt entfernen",
+      "empty": {
+        "title": "Keine Teams zugeordnet",
+        "description_admin": "Ordnen Sie ein Team des Arbeitsbereichs zu, um seine Mitglieder diesem Projekt hinzuzufügen und synchron zu halten.",
+        "description": "Diesem Projekt sind noch keine Teams des Arbeitsbereichs zugeordnet."
+      },
+      "remove_modal": {
+        "title": "{team} aus diesem Projekt entfernen?",
+        "content": "Mitglieder, die diesem Projekt über {team} beigetreten sind, werden daraus entfernt. Projektadministratoren, Arbeitsbereich-Administratoren und von Hand hinzugefügte Personen bleiben. Das GitHub-Standard-Repository des Teams für dieses Projekt wird ebenfalls zurückgesetzt.",
+        "confirm": "Team entfernen",
+        "confirming": "Wird entfernt…"
+      },
+      "toasts": {
+        "attached": "{team} zugeordnet",
+        "members_added": "{count, plural, =0 {Es wurden keine neuen Mitglieder hinzugefügt.} one {# Mitglied zum Projekt hinzugefügt.} other {# Mitglieder zum Projekt hinzugefügt.}}",
+        "removed": "{team} entfernt",
+        "members_removed": "{removed, plural, =0 {Keine Mitglieder entfernt} one {# Mitglied entfernt} other {# Mitglieder entfernt}}, {kept, plural, one {# behalten} other {# behalten}}.",
+        "leader_set": "{name} leitet jetzt {team} in diesem Projekt.",
+        "leader_cleared": "{team} hat in diesem Projekt jetzt keine Leitung."
+      },
+      "errors": {
+        "load_failed": "Die Teams des Projekts konnten nicht geladen werden.",
+        "attach_failed": "Das Team konnte nicht zugeordnet werden. Bitte versuchen Sie es erneut.",
+        "remove_failed": "Das Team konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
+        "leader_failed": "Die Leitung konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
+        "forbidden": "Nur Projektadministratoren können die Teams des Projekts ändern."
+      }
+    },
     "states": {
       "heading": "Status",
       "description": "Definieren und passen Sie Workflow-Status an, um den Fortschritt Ihrer Arbeitselemente zu verfolgen.",
@@ -250,7 +290,8 @@
         "title": "Standard-Repositorys der Teams",
         "description": "Wählen Sie, in welches Repository die neuen Branches jedes Teams in diesem Projekt gehen. Teams mit dem Projektstandard verwenden das Standard-Repository oben.",
         "project_default": "Projektstandard",
-        "no_teams": "Noch keine Teams. Erstellen Sie sie unter Arbeitsbereich-Einstellungen → Teams.",
+        "no_teams": "Diesem Projekt sind noch keine Teams zugeordnet. Ordnen Sie sie unter {link} zu.",
+        "no_teams_link": "Projekteinstellungen → Teams",
         "errors": {
           "load_failed": "Die Standard-Repositorys der Teams konnten nicht geladen werden. Bitte versuchen Sie es erneut.",
           "save_failed": "Das Standard-Repository des Teams konnte nicht gespeichert werden. Bitte versuchen Sie es erneut."

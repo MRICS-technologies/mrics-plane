@@ -42,6 +42,46 @@
         "select_co_worker": "Seleccionar compañero de trabajo"
       }
     },
+    "teams": {
+      "label": "Equipos",
+      "description": "Vincule equipos del espacio de trabajo. Sus miembros se unen a este proyecto y se mantienen sincronizados con el equipo.",
+      "add_team": "Agregar equipo",
+      "search_teams": "Buscar equipos",
+      "all_attached": "Todos los equipos del espacio de trabajo ya están vinculados.",
+      "no_workspace_teams": "Su espacio de trabajo aún no tiene equipos. Créelos en {link}.",
+      "workspace_teams_link": "Configuración del espacio de trabajo → Equipos",
+      "leader": "Líder",
+      "leader_of": "Líder de {team}",
+      "no_leader": "Sin líder",
+      "remove": "Quitar",
+      "remove_aria_label": "Quitar {team} de este proyecto",
+      "empty": {
+        "title": "No hay equipos vinculados",
+        "description_admin": "Vincule un equipo del espacio de trabajo para agregar a sus miembros a este proyecto y mantenerlos sincronizados.",
+        "description": "Aún no hay equipos del espacio de trabajo vinculados a este proyecto."
+      },
+      "remove_modal": {
+        "title": "¿Quitar {team} de este proyecto?",
+        "content": "Los miembros que se unieron a este proyecto a través de {team} se quitarán de él. Los administradores del proyecto, los administradores del espacio de trabajo y las personas agregadas manualmente se mantienen. También se borra el repositorio predeterminado de GitHub del equipo para este proyecto.",
+        "confirm": "Quitar equipo",
+        "confirming": "Quitando…"
+      },
+      "toasts": {
+        "attached": "{team} vinculado",
+        "members_added": "{count, plural, =0 {No se agregaron miembros nuevos.} one {Se agregó # miembro al proyecto.} other {Se agregaron # miembros al proyecto.}}",
+        "removed": "{team} quitado",
+        "members_removed": "{removed, plural, =0 {Ningún miembro quitado} one {# miembro quitado} other {# miembros quitados}}, {kept, plural, one {# se mantiene} other {# se mantienen}}.",
+        "leader_set": "{name} ahora lidera {team} en este proyecto.",
+        "leader_cleared": "{team} ya no tiene líder en este proyecto."
+      },
+      "errors": {
+        "load_failed": "No se pudieron cargar los equipos del proyecto.",
+        "attach_failed": "No se pudo vincular el equipo. Inténtelo de nuevo.",
+        "remove_failed": "No se pudo quitar el equipo. Inténtelo de nuevo.",
+        "leader_failed": "No se pudo cambiar el líder. Inténtelo de nuevo.",
+        "forbidden": "Solo los administradores del proyecto pueden modificar los equipos del proyecto."
+      }
+    },
     "states": {
       "heading": "Estados",
       "description": "Define y personaliza los estados del flujo de trabajo para rastrear el progreso de tus elementos de trabajo.",
@@ -250,7 +290,8 @@
         "title": "Repositorios predeterminados de los equipos",
         "description": "Elija el repositorio al que van las nuevas ramas de cada equipo en este proyecto. Los equipos con el predeterminado del proyecto usan el repositorio predeterminado de arriba.",
         "project_default": "Predeterminado del proyecto",
-        "no_teams": "Aún no hay equipos. Créelos en Configuración del espacio de trabajo → Equipos.",
+        "no_teams": "Aún no hay equipos vinculados a este proyecto. Vincúlelos en {link}.",
+        "no_teams_link": "Configuración del proyecto → Equipos",
         "errors": {
           "load_failed": "No se pudieron cargar los repositorios predeterminados de los equipos. Inténtelo de nuevo.",
           "save_failed": "No se pudo guardar el repositorio predeterminado del equipo. Inténtelo de nuevo."

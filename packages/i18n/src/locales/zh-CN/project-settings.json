@@ -42,6 +42,46 @@
         "select_co_worker": "选择同事"
       }
     },
+    "teams": {
+      "label": "团队",
+      "description": "关联工作区团队。团队成员会加入此项目，并与团队保持同步。",
+      "add_team": "添加团队",
+      "search_teams": "搜索团队",
+      "all_attached": "所有工作区团队均已关联。",
+      "no_workspace_teams": "工作区还没有团队。请在{link}中创建。",
+      "workspace_teams_link": "工作区设置 → 团队",
+      "leader": "负责人",
+      "leader_of": "{team} 负责人",
+      "no_leader": "无负责人",
+      "remove": "移除",
+      "remove_aria_label": "从此项目中移除 {team}",
+      "empty": {
+        "title": "未关联团队",
+        "description_admin": "关联一个工作区团队，即可将其成员添加到此项目并保持同步。",
+        "description": "此项目尚未关联任何工作区团队。"
+      },
+      "remove_modal": {
+        "title": "要从此项目中移除 {team} 吗？",
+        "content": "通过 {team} 加入此项目的成员将被移出此项目。项目管理员、工作区管理员和手动添加的人员会保留。该团队在此项目中的 GitHub 默认仓库也会被清除。",
+        "confirm": "移除团队",
+        "confirming": "移除中…"
+      },
+      "toasts": {
+        "attached": "已关联 {team}",
+        "members_added": "{count, plural, =0 {没有添加新成员。} one {已将 # 名成员添加到项目。} other {已将 # 名成员添加到项目。}}",
+        "removed": "已移除 {team}",
+        "members_removed": "{removed, plural, =0 {未移除任何成员} one {已移除 # 名成员} other {已移除 # 名成员}}，{kept, plural, one {保留 # 名} other {保留 # 名}}。",
+        "leader_set": "{name} 现在是此项目中 {team} 的负责人。",
+        "leader_cleared": "{team} 在此项目中已没有负责人。"
+      },
+      "errors": {
+        "load_failed": "无法加载项目的团队。",
+        "attach_failed": "无法关联团队，请重试。",
+        "remove_failed": "无法移除团队，请重试。",
+        "leader_failed": "无法更改负责人，请重试。",
+        "forbidden": "只有项目管理员可以更改项目的团队。"
+      }
+    },
     "states": {
       "heading": "状态",
       "description": "定义和自定义工作流状态以跟踪工作项的进度。",
@@ -250,7 +290,8 @@
         "title": "团队默认仓库",
         "description": "选择此项目中每个团队的新分支所使用的仓库。使用项目默认值的团队将使用上方的默认仓库。",
         "project_default": "项目默认",
-        "no_teams": "暂无团队。请在工作区设置 → 团队中创建。",
+        "no_teams": "此项目尚未关联任何团队。请在{link}中关联。",
+        "no_teams_link": "项目设置 → 团队",
         "errors": {
           "load_failed": "无法加载团队默认仓库，请重试。",
           "save_failed": "无法保存团队默认仓库，请重试。"
