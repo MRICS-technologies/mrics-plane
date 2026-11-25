@@ -137,7 +137,7 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
         />
       )}
 
-      <div className="flex min-w-0 flex-1 items-center gap-4">
+      <div className="flex min-w-0 flex-1 basis-full items-center gap-4 sm:basis-48">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate text-14 font-medium">{team.name}</span>
           <span className="text-11 text-tertiary">
