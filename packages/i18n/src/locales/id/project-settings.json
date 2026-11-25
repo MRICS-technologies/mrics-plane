@@ -42,6 +42,51 @@
         "select_co_worker": "Pilih rekan kerja"
       }
     },
+    "teams": {
+      "label": "Tim",
+      "description": "Tautkan tim ruang kerja. Anggotanya bergabung ke proyek ini dan tetap tersinkron dengan tim.",
+      "add_team": "Tambah tim",
+      "search_teams": "Cari tim",
+      "all_attached": "Semua tim ruang kerja sudah ditautkan.",
+      "no_workspace_teams": "Ruang kerja Anda belum memiliki tim. Buat tim di {link}.",
+      "no_workspace_teams_ask_admin": "Ruang kerja Anda belum memiliki tim. Minta admin ruang kerja untuk membuatnya.",
+      "workspace_teams_link": "Pengaturan ruang kerja → Tim",
+      "leader": "Pemimpin",
+      "leader_of": "Pemimpin {team}",
+      "no_leader": "Tanpa pemimpin",
+      "remove": "Lepaskan",
+      "remove_aria_label": "Lepaskan {team} dari proyek ini",
+      "via_team": "melalui {team}",
+      "empty": {
+        "title": "Belum ada tim yang ditautkan",
+        "description_admin": "Tautkan tim ruang kerja untuk menambahkan anggotanya ke proyek ini dan menjaganya tetap tersinkron.",
+        "description": "Belum ada tim ruang kerja yang ditautkan ke proyek ini."
+      },
+      "remove_modal": {
+        "title": "Lepaskan {team} dari proyek ini?",
+        "content": "Anggota yang bergabung ke proyek ini melalui {team} akan dikeluarkan dari proyek. Admin proyek, admin ruang kerja, dan orang yang ditambahkan secara manual tetap tinggal. Repositori GitHub bawaan tim untuk proyek ini juga dikosongkan.",
+        "confirm": "Lepaskan tim",
+        "confirming": "Melepaskan…"
+      },
+      "toasts": {
+        "attached": "{team} ditautkan",
+        "members_added": "{count, plural, =0 {Tidak ada anggota baru yang ditambahkan.} one {# anggota ditambahkan ke proyek.} other {# anggota ditambahkan ke proyek.}}",
+        "removed": "{team} dilepaskan",
+        "already_removed": "{team} sudah dilepaskan dari proyek ini",
+        "members_removed": "{removed, plural, =0 {Tidak ada anggota yang dikeluarkan} one {# anggota dikeluarkan} other {# anggota dikeluarkan}}, {kept, plural, one {# tetap} other {# tetap}}.",
+        "leader_set": "{name} kini memimpin {team} di proyek ini.",
+        "leader_cleared": "{team} kini tidak memiliki pemimpin di proyek ini."
+      },
+      "errors": {
+        "load_failed": "Tim proyek tidak dapat dimuat.",
+        "workspace_teams_load_failed": "Tim ruang kerja tidak dapat dimuat.",
+        "attach_failed": "Tim tidak dapat ditautkan. Silakan coba lagi.",
+        "remove_failed": "Tim tidak dapat dilepaskan. Silakan coba lagi.",
+        "leader_failed": "Pemimpin tidak dapat diubah. Silakan coba lagi.",
+        "leader_not_member": "Orang ini bukan lagi anggota {team}.",
+        "forbidden": "Hanya admin proyek yang dapat mengubah tim proyek."
+      }
+    },
     "states": {
       "heading": "Status",
       "description": "Tentukan dan sesuaikan status alur kerja untuk melacak kemajuan item kerja Anda.",
@@ -250,7 +295,8 @@
         "title": "Repositori bawaan tim",
         "description": "Pilih repositori tujuan branch baru setiap tim di proyek ini. Tim yang memakai bawaan proyek menggunakan repositori bawaan di atas.",
         "project_default": "Bawaan proyek",
-        "no_teams": "Belum ada tim. Buat tim di Pengaturan ruang kerja → Tim.",
+        "no_teams": "Belum ada tim yang ditautkan ke proyek ini. Tautkan tim di {link}.",
+        "no_teams_link": "Pengaturan proyek → Tim",
         "errors": {
           "load_failed": "Repositori bawaan tim tidak dapat dimuat. Silakan coba lagi.",
           "save_failed": "Repositori bawaan tim tidak dapat disimpan. Silakan coba lagi."

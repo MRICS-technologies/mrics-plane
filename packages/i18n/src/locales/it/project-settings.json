@@ -42,6 +42,51 @@
         "select_co_worker": "Seleziona un collega"
       }
     },
+    "teams": {
+      "label": "Team",
+      "description": "Associ i team dello spazio di lavoro. I loro membri entrano in questo progetto e restano sincronizzati con il team.",
+      "add_team": "Aggiungi team",
+      "search_teams": "Cerca team",
+      "all_attached": "Tutti i team dello spazio di lavoro sono già associati.",
+      "no_workspace_teams": "Il Suo spazio di lavoro non ha ancora team. Li crei in {link}.",
+      "no_workspace_teams_ask_admin": "Il Suo spazio di lavoro non ha ancora team. Chieda a un amministratore dello spazio di lavoro di crearli.",
+      "workspace_teams_link": "Impostazioni dello spazio di lavoro → Team",
+      "leader": "Responsabile",
+      "leader_of": "Responsabile di {team}",
+      "no_leader": "Nessun responsabile",
+      "remove": "Rimuovi",
+      "remove_aria_label": "Rimuovi {team} da questo progetto",
+      "via_team": "tramite {team}",
+      "empty": {
+        "title": "Nessun team associato",
+        "description_admin": "Associ un team dello spazio di lavoro per aggiungere i suoi membri a questo progetto e mantenerli sincronizzati.",
+        "description": "A questo progetto non è ancora associato alcun team dello spazio di lavoro."
+      },
+      "remove_modal": {
+        "title": "Rimuovere {team} da questo progetto?",
+        "content": "I membri entrati in questo progetto tramite {team} ne verranno rimossi. Gli amministratori del progetto, gli amministratori dello spazio di lavoro e le persone aggiunte manualmente restano. Viene cancellato anche il repository GitHub predefinito del team per questo progetto.",
+        "confirm": "Rimuovi team",
+        "confirming": "Rimozione…"
+      },
+      "toasts": {
+        "attached": "Team {team} associato",
+        "members_added": "{count, plural, =0 {Nessun nuovo membro aggiunto.} one {# membro aggiunto al progetto.} many {# membri aggiunti al progetto.} other {# membri aggiunti al progetto.}}",
+        "removed": "Team {team} rimosso",
+        "already_removed": "Il team {team} era già stato rimosso da questo progetto",
+        "members_removed": "{removed, plural, =0 {Nessun membro rimosso} one {# membro rimosso} many {# membri rimossi} other {# membri rimossi}}, {kept, plural, one {# mantenuto} many {# mantenuti} other {# mantenuti}}.",
+        "leader_set": "{name} ora guida {team} in questo progetto.",
+        "leader_cleared": "{team} non ha più un responsabile in questo progetto."
+      },
+      "errors": {
+        "load_failed": "Non è stato possibile caricare i team del progetto.",
+        "workspace_teams_load_failed": "Non è stato possibile caricare i team dello spazio di lavoro.",
+        "attach_failed": "Non è stato possibile associare il team. Riprovi.",
+        "remove_failed": "Non è stato possibile rimuovere il team. Riprovi.",
+        "leader_failed": "Non è stato possibile cambiare il responsabile. Riprovi.",
+        "leader_not_member": "Questa persona non fa più parte del team {team}.",
+        "forbidden": "Solo gli amministratori del progetto possono modificarne i team."
+      }
+    },
     "states": {
       "heading": "Stati",
       "description": "Definisci e personalizza gli stati del flusso di lavoro per tracciare l'avanzamento dei tuoi elementi di lavoro.",
@@ -250,7 +295,8 @@
         "title": "Repository predefiniti dei team",
         "description": "Scelga il repository in cui finiscono i nuovi branch di ogni team in questo progetto. I team sul predefinito del progetto usano il repository predefinito indicato sopra.",
         "project_default": "Predefinito del progetto",
-        "no_teams": "Nessun team ancora. Li crei in Impostazioni dello spazio di lavoro → Team.",
+        "no_teams": "A questo progetto non è ancora associato alcun team. Li associ in {link}.",
+        "no_teams_link": "Impostazioni del progetto → Team",
         "errors": {
           "load_failed": "Impossibile caricare i repository predefiniti dei team. Riprovi.",
           "save_failed": "Impossibile salvare il repository predefinito del team. Riprovi."

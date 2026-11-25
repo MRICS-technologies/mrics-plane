@@ -42,6 +42,51 @@
         "select_co_worker": "Selecionar colega de trabalho"
       }
     },
+    "teams": {
+      "label": "Equipes",
+      "description": "Vincule equipes do espaço de trabalho. Os membros delas entram neste projeto e ficam sincronizados com a equipe.",
+      "add_team": "Adicionar equipe",
+      "search_teams": "Pesquisar equipes",
+      "all_attached": "Todas as equipes do espaço de trabalho já estão vinculadas.",
+      "no_workspace_teams": "Seu espaço de trabalho ainda não tem equipes. Crie-as em {link}.",
+      "no_workspace_teams_ask_admin": "Seu espaço de trabalho ainda não tem equipes. Peça a um administrador do espaço de trabalho para criá-las.",
+      "workspace_teams_link": "Configurações do espaço de trabalho → Equipes",
+      "leader": "Líder",
+      "leader_of": "Líder de {team}",
+      "no_leader": "Sem líder",
+      "remove": "Remover",
+      "remove_aria_label": "Remover {team} deste projeto",
+      "via_team": "via {team}",
+      "empty": {
+        "title": "Nenhuma equipe vinculada",
+        "description_admin": "Vincule uma equipe do espaço de trabalho para adicionar os membros dela a este projeto e mantê-los sincronizados.",
+        "description": "Ainda não há equipes do espaço de trabalho vinculadas a este projeto."
+      },
+      "remove_modal": {
+        "title": "Remover {team} deste projeto?",
+        "content": "Os membros que entraram neste projeto por meio de {team} serão removidos dele. Administradores do projeto, administradores do espaço de trabalho e pessoas adicionadas manualmente permanecem. O repositório padrão do GitHub da equipe para este projeto também é limpo.",
+        "confirm": "Remover equipe",
+        "confirming": "Removendo…"
+      },
+      "toasts": {
+        "attached": "Equipe {team} vinculada",
+        "members_added": "{count, plural, =0 {Nenhum membro novo foi adicionado.} one {# membro adicionado ao projeto.} many {# membros adicionados ao projeto.} other {# membros adicionados ao projeto.}}",
+        "removed": "Equipe {team} removida",
+        "already_removed": "A equipe {team} já foi removida deste projeto",
+        "members_removed": "{removed, plural, =0 {Nenhum membro removido} one {# membro removido} many {# membros removidos} other {# membros removidos}}, {kept, plural, one {# mantido} many {# mantidos} other {# mantidos}}.",
+        "leader_set": "{name} agora lidera {team} neste projeto.",
+        "leader_cleared": "{team} não tem mais líder neste projeto."
+      },
+      "errors": {
+        "load_failed": "Não foi possível carregar as equipes do projeto.",
+        "workspace_teams_load_failed": "Não foi possível carregar as equipes do espaço de trabalho.",
+        "attach_failed": "Não foi possível vincular a equipe. Tente novamente.",
+        "remove_failed": "Não foi possível remover a equipe. Tente novamente.",
+        "leader_failed": "Não foi possível alterar o líder. Tente novamente.",
+        "leader_not_member": "Essa pessoa não é mais membro da equipe {team}.",
+        "forbidden": "Somente administradores do projeto podem alterar as equipes do projeto."
+      }
+    },
     "states": {
       "heading": "Estados",
       "description": "Defina e personalize os estados de fluxo de trabalho para acompanhar o progresso dos seus itens de trabalho.",
@@ -250,7 +295,8 @@
         "title": "Repositórios padrão das equipes",
         "description": "Escolha o repositório para onde vão os novos branches de cada equipe neste projeto. As equipes no padrão do projeto usam o repositório padrão acima.",
         "project_default": "Padrão do projeto",
-        "no_teams": "Ainda não há equipes. Crie-as em Configurações do espaço de trabalho → Equipes.",
+        "no_teams": "Ainda não há equipes vinculadas a este projeto. Vincule-as em {link}.",
+        "no_teams_link": "Configurações do projeto → Equipes",
         "errors": {
           "load_failed": "Não foi possível carregar os repositórios padrão das equipes. Tente novamente.",
           "save_failed": "Não foi possível salvar o repositório padrão da equipe. Tente novamente."

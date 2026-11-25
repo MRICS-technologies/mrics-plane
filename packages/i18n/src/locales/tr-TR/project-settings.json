@@ -42,6 +42,51 @@
         "select_co_worker": "İş arkadaşı seç"
       }
     },
+    "teams": {
+      "label": "Takımlar",
+      "description": "Çalışma alanı takımlarını bağlayın. Üyeleri bu projeye katılır ve takımla eşitlenmiş kalır.",
+      "add_team": "Takım ekle",
+      "search_teams": "Takım ara",
+      "all_attached": "Tüm çalışma alanı takımları zaten bağlı.",
+      "no_workspace_teams": "Çalışma alanınızda henüz takım yok. Takımları {link} bölümünde oluşturun.",
+      "no_workspace_teams_ask_admin": "Çalışma alanınızda henüz takım yok. Bir çalışma alanı yöneticisinden takım oluşturmasını isteyin.",
+      "workspace_teams_link": "Çalışma Alanı Ayarları → Takımlar",
+      "leader": "Lider",
+      "leader_of": "{team} lideri",
+      "no_leader": "Lider yok",
+      "remove": "Kaldır",
+      "remove_aria_label": "{team} takımını bu projeden kaldır",
+      "via_team": "{team} üzerinden",
+      "empty": {
+        "title": "Bağlı takım yok",
+        "description_admin": "Üyelerini bu projeye eklemek ve eşitlenmiş tutmak için bir çalışma alanı takımı bağlayın.",
+        "description": "Bu projeye henüz bağlı bir çalışma alanı takımı yok."
+      },
+      "remove_modal": {
+        "title": "{team} takımı bu projeden kaldırılsın mı?",
+        "content": "Bu projeye {team} üzerinden katılan üyeler projeden kaldırılacak. Proje yöneticileri, çalışma alanı yöneticileri ve elle eklenen kişiler kalır. Takımın bu proje için GitHub varsayılan deposu da temizlenir.",
+        "confirm": "Takımı kaldır",
+        "confirming": "Kaldırılıyor…"
+      },
+      "toasts": {
+        "attached": "{team} takımı bağlandı",
+        "members_added": "{count, plural, =0 {Yeni üye eklenmedi.} one {Projeye # üye eklendi.} other {Projeye # üye eklendi.}}",
+        "removed": "{team} takımı kaldırıldı",
+        "already_removed": "{team} takımı bu projeden zaten kaldırılmış",
+        "members_removed": "{removed, plural, =0 {Hiçbir üye kaldırılmadı} one {# üye kaldırıldı} other {# üye kaldırıldı}}, {kept, plural, one {# üye kaldı} other {# üye kaldı}}.",
+        "leader_set": "{name} artık bu projede {team} takımının lideri.",
+        "leader_cleared": "{team} takımının bu projede artık lideri yok."
+      },
+      "errors": {
+        "load_failed": "Projenin takımları yüklenemedi.",
+        "workspace_teams_load_failed": "Çalışma alanının takımları yüklenemedi.",
+        "attach_failed": "Takım bağlanamadı. Lütfen tekrar deneyin.",
+        "remove_failed": "Takım kaldırılamadı. Lütfen tekrar deneyin.",
+        "leader_failed": "Lider değiştirilemedi. Lütfen tekrar deneyin.",
+        "leader_not_member": "Bu kişi artık {team} takımının üyesi değil.",
+        "forbidden": "Projenin takımlarını yalnızca proje yöneticileri değiştirebilir."
+      }
+    },
     "states": {
       "heading": "Durumlar",
       "description": "İş öğelerinizin ilerlemesini izlemek için iş akışı durumlarını tanımlayın ve özelleştirin.",
@@ -250,7 +295,8 @@
         "title": "Takımların varsayılan depoları",
         "description": "Bu projede her takımın yeni dallarının oluşturulacağı depoyu seçin. Proje varsayılanındaki takımlar yukarıdaki varsayılan depoyu kullanır.",
         "project_default": "Proje varsayılanı",
-        "no_teams": "Henüz takım yok. Takımları Çalışma Alanı Ayarları → Takımlar bölümünde oluşturun.",
+        "no_teams": "Bu projeye henüz bağlı takım yok. Takımları {link} bölümünde bağlayın.",
+        "no_teams_link": "Proje Ayarları → Takımlar",
         "errors": {
           "load_failed": "Takımların varsayılan depoları yüklenemedi. Lütfen tekrar deneyin.",
           "save_failed": "Takımın varsayılan deposu kaydedilemedi. Lütfen tekrar deneyin."

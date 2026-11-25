@@ -17,7 +17,7 @@ import { useMember } from "@/hooks/store/use-member";
 import { useUser, useUserPermissions } from "@/hooks/store/user";
 import type { IMemberFilters } from "@/store/member/utils";
 
-export interface RowData extends Pick<TProjectMembership, "original_role"> {
+export interface RowData extends Pick<TProjectMembership, "original_role" | "source_team"> {
   member: IWorkspaceMember;
 }
 
@@ -72,6 +72,7 @@ export const useProjectColumns = (props: TUseProjectColumnsProps) => {
         <NameColumn
           rowData={rowData}
           workspaceSlug={workspaceSlug}
+          projectId={projectId}
           isAdmin={isAdmin}
           currentUser={currentUser}
           setRemoveMemberModal={setRemoveMemberModal}

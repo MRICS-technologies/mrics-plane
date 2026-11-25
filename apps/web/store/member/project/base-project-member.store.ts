@@ -221,6 +221,7 @@ export class BaseProjectMemberStore implements IBaseProjectMemberStore {
       id: projectMember.id,
       role: projectMember.role,
       original_role: projectMember.original_role,
+      source_team: projectMember.source_team,
       member: {
         ...userDetails,
         joining_date: projectMember.created_at ?? undefined,
@@ -274,6 +275,7 @@ export class BaseProjectMemberStore implements IBaseProjectMemberStore {
       id: projectMember.id,
       role: projectMember.role,
       original_role: projectMember.original_role,
+      source_team: projectMember.source_team,
       member: {
         ...userDetails,
         joining_date: projectMember.created_at ?? undefined,

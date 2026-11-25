@@ -42,6 +42,51 @@
         "select_co_worker": "Chọn đồng nghiệp"
       }
     },
+    "teams": {
+      "label": "Nhóm",
+      "description": "Gắn các nhóm trong không gian làm việc. Thành viên của nhóm sẽ tham gia dự án này và luôn được đồng bộ với nhóm.",
+      "add_team": "Thêm nhóm",
+      "search_teams": "Tìm nhóm",
+      "all_attached": "Tất cả các nhóm trong không gian làm việc đều đã được gắn.",
+      "no_workspace_teams": "Không gian làm việc của bạn chưa có nhóm nào. Hãy tạo nhóm trong {link}.",
+      "no_workspace_teams_ask_admin": "Không gian làm việc của bạn chưa có nhóm nào. Hãy nhờ quản trị viên không gian làm việc tạo nhóm.",
+      "workspace_teams_link": "Cài đặt không gian làm việc → Nhóm",
+      "leader": "Trưởng nhóm",
+      "leader_of": "Trưởng nhóm {team}",
+      "no_leader": "Không có trưởng nhóm",
+      "remove": "Gỡ",
+      "remove_aria_label": "Gỡ {team} khỏi dự án này",
+      "via_team": "qua {team}",
+      "empty": {
+        "title": "Chưa gắn nhóm nào",
+        "description_admin": "Gắn một nhóm trong không gian làm việc để thêm các thành viên của nhóm vào dự án này và giữ họ luôn đồng bộ.",
+        "description": "Dự án này chưa được gắn nhóm nào từ không gian làm việc."
+      },
+      "remove_modal": {
+        "title": "Gỡ {team} khỏi dự án này?",
+        "content": "Những thành viên đã tham gia dự án này thông qua {team} sẽ bị xóa khỏi dự án. Quản trị viên dự án, quản trị viên không gian làm việc và những người được thêm thủ công vẫn ở lại. Kho lưu trữ GitHub mặc định của nhóm cho dự án này cũng sẽ bị xóa.",
+        "confirm": "Gỡ nhóm",
+        "confirming": "Đang gỡ…"
+      },
+      "toasts": {
+        "attached": "Đã gắn {team}",
+        "members_added": "{count, plural, =0 {Không có thành viên mới nào được thêm.} one {Đã thêm # thành viên vào dự án.} other {Đã thêm # thành viên vào dự án.}}",
+        "removed": "Đã gỡ {team}",
+        "already_removed": "{team} đã được gỡ khỏi dự án này trước đó",
+        "members_removed": "{removed, plural, =0 {Không xóa thành viên nào} one {Đã xóa # thành viên} other {Đã xóa # thành viên}}, {kept, plural, one {giữ lại #} other {giữ lại #}}.",
+        "leader_set": "{name} hiện là trưởng nhóm {team} trong dự án này.",
+        "leader_cleared": "{team} hiện không có trưởng nhóm trong dự án này."
+      },
+      "errors": {
+        "load_failed": "Không thể tải các nhóm của dự án.",
+        "workspace_teams_load_failed": "Không thể tải các nhóm của không gian làm việc.",
+        "attach_failed": "Không thể gắn nhóm. Vui lòng thử lại.",
+        "remove_failed": "Không thể gỡ nhóm. Vui lòng thử lại.",
+        "leader_failed": "Không thể thay đổi trưởng nhóm. Vui lòng thử lại.",
+        "leader_not_member": "Người này không còn là thành viên của {team}.",
+        "forbidden": "Chỉ quản trị viên dự án mới có thể thay đổi các nhóm của dự án."
+      }
+    },
     "states": {
       "heading": "Trạng thái",
       "description": "Xác định và tùy chỉnh trạng thái quy trình làm việc để theo dõi tiến độ các mục công việc của bạn.",
@@ -250,7 +295,8 @@
         "title": "Kho lưu trữ mặc định của nhóm",
         "description": "Chọn kho lưu trữ nơi các nhánh mới của từng nhóm được tạo trong dự án này. Các nhóm dùng mặc định của dự án sẽ dùng kho lưu trữ mặc định ở trên.",
         "project_default": "Mặc định của dự án",
-        "no_teams": "Chưa có nhóm nào. Hãy tạo nhóm trong Cài đặt không gian làm việc → Nhóm.",
+        "no_teams": "Dự án này chưa được gắn nhóm nào. Hãy gắn nhóm trong {link}.",
+        "no_teams_link": "Cài đặt dự án → Nhóm",
         "errors": {
           "load_failed": "Không thể tải kho lưu trữ mặc định của các nhóm. Vui lòng thử lại.",
           "save_failed": "Không thể lưu kho lưu trữ mặc định của nhóm. Vui lòng thử lại."

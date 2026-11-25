@@ -42,6 +42,51 @@
         "select_co_worker": "Vybrať spolupracovníka"
       }
     },
+    "teams": {
+      "label": "Tímy",
+      "description": "Priraďte tímy z pracovného priestoru. Ich členovia sa pripoja k tomuto projektu a zostanú synchronizovaní s tímom.",
+      "add_team": "Pridať tím",
+      "search_teams": "Hľadať tímy",
+      "all_attached": "Všetky tímy pracovného priestoru sú už priradené.",
+      "no_workspace_teams": "Pracovný priestor zatiaľ nemá žiadne tímy. Vytvorte ich v {link}.",
+      "no_workspace_teams_ask_admin": "Pracovný priestor zatiaľ nemá žiadne tímy. Požiadajte správcu pracovného priestoru, aby ich vytvoril.",
+      "workspace_teams_link": "Nastavenia pracovného priestoru → Tímy",
+      "leader": "Vedúci",
+      "leader_of": "Vedúci tímu {team}",
+      "no_leader": "Bez vedúceho",
+      "remove": "Odobrať",
+      "remove_aria_label": "Odobrať {team} z tohto projektu",
+      "via_team": "cez {team}",
+      "empty": {
+        "title": "Žiadne priradené tímy",
+        "description_admin": "Priraďte tím z pracovného priestoru, aby sa jeho členovia pridali do tohto projektu a zostali synchronizovaní.",
+        "description": "K tomuto projektu zatiaľ nie sú priradené žiadne tímy z pracovného priestoru."
+      },
+      "remove_modal": {
+        "title": "Odobrať {team} z tohto projektu?",
+        "content": "Členovia, ktorí sa k tomuto projektu pripojili cez tím {team}, z neho budú odobratí. Správcovia projektu, správcovia pracovného priestoru a ľudia pridaní ručne zostanú. Predvolený repozitár GitHub tímu pre tento projekt sa tiež zruší.",
+        "confirm": "Odobrať tím",
+        "confirming": "Odoberanie…"
+      },
+      "toasts": {
+        "attached": "Tím {team} priradený",
+        "members_added": "{count, plural, =0 {Neboli pridaní žiadni noví členovia.} one {Do projektu bol pridaný # člen.} few {Do projektu boli pridaní # členovia.} many {Do projektu bolo pridaných # člena.} other {Do projektu bolo pridaných # členov.}}",
+        "removed": "Tím {team} odobratý",
+        "already_removed": "Tím {team} už bol z tohto projektu odobratý",
+        "members_removed": "{removed, plural, =0 {Nikto nebol odobratý} one {Odobratý # člen} few {Odobratí # členovia} many {Odobratých # člena} other {Odobratých # členov}}, {kept, plural, one {# zostal} few {# zostali} many {# zostalo} other {# zostalo}}.",
+        "leader_set": "{name} teraz vedie tím {team} v tomto projekte.",
+        "leader_cleared": "Tím {team} teraz v tomto projekte nemá vedúceho."
+      },
+      "errors": {
+        "load_failed": "Tímy projektu sa nepodarilo načítať.",
+        "workspace_teams_load_failed": "Tímy pracovného priestoru sa nepodarilo načítať.",
+        "attach_failed": "Tím sa nepodarilo priradiť. Skúste to znova.",
+        "remove_failed": "Tím sa nepodarilo odobrať. Skúste to znova.",
+        "leader_failed": "Vedúceho sa nepodarilo zmeniť. Skúste to znova.",
+        "leader_not_member": "Táto osoba už nie je členom tímu {team}.",
+        "forbidden": "Tímy projektu môžu meniť iba správcovia projektu."
+      }
+    },
     "states": {
       "heading": "Stavy",
       "description": "Definujte a prispôsobte stavy pracovného postupu na sledovanie priebehu vašich pracovných položiek.",
@@ -250,7 +295,8 @@
         "title": "Predvolené repozitáre tímov",
         "description": "Vyberte repozitár, do ktorého v tomto projekte idú nové vetvy jednotlivých tímov. Tímy s predvoleným nastavením projektu používajú predvolený repozitár uvedený vyššie.",
         "project_default": "Predvolený pre projekt",
-        "no_teams": "Zatiaľ žiadne tímy. Vytvorte ich v Nastavenia pracovného priestoru → Tímy.",
+        "no_teams": "K tomuto projektu zatiaľ nie sú priradené žiadne tímy. Priraďte ich v {link}.",
+        "no_teams_link": "Nastavenia projektu → Tímy",
         "errors": {
           "load_failed": "Predvolené repozitáre tímov sa nepodarilo načítať. Skúste to znova.",
           "save_failed": "Predvolený repozitár tímu sa nepodarilo uložiť. Skúste to znova."

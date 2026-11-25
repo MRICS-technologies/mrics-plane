@@ -42,6 +42,51 @@
         "select_co_worker": "Sélectionner un acteur"
       }
     },
+    "teams": {
+      "label": "Équipes",
+      "description": "Associez des équipes de l’espace de travail. Leurs membres rejoignent ce projet et restent synchronisés avec l’équipe.",
+      "add_team": "Ajouter une équipe",
+      "search_teams": "Rechercher des équipes",
+      "all_attached": "Toutes les équipes de l’espace de travail sont déjà associées.",
+      "no_workspace_teams": "Votre espace de travail n’a pas encore d’équipe. Créez-en dans {link}.",
+      "no_workspace_teams_ask_admin": "Votre espace de travail n’a pas encore d’équipe. Demandez à un administrateur de l’espace de travail d’en créer.",
+      "workspace_teams_link": "Paramètres de l’espace de travail → Équipes",
+      "leader": "Responsable",
+      "leader_of": "Responsable de {team}",
+      "no_leader": "Aucun responsable",
+      "remove": "Retirer",
+      "remove_aria_label": "Retirer {team} de ce projet",
+      "via_team": "via {team}",
+      "empty": {
+        "title": "Aucune équipe associée",
+        "description_admin": "Associez une équipe de l’espace de travail pour ajouter ses membres à ce projet et les garder synchronisés.",
+        "description": "Aucune équipe de l’espace de travail n’est encore associée à ce projet."
+      },
+      "remove_modal": {
+        "title": "Retirer {team} de ce projet ?",
+        "content": "Les membres qui ont rejoint ce projet via {team} en seront retirés. Les administrateurs du projet, les administrateurs de l’espace de travail et les personnes ajoutées manuellement restent. Le dépôt GitHub par défaut de l’équipe pour ce projet est également effacé.",
+        "confirm": "Retirer l’équipe",
+        "confirming": "Retrait en cours…"
+      },
+      "toasts": {
+        "attached": "Équipe {team} associée",
+        "members_added": "{count, plural, =0 {Aucun nouveau membre ajouté.} one {# membre ajouté au projet.} many {# membres ajoutés au projet.} other {# membres ajoutés au projet.}}",
+        "removed": "Équipe {team} retirée",
+        "already_removed": "L’équipe {team} a déjà été retirée de ce projet",
+        "members_removed": "{removed, plural, =0 {Aucun membre retiré} one {# membre retiré} many {# membres retirés} other {# membres retirés}}, {kept, plural, one {# conservé} many {# conservés} other {# conservés}}.",
+        "leader_set": "{name} est désormais responsable de {team} dans ce projet.",
+        "leader_cleared": "{team} n’a plus de responsable dans ce projet."
+      },
+      "errors": {
+        "load_failed": "Les équipes du projet n’ont pas pu être chargées.",
+        "workspace_teams_load_failed": "Les équipes de l’espace de travail n’ont pas pu être chargées.",
+        "attach_failed": "L’équipe n’a pas pu être associée. Veuillez réessayer.",
+        "remove_failed": "L’équipe n’a pas pu être retirée. Veuillez réessayer.",
+        "leader_failed": "Le responsable n’a pas pu être modifié. Veuillez réessayer.",
+        "leader_not_member": "Cette personne ne fait plus partie de l’équipe {team}.",
+        "forbidden": "Seuls les administrateurs du projet peuvent modifier ses équipes."
+      }
+    },
     "states": {
       "heading": "États",
       "description": "Définissez et personnalisez les états du flux de travail pour suivre la progression de vos éléments de travail.",
@@ -250,7 +295,8 @@
         "title": "Dépôts par défaut des équipes",
         "description": "Choisissez le dépôt où vont les nouvelles branches de chaque équipe dans ce projet. Les équipes sur la valeur par défaut du projet utilisent le dépôt par défaut ci-dessus.",
         "project_default": "Par défaut du projet",
-        "no_teams": "Aucune équipe pour l’instant. Créez-en dans Paramètres de l’espace de travail → Équipes.",
+        "no_teams": "Aucune équipe n’est encore associée à ce projet. Associez-en dans {link}.",
+        "no_teams_link": "Paramètres du projet → Équipes",
         "errors": {
           "load_failed": "Impossible de charger les dépôts par défaut des équipes. Veuillez réessayer.",
           "save_failed": "Impossible d’enregistrer le dépôt par défaut de l’équipe. Veuillez réessayer."
