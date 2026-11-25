@@ -13,6 +13,7 @@ with the code — every released round updates these pages.
 - [Usage](github-integration/usage.md) — create or link branches, pull-request linking, the issue panel
 - [Troubleshooting](github-integration/troubleshooting.md) — org access, webhook delivery, reconnects
 - [Releases](github-integration/releases.md) — what shipped in each round
+- [Project teams](teams/project-teams.md) — attach workspace teams to projects, membership sync, team leader ([ADR-0001](teams/adr-0001-project-teams-and-membership-source.md))
 
 ## Feature summary
 
