@@ -63,10 +63,11 @@ export const ProjectMemberTeamTag = observer(function ProjectMemberTeamTag(props
   const [before, after = ""] = t("project_settings.teams.via_team", { team: TEAM_SLOT }).split(TEAM_SLOT);
   return (
     // Sized from zero, the tag only gets the room the member's name leaves: a long team name
-    // truncates before the person's name does.
-    <span className="flex min-w-0 flex-1 basis-0 items-center overflow-hidden">
+    // truncates before the person's name does. When even "via X…" won't fit, the tag hides rather
+    // than showing a clipped stub.
+    <span className="@container flex min-w-0 flex-1 basis-0 items-center overflow-hidden">
       <span
-        className="flex max-w-32 min-w-0 items-center rounded-xs bg-layer-1 px-2 py-0.5 text-11 text-tertiary"
+        className="flex max-w-32 min-w-0 items-center rounded-xs bg-layer-1 px-2 py-0.5 text-11 text-tertiary @max-[4.5rem]:hidden"
         title={t("project_settings.teams.via_team", { team: teamName })}
         data-testid="project-member-team-tag"
       >

@@ -38,7 +38,8 @@ export const projectTeamErrorMessage = (
 ) => {
   const { status, data } = (error ?? {}) as TApiError;
   if (status === 403) return forbidden;
-  if (status !== 400 || !data) return fallback;
+  // A non-JSON 400 (a proxy's HTML page) arrives as a string; `in` would throw on it.
+  if (status !== 400 || !data || typeof data !== "object") return fallback;
   const knownField = Object.keys(fieldMessages).find((field) => field in data);
   if (knownField) return fieldMessages[knownField];
   const fieldErrors = Object.values(data)[0];
@@ -205,9 +206,9 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
         )}
       </div>
 
-      {/* Below `sm` the group takes the full width; long labels wrap Remove to its own line. */}
+      {/* Below `sm` the group takes the full width and the picker gives way (its text truncates) so Remove keeps its line. */}
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 max-sm:w-full">
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial">
           <span className="shrink-0 text-11 font-medium text-tertiary">{t("project_settings.teams.leader")}</span>
           {isAdmin ? (
             <div ref={leaderPickerRef} className="min-w-0 flex-1 sm:w-44 sm:flex-none">

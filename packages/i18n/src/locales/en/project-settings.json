@@ -83,7 +83,7 @@
         "attach_failed": "The team could not be attached. Please try again.",
         "remove_failed": "The team could not be removed. Please try again.",
         "leader_failed": "The leader could not be changed. Please try again.",
-        "leader_not_member": "This person isn’t a member of {team} any more.",
+        "leader_not_member": "This person isn’t a member of {team} anymore.",
         "forbidden": "Only project admins can change the project’s teams."
       }
     },
