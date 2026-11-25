@@ -1600,6 +1600,56 @@ class TestIndividualAddClearsTheTeamSource:
 
 
 @pytest.mark.contract
+class TestTeamRemovalEdgeCases:
+    @pytest.mark.django_db
+    def test_detaching_the_old_team_keeps_a_member_of_another_attached_team(self, admin_client, workspace, project):
+        dev = _ws_user(workspace, "dev@plane.so")
+        t1 = _team(workspace, "T1", members=[dev])
+        t2 = _team(workspace, "T2")
+        _attach(admin_client, project, t1)
+        _attach(admin_client, project, t2)
+        admin_client.post(_members_url(workspace.slug, t2.id), {"member_ids": [str(dev.id)]}, format="json")
+
+        resp = admin_client.delete(_project_team_url(project, t1.id))
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["removed_member_ids"] == []
+        assert _membership(project, dev) == (True, 15, t2.id)
+
+    @pytest.mark.django_db
+    @pytest.mark.parametrize("action", ["detach", "delete_team"])
+    def test_a_member_who_left_the_team_without_a_sync_is_removed(self, admin_client, workspace, project, action):
+        dev = _ws_user(workspace, "dev@plane.so")
+        squad = _team(workspace, "Squad")
+        _attach(admin_client, project, squad)
+        # Added by the team, then left it without a sync: no TeamMember row.
+        ProjectMember.objects.create(workspace=workspace, project=project, member=dev, role=15, source_team=squad)
+
+        if action == "detach":
+            assert admin_client.delete(_project_team_url(project, squad.id)).data["removed_member_ids"] == _ids(dev)
+        else:
+            assert admin_client.delete(_team_url(workspace.slug, squad.id)).status_code == 204
+
+        assert _membership(project, dev) == (False, 15, None)
+
+    @pytest.mark.django_db
+    def test_deleting_a_team_keeps_project_admins_and_workspace_admins(self, admin_client, workspace, project):
+        dev = _ws_user(workspace, "dev@plane.so")
+        promoted = _ws_user(workspace, "promoted@plane.so")
+        boss = _ws_user(workspace, "boss@plane.so", role=20)
+        squad = _team(workspace, "Squad", members=[dev, promoted, boss])
+        _attach(admin_client, project, squad)
+        ProjectMember.objects.filter(project=project, member=promoted).update(role=20)
+        assert _membership(project, boss) == (True, 20, squad.id)
+
+        assert admin_client.delete(_team_url(workspace.slug, squad.id)).status_code == 204
+
+        assert _membership(project, dev) == (False, 15, None)
+        assert _membership(project, promoted) == (True, 20, None)
+        assert _membership(project, boss) == (True, 20, None)
+
+
+@pytest.mark.contract
 class TestSourceTeamGuards:
     @pytest.mark.django_db
     def test_the_member_patch_cannot_set_the_source(self, admin_client, project, member_user, frontend):
