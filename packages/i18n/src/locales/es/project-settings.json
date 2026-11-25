@@ -49,6 +49,7 @@
       "search_teams": "Buscar equipos",
       "all_attached": "Todos los equipos del espacio de trabajo ya están vinculados.",
       "no_workspace_teams": "Su espacio de trabajo aún no tiene equipos. Créelos en {link}.",
+      "no_workspace_teams_ask_admin": "Su espacio de trabajo aún no tiene equipos. Pida a un administrador del espacio de trabajo que los cree.",
       "workspace_teams_link": "Configuración del espacio de trabajo → Equipos",
       "leader": "Líder",
       "leader_of": "Líder de {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "No se pudieron cargar los equipos del proyecto.",
+        "workspace_teams_load_failed": "No se pudieron cargar los equipos del espacio de trabajo.",
         "attach_failed": "No se pudo vincular el equipo. Inténtelo de nuevo.",
         "remove_failed": "No se pudo quitar el equipo. Inténtelo de nuevo.",
         "leader_failed": "No se pudo cambiar el líder. Inténtelo de nuevo.",
+        "leader_not_member": "Esta persona ya no es miembro de {team}.",
         "forbidden": "Solo los administradores del proyecto pueden modificar los equipos del proyecto."
       }
     },

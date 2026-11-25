@@ -49,6 +49,7 @@
       "search_teams": "Hľadať tímy",
       "all_attached": "Všetky tímy pracovného priestoru sú už priradené.",
       "no_workspace_teams": "Pracovný priestor zatiaľ nemá žiadne tímy. Vytvorte ich v {link}.",
+      "no_workspace_teams_ask_admin": "Pracovný priestor zatiaľ nemá žiadne tímy. Požiadajte správcu pracovného priestoru, aby ich vytvoril.",
       "workspace_teams_link": "Nastavenia pracovného priestoru → Tímy",
       "leader": "Vedúci",
       "leader_of": "Vedúci tímu {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Tímy projektu sa nepodarilo načítať.",
+        "workspace_teams_load_failed": "Tímy pracovného priestoru sa nepodarilo načítať.",
         "attach_failed": "Tím sa nepodarilo priradiť. Skúste to znova.",
         "remove_failed": "Tím sa nepodarilo odobrať. Skúste to znova.",
         "leader_failed": "Vedúceho sa nepodarilo zmeniť. Skúste to znova.",
+        "leader_not_member": "Táto osoba už nie je členom tímu {team}.",
         "forbidden": "Tímy projektu môžu meniť iba správcovia projektu."
       }
     },

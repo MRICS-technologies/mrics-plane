@@ -49,6 +49,7 @@
       "search_teams": "Cari tim",
       "all_attached": "Semua tim ruang kerja sudah ditautkan.",
       "no_workspace_teams": "Ruang kerja Anda belum memiliki tim. Buat tim di {link}.",
+      "no_workspace_teams_ask_admin": "Ruang kerja Anda belum memiliki tim. Minta admin ruang kerja untuk membuatnya.",
       "workspace_teams_link": "Pengaturan ruang kerja → Tim",
       "leader": "Pemimpin",
       "leader_of": "Pemimpin {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Tim proyek tidak dapat dimuat.",
+        "workspace_teams_load_failed": "Tim ruang kerja tidak dapat dimuat.",
         "attach_failed": "Tim tidak dapat ditautkan. Silakan coba lagi.",
         "remove_failed": "Tim tidak dapat dilepaskan. Silakan coba lagi.",
         "leader_failed": "Pemimpin tidak dapat diubah. Silakan coba lagi.",
+        "leader_not_member": "Orang ini bukan lagi anggota {team}.",
         "forbidden": "Hanya admin proyek yang dapat mengubah tim proyek."
       }
     },

@@ -49,6 +49,7 @@
       "search_teams": "Search teams",
       "all_attached": "Every workspace team is already attached.",
       "no_workspace_teams": "Your workspace has no teams yet. Create them in {link}.",
+      "no_workspace_teams_ask_admin": "Your workspace has no teams yet. Ask a workspace admin to create them.",
       "workspace_teams_link": "Workspace settings → Teams",
       "leader": "Leader",
       "leader_of": "{team} leader",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "The project’s teams could not be loaded.",
+        "workspace_teams_load_failed": "The workspace’s teams could not be loaded.",
         "attach_failed": "The team could not be attached. Please try again.",
         "remove_failed": "The team could not be removed. Please try again.",
         "leader_failed": "The leader could not be changed. Please try again.",
+        "leader_not_member": "This person isn’t a member of {team} any more.",
         "forbidden": "Only project admins can change the project’s teams."
       }
     },

@@ -26,13 +26,24 @@ const projectTeamService = new ProjectTeamService();
 
 const MAX_AVATARS = 4;
 
-/** Message of the toast for a failed write: the API's own field message when it sends one. */
-export const projectTeamErrorMessage = (error: unknown, fallback: string, forbidden: string) => {
+/**
+ * Message of the toast for a failed write. A 400 on a field listed in `fieldMessages` gets that
+ * translated text; other 400s get the API's own field message, which is English.
+ */
+export const projectTeamErrorMessage = (
+  error: unknown,
+  fallback: string,
+  forbidden: string,
+  fieldMessages: Record<string, string> = {}
+) => {
   const { status, data } = (error ?? {}) as TApiError;
   if (status === 403) return forbidden;
-  const fieldErrors = data && Object.values(data)[0];
+  if (status !== 400 || !data) return fallback;
+  const knownField = Object.keys(fieldMessages).find((field) => field in data);
+  if (knownField) return fieldMessages[knownField];
+  const fieldErrors = Object.values(data)[0];
   const first = Array.isArray(fieldErrors) ? fieldErrors[0] : undefined;
-  return status === 400 && typeof first === "string" ? first : fallback;
+  return typeof first === "string" ? first : fallback;
 };
 
 type Props = {
@@ -90,7 +101,10 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
       setToast({
         type: "error",
         title: t("common.error.label"),
-        message: projectTeamErrorMessage(error, t("project_settings.teams.errors.leader_failed"), forbidden),
+        message: projectTeamErrorMessage(error, t("project_settings.teams.errors.leader_failed"), forbidden, {
+          // The picked member left the team meanwhile (the picker only offers valid ids).
+          leader_id: t("project_settings.teams.errors.leader_not_member", { team: team.name }),
+        }),
       });
       // A 400 usually means the team changed meanwhile (the picked member left it).
       void onRefresh();

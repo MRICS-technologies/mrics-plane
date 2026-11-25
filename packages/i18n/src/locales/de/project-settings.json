@@ -49,6 +49,7 @@
       "search_teams": "Teams suchen",
       "all_attached": "Alle Teams des Arbeitsbereichs sind bereits zugeordnet.",
       "no_workspace_teams": "Ihr Arbeitsbereich hat noch keine Teams. Erstellen Sie sie unter {link}.",
+      "no_workspace_teams_ask_admin": "Ihr Arbeitsbereich hat noch keine Teams. Bitten Sie einen Arbeitsbereich-Administrator, sie zu erstellen.",
       "workspace_teams_link": "Arbeitsbereich-Einstellungen → Teams",
       "leader": "Leitung",
       "leader_of": "Leitung von {team}",
@@ -62,7 +63,7 @@
       },
       "remove_modal": {
         "title": "{team} aus diesem Projekt entfernen?",
-        "content": "Mitglieder, die diesem Projekt über {team} beigetreten sind, werden daraus entfernt. Projektadministratoren, Arbeitsbereich-Administratoren und von Hand hinzugefügte Personen bleiben. Das GitHub-Standard-Repository des Teams für dieses Projekt wird ebenfalls zurückgesetzt.",
+        "content": "Mitglieder, die diesem Projekt über {team} beigetreten sind, werden daraus entfernt. Projektadministratoren, Arbeitsbereich-Administratoren und manuell hinzugefügte Personen bleiben. Das GitHub-Standard-Repository des Teams für dieses Projekt wird ebenfalls zurückgesetzt.",
         "confirm": "Team entfernen",
         "confirming": "Wird entfernt…"
       },
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Die Teams des Projekts konnten nicht geladen werden.",
+        "workspace_teams_load_failed": "Die Teams des Arbeitsbereichs konnten nicht geladen werden.",
         "attach_failed": "Das Team konnte nicht zugeordnet werden. Bitte versuchen Sie es erneut.",
         "remove_failed": "Das Team konnte nicht entfernt werden. Bitte versuchen Sie es erneut.",
         "leader_failed": "Die Leitung konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
+        "leader_not_member": "Diese Person ist kein Mitglied von {team} mehr.",
         "forbidden": "Nur Projektadministratoren können die Teams des Projekts ändern."
       }
     },

@@ -49,6 +49,7 @@
       "search_teams": "Teams zoeken",
       "all_attached": "Alle teams van de werkruimte zijn al gekoppeld.",
       "no_workspace_teams": "Uw werkruimte heeft nog geen teams. Maak ze aan in {link}.",
+      "no_workspace_teams_ask_admin": "Uw werkruimte heeft nog geen teams. Vraag een werkruimtebeheerder om ze aan te maken.",
       "workspace_teams_link": "Werkruimte-instellingen → Teams",
       "leader": "Leider",
       "leader_of": "Leider van {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "De teams van het project konden niet worden geladen.",
+        "workspace_teams_load_failed": "De teams van de werkruimte konden niet worden geladen.",
         "attach_failed": "Het team kon niet worden gekoppeld. Probeer het opnieuw.",
         "remove_failed": "Het team kon niet worden verwijderd. Probeer het opnieuw.",
         "leader_failed": "De leider kon niet worden gewijzigd. Probeer het opnieuw.",
+        "leader_not_member": "Deze persoon is geen lid meer van {team}.",
         "forbidden": "Alleen projectbeheerders kunnen de teams van het project wijzigen."
       }
     },

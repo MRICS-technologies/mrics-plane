@@ -49,6 +49,7 @@
       "search_teams": "팀 검색",
       "all_attached": "모든 작업 공간 팀이 이미 연결되어 있습니다.",
       "no_workspace_teams": "작업 공간에 아직 팀이 없습니다. {link}에서 팀을 만드세요.",
+      "no_workspace_teams_ask_admin": "작업 공간에 아직 팀이 없습니다. 작업 공간 관리자에게 팀 생성을 요청하세요.",
       "workspace_teams_link": "작업 공간 설정 → 팀",
       "leader": "리더",
       "leader_of": "{team} 리더",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "프로젝트 팀을 불러올 수 없습니다.",
+        "workspace_teams_load_failed": "작업 공간의 팀을 불러올 수 없습니다.",
         "attach_failed": "팀을 연결할 수 없습니다. 다시 시도해 주세요.",
         "remove_failed": "팀을 제거할 수 없습니다. 다시 시도해 주세요.",
         "leader_failed": "리더를 변경할 수 없습니다. 다시 시도해 주세요.",
+        "leader_not_member": "이 사용자는 더 이상 {team} 팀의 멤버가 아닙니다.",
         "forbidden": "프로젝트 관리자만 프로젝트의 팀을 변경할 수 있습니다."
       }
     },

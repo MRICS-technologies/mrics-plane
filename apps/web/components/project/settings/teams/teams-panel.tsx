@@ -57,10 +57,12 @@ export function ProjectTeamsPanel(props: Props) {
     mutate,
   } = useSWR(PROJECT_TEAMS_KEY(workspaceSlug, projectId), () => projectTeamService.list(workspaceSlug, projectId));
   // Same cache entry as Workspace settings → Teams; only admins attach teams.
-  const { data: workspaceTeams, mutate: mutateWorkspaceTeams } = useSWR(
-    isAdmin ? WORKSPACE_TEAMS_KEY(workspaceSlug) : null,
-    () => workspaceTeamService.list(workspaceSlug)
-  );
+  const {
+    data: workspaceTeams,
+    error: workspaceTeamsError,
+    isLoading: isWorkspaceTeamsLoading,
+    mutate: mutateWorkspaceTeams,
+  } = useSWR(isAdmin ? WORKSPACE_TEAMS_KEY(workspaceSlug) : null, () => workspaceTeamService.list(workspaceSlug));
   const unavailableTeamIds = new Set([
     ...(projectTeams ?? []).map((projectTeam) => projectTeam.team.id),
     ...attachingTeamIds,
@@ -144,6 +146,8 @@ export function ProjectTeamsPanel(props: Props) {
       ref={addTeamRef}
       workspaceSlug={workspaceSlug}
       workspaceTeams={workspaceTeams}
+      isLoading={isWorkspaceTeamsLoading}
+      error={workspaceTeamsError}
       unavailableTeamIds={unavailableTeamIds}
       onAttach={(team) => void handleAttach(team)}
     />

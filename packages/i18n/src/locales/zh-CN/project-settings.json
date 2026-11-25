@@ -49,6 +49,7 @@
       "search_teams": "搜索团队",
       "all_attached": "所有工作区团队均已关联。",
       "no_workspace_teams": "工作区还没有团队。请在{link}中创建。",
+      "no_workspace_teams_ask_admin": "工作区还没有团队。请联系工作区管理员创建。",
       "workspace_teams_link": "工作区设置 → 团队",
       "leader": "负责人",
       "leader_of": "{team} 负责人",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "无法加载项目的团队。",
+        "workspace_teams_load_failed": "无法加载工作区的团队。",
         "attach_failed": "无法关联团队，请重试。",
         "remove_failed": "无法移除团队，请重试。",
         "leader_failed": "无法更改负责人，请重试。",
+        "leader_not_member": "此人已不再是 {team} 的成员。",
         "forbidden": "只有项目管理员可以更改项目的团队。"
       }
     },

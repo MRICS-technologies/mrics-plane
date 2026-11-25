@@ -49,6 +49,7 @@
       "search_teams": "搜尋團隊",
       "all_attached": "所有工作區團隊皆已關聯。",
       "no_workspace_teams": "工作區尚無團隊。請在{link}中建立。",
+      "no_workspace_teams_ask_admin": "工作區尚無團隊。請聯絡工作區管理員建立。",
       "workspace_teams_link": "工作區設定 → 團隊",
       "leader": "負責人",
       "leader_of": "{team} 負責人",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "無法載入專案的團隊。",
+        "workspace_teams_load_failed": "無法載入工作區的團隊。",
         "attach_failed": "無法關聯團隊，請再試一次。",
         "remove_failed": "無法移除團隊，請再試一次。",
         "leader_failed": "無法變更負責人，請再試一次。",
+        "leader_not_member": "此人已不再是 {team} 的成員。",
         "forbidden": "只有專案管理員可以變更專案的團隊。"
       }
     },

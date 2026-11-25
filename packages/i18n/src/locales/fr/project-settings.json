@@ -49,6 +49,7 @@
       "search_teams": "Rechercher des équipes",
       "all_attached": "Toutes les équipes de l’espace de travail sont déjà associées.",
       "no_workspace_teams": "Votre espace de travail n’a pas encore d’équipe. Créez-en dans {link}.",
+      "no_workspace_teams_ask_admin": "Votre espace de travail n’a pas encore d’équipe. Demandez à un administrateur de l’espace de travail d’en créer.",
       "workspace_teams_link": "Paramètres de l’espace de travail → Équipes",
       "leader": "Responsable",
       "leader_of": "Responsable de {team}",
@@ -64,7 +65,7 @@
         "title": "Retirer {team} de ce projet ?",
         "content": "Les membres qui ont rejoint ce projet via {team} en seront retirés. Les administrateurs du projet, les administrateurs de l’espace de travail et les personnes ajoutées manuellement restent. Le dépôt GitHub par défaut de l’équipe pour ce projet est également effacé.",
         "confirm": "Retirer l’équipe",
-        "confirming": "Retrait…"
+        "confirming": "Retrait en cours…"
       },
       "toasts": {
         "attached": "Équipe {team} associée",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Les équipes du projet n’ont pas pu être chargées.",
+        "workspace_teams_load_failed": "Les équipes de l’espace de travail n’ont pas pu être chargées.",
         "attach_failed": "L’équipe n’a pas pu être associée. Veuillez réessayer.",
         "remove_failed": "L’équipe n’a pas pu être retirée. Veuillez réessayer.",
         "leader_failed": "Le responsable n’a pas pu être modifié. Veuillez réessayer.",
+        "leader_not_member": "Cette personne ne fait plus partie de l’équipe {team}.",
         "forbidden": "Seuls les administrateurs du projet peuvent modifier ses équipes."
       }
     },

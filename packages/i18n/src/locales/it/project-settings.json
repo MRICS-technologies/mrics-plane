@@ -49,6 +49,7 @@
       "search_teams": "Cerca team",
       "all_attached": "Tutti i team dello spazio di lavoro sono già associati.",
       "no_workspace_teams": "Il Suo spazio di lavoro non ha ancora team. Li crei in {link}.",
+      "no_workspace_teams_ask_admin": "Il Suo spazio di lavoro non ha ancora team. Chieda a un amministratore dello spazio di lavoro di crearli.",
       "workspace_teams_link": "Impostazioni dello spazio di lavoro → Team",
       "leader": "Responsabile",
       "leader_of": "Responsabile di {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Non è stato possibile caricare i team del progetto.",
+        "workspace_teams_load_failed": "Non è stato possibile caricare i team dello spazio di lavoro.",
         "attach_failed": "Non è stato possibile associare il team. Riprovi.",
         "remove_failed": "Non è stato possibile rimuovere il team. Riprovi.",
         "leader_failed": "Non è stato possibile cambiare il responsabile. Riprovi.",
+        "leader_not_member": "Questa persona non fa più parte del team {team}.",
         "forbidden": "Solo gli amministratori del progetto possono modificarne i team."
       }
     },

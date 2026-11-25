@@ -49,6 +49,7 @@
       "search_teams": "Caută echipe",
       "all_attached": "Toate echipele din spațiul de lucru sunt deja asociate.",
       "no_workspace_teams": "Spațiul de lucru nu are încă echipe. Creați-le în {link}.",
+      "no_workspace_teams_ask_admin": "Spațiul de lucru nu are încă echipe. Cereți unui administrator al spațiului de lucru să le creeze.",
       "workspace_teams_link": "Setări spațiu de lucru → Echipe",
       "leader": "Lider",
       "leader_of": "Liderul echipei {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Echipele proiectului nu au putut fi încărcate.",
+        "workspace_teams_load_failed": "Echipele spațiului de lucru nu au putut fi încărcate.",
         "attach_failed": "Echipa nu a putut fi asociată. Încercați din nou.",
         "remove_failed": "Echipa nu a putut fi eliminată. Încercați din nou.",
         "leader_failed": "Liderul nu a putut fi schimbat. Încercați din nou.",
+        "leader_not_member": "Această persoană nu mai este membră a echipei {team}.",
         "forbidden": "Doar administratorii proiectului pot modifica echipele proiectului."
       }
     },

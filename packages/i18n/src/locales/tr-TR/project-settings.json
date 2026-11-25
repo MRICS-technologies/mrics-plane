@@ -49,6 +49,7 @@
       "search_teams": "Takım ara",
       "all_attached": "Tüm çalışma alanı takımları zaten bağlı.",
       "no_workspace_teams": "Çalışma alanınızda henüz takım yok. Takımları {link} bölümünde oluşturun.",
+      "no_workspace_teams_ask_admin": "Çalışma alanınızda henüz takım yok. Bir çalışma alanı yöneticisinden takım oluşturmasını isteyin.",
       "workspace_teams_link": "Çalışma Alanı Ayarları → Takımlar",
       "leader": "Lider",
       "leader_of": "{team} lideri",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Projenin takımları yüklenemedi.",
+        "workspace_teams_load_failed": "Çalışma alanının takımları yüklenemedi.",
         "attach_failed": "Takım bağlanamadı. Lütfen tekrar deneyin.",
         "remove_failed": "Takım kaldırılamadı. Lütfen tekrar deneyin.",
         "leader_failed": "Lider değiştirilemedi. Lütfen tekrar deneyin.",
+        "leader_not_member": "Bu kişi artık {team} takımının üyesi değil.",
         "forbidden": "Projenin takımlarını yalnızca proje yöneticileri değiştirebilir."
       }
     },

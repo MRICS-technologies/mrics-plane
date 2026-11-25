@@ -49,6 +49,7 @@
       "search_teams": "Tìm nhóm",
       "all_attached": "Tất cả các nhóm trong không gian làm việc đều đã được gắn.",
       "no_workspace_teams": "Không gian làm việc của bạn chưa có nhóm nào. Hãy tạo nhóm trong {link}.",
+      "no_workspace_teams_ask_admin": "Không gian làm việc của bạn chưa có nhóm nào. Hãy nhờ quản trị viên không gian làm việc tạo nhóm.",
       "workspace_teams_link": "Cài đặt không gian làm việc → Nhóm",
       "leader": "Trưởng nhóm",
       "leader_of": "Trưởng nhóm {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Không thể tải các nhóm của dự án.",
+        "workspace_teams_load_failed": "Không thể tải các nhóm của không gian làm việc.",
         "attach_failed": "Không thể gắn nhóm. Vui lòng thử lại.",
         "remove_failed": "Không thể gỡ nhóm. Vui lòng thử lại.",
         "leader_failed": "Không thể thay đổi trưởng nhóm. Vui lòng thử lại.",
+        "leader_not_member": "Người này không còn là thành viên của {team}.",
         "forbidden": "Chỉ quản trị viên dự án mới có thể thay đổi các nhóm của dự án."
       }
     },

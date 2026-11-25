@@ -49,6 +49,7 @@
       "search_teams": "チームを検索",
       "all_attached": "ワークスペースのチームはすべて追加済みです。",
       "no_workspace_teams": "ワークスペースにはまだチームがありません。{link}で作成してください。",
+      "no_workspace_teams_ask_admin": "ワークスペースにはまだチームがありません。ワークスペース管理者に作成を依頼してください。",
       "workspace_teams_link": "ワークスペース設定 → チーム",
       "leader": "リーダー",
       "leader_of": "「{team}」のリーダー",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "プロジェクトのチームを読み込めませんでした。",
+        "workspace_teams_load_failed": "ワークスペースのチームを読み込めませんでした。",
         "attach_failed": "チームを追加できませんでした。もう一度お試しください。",
         "remove_failed": "チームを削除できませんでした。もう一度お試しください。",
         "leader_failed": "リーダーを変更できませんでした。もう一度お試しください。",
+        "leader_not_member": "このユーザーはもう「{team}」のメンバーではありません。",
         "forbidden": "プロジェクトのチームを変更できるのはプロジェクト管理者のみです。"
       }
     },

@@ -49,6 +49,7 @@
       "search_teams": "Pesquisar equipes",
       "all_attached": "Todas as equipes do espaço de trabalho já estão vinculadas.",
       "no_workspace_teams": "Seu espaço de trabalho ainda não tem equipes. Crie-as em {link}.",
+      "no_workspace_teams_ask_admin": "Seu espaço de trabalho ainda não tem equipes. Peça a um administrador do espaço de trabalho para criá-las.",
       "workspace_teams_link": "Configurações do espaço de trabalho → Equipes",
       "leader": "Líder",
       "leader_of": "Líder de {team}",
@@ -77,9 +78,11 @@
       },
       "errors": {
         "load_failed": "Não foi possível carregar as equipes do projeto.",
+        "workspace_teams_load_failed": "Não foi possível carregar as equipes do espaço de trabalho.",
         "attach_failed": "Não foi possível vincular a equipe. Tente novamente.",
         "remove_failed": "Não foi possível remover a equipe. Tente novamente.",
         "leader_failed": "Não foi possível alterar o líder. Tente novamente.",
+        "leader_not_member": "Essa pessoa não é mais membro da equipe {team}.",
         "forbidden": "Somente administradores do projeto podem alterar as equipes do projeto."
       }
     },
