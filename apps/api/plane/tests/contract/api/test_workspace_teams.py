@@ -1554,6 +1554,12 @@ def _plane_add_url(project):
 
 @pytest.mark.contract
 class TestIndividualAddClearsTheTeamSource:
+    @pytest.fixture(autouse=True)
+    def _no_plane_email(self):
+        # Plane's member add queues its email eagerly; CI has no broker.
+        with patch("plane.app.views.project.member.project_add_user_email"):
+            yield
+
     @pytest.fixture
     def dev(self, workspace):
         return _ws_user(workspace, "dev@plane.so")
@@ -1585,8 +1591,11 @@ class TestIndividualAddClearsTheTeamSource:
         _attach(admin_client, project, squad)
         assert _membership(project, dev) == (True, 15, squad.id)
 
-        admin_client.post(_plane_add_url(project), {"members": [{"member_id": str(dev.id), "role": 15}]}, format="json")
+        resp = admin_client.post(
+            _plane_add_url(project), {"members": [{"member_id": str(dev.id), "role": 15}]}, format="json"
+        )
 
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
         assert _membership(project, dev) == (True, 15, None)
         admin_client.delete(_project_team_url(project, squad.id))
         assert _membership(project, dev) == (True, 15, None)
