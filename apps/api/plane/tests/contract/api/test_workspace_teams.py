@@ -48,6 +48,7 @@ from plane.license.models import InstanceConfiguration
 from plane.license.utils.encryption import encrypt_data
 from plane.services.github.installations import soft_delete_installations
 from plane.services.github.team_repo import pick_branch_mapping
+from plane.services.teams.project_sync import locked_teams
 
 
 def _teams_url(slug):
@@ -1623,3 +1624,38 @@ class TestSourceTeamGuards:
 
         assert resp.status_code == status.HTTP_200_OK, resp.data
         assert _membership(project, member_user) == (True, 15, None)
+
+
+@pytest.mark.contract
+class TestSourceTeamGuards:
+    @pytest.mark.django_db
+    def test_the_member_patch_cannot_set_the_source(self, admin_client, project, member_user, frontend):
+        row = ProjectMember.objects.get(project=project, member=member_user)
+
+        resp = admin_client.patch(
+            f"{_plane_add_url(project)}{row.id}/", {"source_team": str(frontend.id)}, format="json"
+        )
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert _membership(project, member_user) == (True, 15, None)
+
+    @pytest.mark.django_db
+    def test_a_member_moved_to_an_unlocked_team_meanwhile_is_409(self, admin_client, workspace, project):
+        dev = _ws_user(workspace, "dev@plane.so")
+        _team(workspace, "T1", members=[dev])
+        t2 = _team(workspace, "T2")
+        t3 = _team(workspace, "T3")
+        _attach(admin_client, project, t2)
+
+        def moved_before_the_locks(slug):
+            # A concurrent request moves dev from T1 to T3 after T1 was read.
+            TeamMember.objects.filter(member=dev).update(team=t3)
+            return locked_teams(slug)
+
+        with patch("plane.app.views.workspace.team.locked_teams", moved_before_the_locks):
+            resp = admin_client.post(_members_url(workspace.slug, t2.id), {"member_ids": [str(dev.id)]}, format="json")
+
+        assert resp.status_code == status.HTTP_409_CONFLICT
+        assert resp.data == {"member_ids": ["Team membership changed, try again."]}
+        assert TeamMember.objects.get(member=dev).team_id == t3.id
+        assert _membership(project, dev) is None

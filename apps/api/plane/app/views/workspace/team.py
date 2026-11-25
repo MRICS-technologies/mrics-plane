@@ -131,8 +131,19 @@ class WorkspaceTeamMembersEndpoint(BaseAPIView):
                 .exclude(team=team)
                 .values_list("team_id", flat=True)
             )
-            if team not in locked_teams(slug).filter(pk__in={team.pk, *old_team_ids}):
+            locked_ids = {team.pk, *old_team_ids}
+            if team not in locked_teams(slug).filter(pk__in=locked_ids):
                 return Response(status=status.HTTP_404_NOT_FOUND)
+            # A member moved meanwhile to a team that is not locked here: moving
+            # them again would skip that team's lock.
+            if (
+                TeamMember.objects.filter(workspace_id=team.workspace_id, member_id__in=member_ids)
+                .exclude(team_id__in=locked_ids)
+                .exists()
+            ):
+                return Response(
+                    {"member_ids": ["Team membership changed, try again."]}, status=status.HTTP_409_CONFLICT
+                )
             # One team per member: a member of another team is moved here
             # (last writer wins; update_or_create retries the lookup when a
             # concurrent insert hits the constraint). This and the TeamMember
