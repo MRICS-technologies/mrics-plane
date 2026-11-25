@@ -70,6 +70,7 @@
         "attached": "Tím {team} priradený",
         "members_added": "{count, plural, =0 {Neboli pridaní žiadni noví členovia.} one {Do projektu bol pridaný # člen.} few {Do projektu boli pridaní # členovia.} many {Do projektu bolo pridaných # člena.} other {Do projektu bolo pridaných # členov.}}",
         "removed": "Tím {team} odobratý",
+        "already_removed": "Tím {team} už bol z tohto projektu odobratý",
         "members_removed": "{removed, plural, =0 {Nikto nebol odobratý} one {Odobratý # člen} few {Odobratí # členovia} many {Odobratých # člena} other {Odobratých # členov}}, {kept, plural, one {# zostal} few {# zostali} many {# zostalo} other {# zostalo}}.",
         "leader_set": "{name} teraz vedie tím {team} v tomto projekte.",
         "leader_cleared": "Tím {team} teraz v tomto projekte nemá vedúceho."

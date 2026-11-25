@@ -70,6 +70,7 @@
         "attached": "Đã gắn {team}",
         "members_added": "{count, plural, =0 {Không có thành viên mới nào được thêm.} one {Đã thêm # thành viên vào dự án.} other {Đã thêm # thành viên vào dự án.}}",
         "removed": "Đã gỡ {team}",
+        "already_removed": "{team} đã được gỡ khỏi dự án này trước đó",
         "members_removed": "{removed, plural, =0 {Không xóa thành viên nào} one {Đã xóa # thành viên} other {Đã xóa # thành viên}}, {kept, plural, one {giữ lại #} other {giữ lại #}}.",
         "leader_set": "{name} hiện là trưởng nhóm {team} trong dự án này.",
         "leader_cleared": "{team} hiện không có trưởng nhóm trong dự án này."

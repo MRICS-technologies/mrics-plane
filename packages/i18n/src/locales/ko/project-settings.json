@@ -70,6 +70,7 @@
         "attached": "{team} 팀이 연결되었습니다",
         "members_added": "{count, plural, =0 {새로 추가된 멤버가 없습니다.} one {프로젝트에 멤버 #명이 추가되었습니다.} other {프로젝트에 멤버 #명이 추가되었습니다.}}",
         "removed": "{team} 팀이 제거되었습니다",
+        "already_removed": "{team} 팀은 이미 이 프로젝트에서 제거되었습니다",
         "members_removed": "{removed, plural, =0 {제거된 멤버 없음} one {#명 제거됨} other {#명 제거됨}}, {kept, plural, one {#명 유지됨} other {#명 유지됨}}.",
         "leader_set": "이제 이 프로젝트에서 {name} 님이 {team} 팀을 이끕니다.",
         "leader_cleared": "이제 이 프로젝트에서 {team} 팀에 리더가 없습니다."

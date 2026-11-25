@@ -70,6 +70,7 @@
         "attached": "「{team}」を追加しました",
         "members_added": "{count, plural, =0 {新しく追加されたメンバーはいません。} one {プロジェクトにメンバーを#人追加しました。} other {プロジェクトにメンバーを#人追加しました。}}",
         "removed": "「{team}」を削除しました",
+        "already_removed": "「{team}」はすでにこのプロジェクトから削除されています",
         "members_removed": "{removed, plural, =0 {削除されたメンバーはいません} one {#人を削除しました} other {#人を削除しました}}、{kept, plural, one {#人は残ります} other {#人は残ります}}。",
         "leader_set": "このプロジェクトでの「{team}」のリーダーは{name}になりました。",
         "leader_cleared": "このプロジェクトでの「{team}」のリーダーを解除しました。"

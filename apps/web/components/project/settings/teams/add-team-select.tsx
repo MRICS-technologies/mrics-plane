@@ -4,6 +4,7 @@
  * See the LICENSE file for details.
  */
 
+import type { Ref } from "react";
 import { AddOutline } from "@makeplane/propel/icons";
 // plane imports
 import { Select } from "@plane/blocks/select";
@@ -12,27 +13,27 @@ import type { TWorkspaceTeam } from "@plane/types";
 // components
 import { InlineLinkText } from "@/components/settings/inline-link-text";
 
-/** The Add team trigger, focused again when a removal takes its row (and its focus) away. */
-export const ADD_TEAM_TRIGGER_ID = "project-teams-add-team";
-
 type Props = {
+  /** On the wrapper: the shared trigger takes no ref, and the panel focuses it after a removal. */
+  ref?: Ref<HTMLDivElement>;
   workspaceSlug: string;
   /** Every team of the workspace; `undefined` while loading. */
   workspaceTeams: TWorkspaceTeam[] | undefined;
-  attachedTeamIds: Set<string>;
+  /** Teams attached already, or being attached. */
+  unavailableTeamIds: Set<string>;
   onAttach: (team: TWorkspaceTeam) => void;
 };
 
 /** Picks a workspace team not attached yet; attaching is the selection itself. */
 export function AddTeamSelect(props: Props) {
-  const { workspaceSlug, workspaceTeams, attachedTeamIds, onAttach } = props;
+  const { ref, workspaceSlug, workspaceTeams, unavailableTeamIds, onAttach } = props;
   const { t } = useTranslation();
 
-  const availableTeams = (workspaceTeams ?? []).filter((team) => !attachedTeamIds.has(team.id));
+  const availableTeams = (workspaceTeams ?? []).filter((team) => !unavailableTeamIds.has(team.id));
   const hasNoWorkspaceTeams = workspaceTeams?.length === 0;
 
   return (
-    <div className="flex flex-col items-start gap-1.5">
+    <div ref={ref} className="flex flex-col items-start gap-1.5">
       <div className="w-48 max-w-full">
         <Select<TWorkspaceTeam>
           getValues={() => availableTeams}
@@ -57,7 +58,6 @@ export function AddTeamSelect(props: Props) {
         >
           <Select.Trigger<TWorkspaceTeam>
             variant="select-md"
-            id={ADD_TEAM_TRIGGER_ID}
             prependIcon={<AddOutline aria-hidden="true" />}
             isEmpty={false}
             data-testid="project-teams-add"

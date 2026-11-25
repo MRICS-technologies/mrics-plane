@@ -70,6 +70,7 @@
         "attached": "Екипът {team} е прикачен",
         "members_added": "{count, plural, =0 {Не са добавени нови членове.} one {# член е добавен към проекта.} other {# члена са добавени към проекта.}}",
         "removed": "Екипът {team} е премахнат",
+        "already_removed": "Екипът {team} вече е премахнат от този проект",
         "members_removed": "{removed, plural, =0 {Няма премахнати членове} one {# член е премахнат} other {# члена са премахнати}}, {kept, plural, one {# остава} other {# остават}}.",
         "leader_set": "{name} вече ръководи {team} в този проект.",
         "leader_cleared": "{team} вече няма ръководител в този проект."

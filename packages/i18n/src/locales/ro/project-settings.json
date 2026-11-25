@@ -70,6 +70,7 @@
         "attached": "Echipa {team} a fost asociată",
         "members_added": "{count, plural, =0 {Nu a fost adăugat niciun membru nou.} one {# membru a fost adăugat în proiect.} few {# membri au fost adăugați în proiect.} other {# de membri au fost adăugați în proiect.}}",
         "removed": "Echipa {team} a fost eliminată",
+        "already_removed": "Echipa {team} a fost deja eliminată din acest proiect",
         "members_removed": "{removed, plural, =0 {Niciun membru eliminat} one {# membru eliminat} few {# membri eliminați} other {# de membri eliminați}}, {kept, plural, one {# rămâne} few {# rămân} other {# rămân}}.",
         "leader_set": "{name} conduce acum echipa {team} în acest proiect.",
         "leader_cleared": "Echipa {team} nu mai are lider în acest proiect."

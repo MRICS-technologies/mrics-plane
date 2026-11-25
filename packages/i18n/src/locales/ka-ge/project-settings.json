@@ -70,6 +70,7 @@
         "attached": "{team} მიმაგრებულია",
         "members_added": "{count, plural, =0 {ახალი წევრები არ დამატებულა.} one {პროექტს დაემატა # წევრი.} other {პროექტს დაემატა # წევრი.}}",
         "removed": "{team} ამოღებულია",
+        "already_removed": "{team} ამ პროექტიდან უკვე ამოღებულია",
         "members_removed": "{removed, plural, =0 {არცერთი წევრი არ ამოღებულა} one {ამოღებულია # წევრი} other {ამოღებულია # წევრი}}, {kept, plural, one {დარჩა #} other {დარჩა #}}.",
         "leader_set": "{name} ახლა ხელმძღვანელობს {team}-ს ამ პროექტში.",
         "leader_cleared": "{team}-ს ამ პროექტში აღარ ჰყავს ხელმძღვანელი."

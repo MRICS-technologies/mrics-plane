@@ -70,6 +70,7 @@
         "attached": "{team} takımı bağlandı",
         "members_added": "{count, plural, =0 {Yeni üye eklenmedi.} one {Projeye # üye eklendi.} other {Projeye # üye eklendi.}}",
         "removed": "{team} takımı kaldırıldı",
+        "already_removed": "{team} takımı bu projeden zaten kaldırılmış",
         "members_removed": "{removed, plural, =0 {Hiçbir üye kaldırılmadı} one {# üye kaldırıldı} other {# üye kaldırıldı}}, {kept, plural, one {# üye kaldı} other {# üye kaldı}}.",
         "leader_set": "{name} artık bu projede {team} takımının lideri.",
         "leader_cleared": "{team} takımının bu projede artık lideri yok."

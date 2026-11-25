@@ -70,6 +70,7 @@
         "attached": "{team} ditautkan",
         "members_added": "{count, plural, =0 {Tidak ada anggota baru yang ditambahkan.} one {# anggota ditambahkan ke proyek.} other {# anggota ditambahkan ke proyek.}}",
         "removed": "{team} dilepaskan",
+        "already_removed": "{team} sudah dilepaskan dari proyek ini",
         "members_removed": "{removed, plural, =0 {Tidak ada anggota yang dikeluarkan} one {# anggota dikeluarkan} other {# anggota dikeluarkan}}, {kept, plural, one {# tetap} other {# tetap}}.",
         "leader_set": "{name} kini memimpin {team} di proyek ini.",
         "leader_cleared": "{team} kini tidak memiliki pemimpin di proyek ini."

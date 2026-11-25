@@ -70,6 +70,7 @@
         "attached": "Equipe {team} vinculada",
         "members_added": "{count, plural, =0 {Nenhum membro novo foi adicionado.} one {# membro adicionado ao projeto.} many {# membros adicionados ao projeto.} other {# membros adicionados ao projeto.}}",
         "removed": "Equipe {team} removida",
+        "already_removed": "A equipe {team} já foi removida deste projeto",
         "members_removed": "{removed, plural, =0 {Nenhum membro removido} one {# membro removido} many {# membros removidos} other {# membros removidos}}, {kept, plural, one {# mantido} many {# mantidos} other {# mantidos}}.",
         "leader_set": "{name} agora lidera {team} neste projeto.",
         "leader_cleared": "{team} não tem mais líder neste projeto."

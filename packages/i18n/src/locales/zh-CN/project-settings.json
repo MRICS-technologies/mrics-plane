@@ -70,6 +70,7 @@
         "attached": "已关联 {team}",
         "members_added": "{count, plural, =0 {没有添加新成员。} one {已将 # 名成员添加到项目。} other {已将 # 名成员添加到项目。}}",
         "removed": "已移除 {team}",
+        "already_removed": "{team} 此前已从此项目中移除",
         "members_removed": "{removed, plural, =0 {未移除任何成员} one {已移除 # 名成员} other {已移除 # 名成员}}，{kept, plural, one {保留 # 名} other {保留 # 名}}。",
         "leader_set": "{name} 现在是此项目中 {team} 的负责人。",
         "leader_cleared": "{team} 在此项目中已没有负责人。"

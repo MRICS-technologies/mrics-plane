@@ -4,7 +4,7 @@
  * See the LICENSE file for details.
  */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { observer } from "mobx-react";
 import { Avatar } from "@makeplane/propel/components/avatar";
 import { AvatarGroup } from "@makeplane/propel/components/avatar-group";
@@ -44,8 +44,8 @@ type Props = {
   onUpdated: (projectTeam: TProjectTeam) => Promise<unknown>;
   /** Re-fetches the list and the project members. */
   onRefresh: () => Promise<unknown>;
-  /** Called once the team is removed and the list re-fetched (this row is gone). */
-  onRemoved: () => void;
+  /** Refreshes once the team has left the project (this row goes with it), then moves the focus on. */
+  onRemoved: () => Promise<unknown>;
 };
 
 export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: Props) {
@@ -57,6 +57,8 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
   } = useMember();
   const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isLeaderSaving, setIsLeaderSaving] = useState(false);
+  const leaderPickerRef = useRef<HTMLDivElement>(null);
 
   const members = team.member_ids.flatMap((memberId) => getWorkspaceMemberDetails(memberId)?.member ?? []);
   // The API sends the ids in no particular order; sorted, the avatars keep their places between renders.
@@ -69,6 +71,8 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
     // The "No leader" row reports an empty id.
     const nextLeaderId = memberId || null;
     if (nextLeaderId === leaderId) return;
+    // One change at a time: the picker is disabled until the server answers, so answers can't cross.
+    setIsLeaderSaving(true);
     try {
       const updated = await projectTeamService.updateLeader(workspaceSlug, projectId, team.id, nextLeaderId);
       await onUpdated(updated);
@@ -90,6 +94,13 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
       });
       // A 400 usually means the team changed meanwhile (the picked member left it).
       void onRefresh();
+    } finally {
+      setIsLeaderSaving(false);
+      // Disabling the picker dropped the focus it had; give it back unless the user has moved on.
+      window.setTimeout(() => {
+        if (document.activeElement === document.body)
+          leaderPickerRef.current?.querySelector<HTMLElement>("button, [role='combobox']")?.focus();
+      });
     }
   };
 
@@ -106,18 +117,26 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
         title: t("project_settings.teams.toasts.removed", { team: team.name }),
         message: t("project_settings.teams.toasts.members_removed", { removed: removed.length, kept: kept.length }),
       });
-      // The row, and this dialog with it, unmount once the list is refreshed.
-      await onRefresh();
-      onRemoved();
     } catch (error) {
-      setToast({
-        type: "error",
-        title: t("common.error.label"),
-        message: projectTeamErrorMessage(error, t("project_settings.teams.errors.remove_failed"), forbidden),
-      });
-      setIsRemoving(false);
-      setIsRemoveOpen(false);
+      if ((error as TApiError | undefined)?.status !== 404) {
+        setToast({
+          type: "error",
+          title: t("common.error.label"),
+          message: projectTeamErrorMessage(error, t("project_settings.teams.errors.remove_failed"), forbidden),
+        });
+        setIsRemoving(false);
+        setIsRemoveOpen(false);
+        // The row may be out of date; show what the server has now.
+        void onRefresh();
+        return;
+      }
+      // Another admin removed it first, or the team was deleted: what the user asked for has happened.
+      setToast({ type: "info", title: t("project_settings.teams.toasts.already_removed", { team: team.name }) });
     }
+    // The row, and this dialog with it, unmount once the list is refreshed.
+    await onRemoved();
+    setIsRemoving(false);
+    setIsRemoveOpen(false);
   };
 
   return (
@@ -177,7 +196,7 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-none">
           <span className="shrink-0 text-11 font-medium text-tertiary">{t("project_settings.teams.leader")}</span>
           {isAdmin ? (
-            <div className="min-w-0 flex-1 sm:w-44 sm:flex-none">
+            <div ref={leaderPickerRef} className="min-w-0 flex-1 sm:w-44 sm:flex-none">
               <MemberSelect
                 testId="project-team-leader"
                 value={leaderId}
@@ -190,7 +209,7 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
                   heading: t("project_settings.teams.leader_of", { team: team.name }),
                   emptyContent: t("project_settings.teams.no_leader"),
                 }}
-                disabled={team.member_ids.length === 0}
+                disabled={team.member_ids.length === 0 || isLeaderSaving}
                 variant="select-md"
               />
             </div>
