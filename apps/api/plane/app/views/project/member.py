@@ -13,6 +13,7 @@ from plane.app.serializers import (
     ProjectMemberSerializer,
     ProjectMemberAdminSerializer,
     ProjectMemberRoleSerializer,
+    ProjectMemberRoleTeamSerializer,
     ProjectMemberPreferenceSerializer,
 )
 
@@ -180,9 +181,19 @@ class ProjectMemberViewSet(BaseViewSet):
             member__member_workspace__is_active=True,
         ).select_related("project", "member", "workspace")
 
-        serializer = ProjectMemberRoleSerializer(
-            project_members, fields=("id", "member", "role", "original_role", "created_at"), many=True
+        fields = ("id", "member", "role", "original_role", "created_at")
+        requester_role = (
+            ProjectMember.objects.filter(
+                project_id=project_id, workspace__slug=slug, member=request.user, is_active=True
+            )
+            .values_list("role", flat=True)
+            .first()
         )
+        # Same rule as retrieve and the team endpoints: guests do not see team data.
+        if requester_role is not None and requester_role > ROLE.GUEST.value:
+            serializer = ProjectMemberRoleTeamSerializer(project_members, fields=fields + ("source_team",), many=True)
+        else:
+            serializer = ProjectMemberRoleSerializer(project_members, fields=fields, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @allow_permission([ROLE.ADMIN, ROLE.MEMBER, ROLE.GUEST])

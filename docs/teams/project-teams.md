@@ -47,6 +47,11 @@ Detaching also deletes the team's repository choice in that project (GitHub
   membership. The source is not writable through any API.
 - **Set**: the team sync created or reactivated the membership.
 
+The project members list (`GET /api/workspaces/<slug>/projects/<project_id>/members/`)
+returns it read-only as `source_team` (team id or `null`) to project members and
+admins, for the "via <team>" tag. Guests don't get the field, the same as the
+team endpoints they can't read.
+
 A team only ever removes memberships it sourced. When a member's attached team
 is gone (detached, deleted, or they left it), a team-sourced membership is:
 
