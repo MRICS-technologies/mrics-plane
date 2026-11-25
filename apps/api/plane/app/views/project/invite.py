@@ -169,7 +169,9 @@ class UserProjectInvitationsViewset(BaseViewSet):
         # same role a new joiner gets; a previous project role is not restored.
         _ = ProjectMember.objects.filter(
             workspace__slug=slug, project_id__in=validated_project_ids, member=request.user, is_active=False
-        ).update(is_active=True, role=workspace_role, updated_by=request.user, updated_at=timezone.now())
+        ).update(
+            is_active=True, role=workspace_role, source_team=None, updated_by=request.user, updated_at=timezone.now()
+        )
 
         ProjectMember.objects.bulk_create(
             [
@@ -282,6 +284,7 @@ class ProjectJoinEndpoint(BaseAPIView):
                     # stale role on a deactivated row must not survive the rejoin.
                     project_member.is_active = True
                     project_member.role = project_invite.role
+                    project_member.source_team = None
                     project_member.save()
 
                 return Response(

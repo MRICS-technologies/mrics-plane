@@ -32,6 +32,7 @@ from plane.db.models import (
     IssueAssignee,
     Project,
     ProjectMember,
+    ProjectMemberInvite,
     ProjectTeam,
     ProjectUserProperty,
     Team,
@@ -1532,3 +1533,79 @@ class TestProjectTeamLeader:
 
         admin_client.post(_members_url(workspace.slug, other.id), {"member_ids": [str(b.id)]}, format="json")
         assert _leader(project_y, squad) is None
+
+
+def _plane_add_url(project):
+    return f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/members/"
+
+
+@pytest.mark.contract
+class TestIndividualAddClearsTheTeamSource:
+    @pytest.fixture
+    def dev(self, workspace):
+        return _ws_user(workspace, "dev@plane.so")
+
+    @pytest.fixture
+    def squad(self, workspace, dev):
+        return _team(workspace, "Squad", members=[dev])
+
+    @pytest.mark.django_db
+    def test_a_member_added_back_by_hand_survives_the_team(self, admin_client, project, dev, squad):
+        _attach(admin_client, project, squad)
+        admin_client.delete(_project_team_url(project, squad.id))
+        assert _membership(project, dev) == (False, 15, None)
+
+        resp = admin_client.post(
+            _plane_add_url(project), {"members": [{"member_id": str(dev.id), "role": 15}]}, format="json"
+        )
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert _membership(project, dev) == (True, 15, None)
+
+        _attach(admin_client, project, squad)
+        assert _membership(project, dev) == (True, 15, None)
+        resp = admin_client.delete(_project_team_url(project, squad.id))
+        assert resp.data == {"removed_member_ids": [], "kept_member_ids": _ids(dev)}
+        assert _membership(project, dev) == (True, 15, None)
+
+    @pytest.mark.django_db
+    def test_a_team_member_added_by_hand_becomes_individual(self, admin_client, project, dev, squad):
+        _attach(admin_client, project, squad)
+        assert _membership(project, dev) == (True, 15, squad.id)
+
+        admin_client.post(_plane_add_url(project), {"members": [{"member_id": str(dev.id), "role": 15}]}, format="json")
+
+        assert _membership(project, dev) == (True, 15, None)
+        admin_client.delete(_project_team_url(project, squad.id))
+        assert _membership(project, dev) == (True, 15, None)
+
+    @pytest.mark.django_db
+    def test_joining_the_project_clears_the_source(self, workspace, project, dev, squad):
+        # Removed by hand while the team was attached: inactive, source kept.
+        ProjectMember.objects.create(
+            workspace=workspace, project=project, member=dev, is_active=False, source_team=squad
+        )
+
+        resp = _client(dev).post(
+            f"/api/users/me/workspaces/{workspace.slug}/projects/invitations/",
+            {"project_ids": [str(project.id)]},
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert _membership(project, dev) == (True, 15, None)
+
+    @pytest.mark.django_db
+    def test_accepting_an_invite_clears_the_source(self, workspace, project, dev, squad):
+        ProjectMember.objects.create(
+            workspace=workspace, project=project, member=dev, is_active=False, source_team=squad
+        )
+        invite = ProjectMemberInvite.objects.create(project=project, email=dev.email, token="t0k3n", role=15)
+
+        resp = _client(dev).post(
+            f"/api/workspaces/{workspace.slug}/projects/{project.id}/join/{invite.id}/",
+            {"token": "t0k3n", "accepted": True},
+            format="json",
+        )
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert _membership(project, dev) == (True, 15, None)

@@ -99,10 +99,11 @@ class ProjectMemberViewSet(BaseViewSet):
         ):
             project_member.role = member_roles[str(project_member.member_id)]
             project_member.is_active = True
+            project_member.source_team = None
             bulk_project_members.append(project_member)
 
         # Update the roles of the existing members
-        ProjectMember.objects.bulk_update(bulk_project_members, ["is_active", "role"], batch_size=100)
+        ProjectMember.objects.bulk_update(bulk_project_members, ["is_active", "role", "source_team"], batch_size=100)
 
         # Get the minimum sort_order for each member in the workspace
         member_sort_orders = (
