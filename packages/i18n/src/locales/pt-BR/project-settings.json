@@ -56,6 +56,7 @@
       "no_leader": "Sem líder",
       "remove": "Remover",
       "remove_aria_label": "Remover {team} deste projeto",
+      "via_team": "via {team}",
       "empty": {
         "title": "Nenhuma equipe vinculada",
         "description_admin": "Vincule uma equipe do espaço de trabalho para adicionar os membros dela a este projeto e mantê-los sincronizados.",

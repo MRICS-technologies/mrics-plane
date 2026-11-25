@@ -56,6 +56,7 @@
       "no_leader": "Lider yok",
       "remove": "Kaldır",
       "remove_aria_label": "{team} takımını bu projeden kaldır",
+      "via_team": "{team} üzerinden",
       "empty": {
         "title": "Bağlı takım yok",
         "description_admin": "Üyelerini bu projeye eklemek ve eşitlenmiş tutmak için bir çalışma alanı takımı bağlayın.",

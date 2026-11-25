@@ -56,6 +56,7 @@
       "no_leader": "Nessun responsabile",
       "remove": "Rimuovi",
       "remove_aria_label": "Rimuovi {team} da questo progetto",
+      "via_team": "tramite {team}",
       "empty": {
         "title": "Nessun team associato",
         "description_admin": "Associ un team dello spazio di lavoro per aggiungere i suoi membri a questo progetto e mantenerli sincronizzati.",

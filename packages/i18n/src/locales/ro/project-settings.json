@@ -56,6 +56,7 @@
       "no_leader": "Fără lider",
       "remove": "Elimină",
       "remove_aria_label": "Elimină {team} din acest proiect",
+      "via_team": "prin {team}",
       "empty": {
         "title": "Nicio echipă asociată",
         "description_admin": "Asociați o echipă din spațiul de lucru pentru a adăuga membrii ei în acest proiect și a-i menține sincronizați.",

@@ -56,6 +56,7 @@
       "no_leader": "Không có trưởng nhóm",
       "remove": "Gỡ",
       "remove_aria_label": "Gỡ {team} khỏi dự án này",
+      "via_team": "qua {team}",
       "empty": {
         "title": "Chưa gắn nhóm nào",
         "description_admin": "Gắn một nhóm trong không gian làm việc để thêm các thành viên của nhóm vào dự án này và giữ họ luôn đồng bộ.",

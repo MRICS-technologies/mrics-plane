@@ -56,6 +56,7 @@
       "no_leader": "리더 없음",
       "remove": "제거",
       "remove_aria_label": "이 프로젝트에서 {team} 제거",
+      "via_team": "{team} 경유",
       "empty": {
         "title": "연결된 팀이 없습니다",
         "description_admin": "작업 공간 팀을 연결하면 팀 멤버가 이 프로젝트에 추가되고 계속 동기화됩니다.",

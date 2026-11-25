@@ -56,6 +56,7 @@
       "no_leader": "Tanpa pemimpin",
       "remove": "Lepaskan",
       "remove_aria_label": "Lepaskan {team} dari proyek ini",
+      "via_team": "melalui {team}",
       "empty": {
         "title": "Belum ada tim yang ditautkan",
         "description_admin": "Tautkan tim ruang kerja untuk menambahkan anggotanya ke proyek ini dan menjaganya tetap tersinkron.",

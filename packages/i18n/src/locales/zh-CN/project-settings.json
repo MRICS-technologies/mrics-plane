@@ -56,6 +56,7 @@
       "no_leader": "无负责人",
       "remove": "移除",
       "remove_aria_label": "从此项目中移除 {team}",
+      "via_team": "通过 {team}",
       "empty": {
         "title": "未关联团队",
         "description_admin": "关联一个工作区团队，即可将其成员添加到此项目并保持同步。",

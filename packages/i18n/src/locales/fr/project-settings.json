@@ -56,6 +56,7 @@
       "no_leader": "Aucun responsable",
       "remove": "Retirer",
       "remove_aria_label": "Retirer {team} de ce projet",
+      "via_team": "via {team}",
       "empty": {
         "title": "Aucune équipe associée",
         "description_admin": "Associez une équipe de l’espace de travail pour ajouter ses membres à ce projet et les garder synchronisés.",

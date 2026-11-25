@@ -56,6 +56,7 @@
       "no_leader": "No leader",
       "remove": "Remove",
       "remove_aria_label": "Remove {team} from this project",
+      "via_team": "via {team}",
       "empty": {
         "title": "No teams attached",
         "description_admin": "Attach a workspace team to add its members to this project and keep them in sync.",

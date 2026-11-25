@@ -56,6 +56,7 @@
       "no_leader": "Keine Leitung",
       "remove": "Entfernen",
       "remove_aria_label": "{team} aus diesem Projekt entfernen",
+      "via_team": "über {team}",
       "empty": {
         "title": "Keine Teams zugeordnet",
         "description_admin": "Ordnen Sie ein Team des Arbeitsbereichs zu, um seine Mitglieder diesem Projekt hinzuzufügen und synchron zu halten.",

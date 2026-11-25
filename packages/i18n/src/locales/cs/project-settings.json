@@ -56,6 +56,7 @@
       "no_leader": "Bez vedoucího",
       "remove": "Odebrat",
       "remove_aria_label": "Odebrat {team} z tohoto projektu",
+      "via_team": "přes {team}",
       "empty": {
         "title": "Žádné přiřazené týmy",
         "description_admin": "Přiřaďte tým z pracovního prostoru, aby se jeho členové přidali do tohoto projektu a zůstali synchronizovaní.",

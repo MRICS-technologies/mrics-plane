@@ -56,6 +56,7 @@
       "no_leader": "Brak lidera",
       "remove": "Usuń",
       "remove_aria_label": "Usuń {team} z tego projektu",
+      "via_team": "przez {team}",
       "empty": {
         "title": "Brak przypisanych zespołów",
         "description_admin": "Po przypisaniu zespołu z przestrzeni roboczej jego członkowie zostaną dodani do tego projektu i będą synchronizowani z zespołem.",

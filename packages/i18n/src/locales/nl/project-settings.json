@@ -56,6 +56,7 @@
       "no_leader": "Geen leider",
       "remove": "Verwijderen",
       "remove_aria_label": "{team} uit dit project verwijderen",
+      "via_team": "via {team}",
       "empty": {
         "title": "Geen teams gekoppeld",
         "description_admin": "Koppel een team uit de werkruimte om de leden aan dit project toe te voegen en gesynchroniseerd te houden.",
