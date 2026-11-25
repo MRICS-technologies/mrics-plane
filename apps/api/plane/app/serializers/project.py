@@ -213,6 +213,17 @@ class ProjectMemberRoleSerializer(DynamicBaseSerializer):
         read_only_fields = ["original_role", "created_at"]
 
 
+class ProjectMemberRoleTeamSerializer(ProjectMemberRoleSerializer):
+    """Adds the read-only ``source_team`` id (the "via <team>" tag) for members/admins.
+
+    Guests get ``ProjectMemberRoleSerializer``: they cannot list teams either.
+    """
+
+    class Meta(ProjectMemberRoleSerializer.Meta):
+        fields = ProjectMemberRoleSerializer.Meta.fields + ("source_team",)
+        read_only_fields = ProjectMemberRoleSerializer.Meta.read_only_fields + ["source_team"]
+
+
 class ProjectMemberInviteSerializer(BaseSerializer):
     project = ProjectLiteSerializer(read_only=True)
     workspace = WorkspaceLiteSerializer(read_only=True)
