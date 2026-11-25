@@ -61,7 +61,8 @@ class ProjectTeamEndpoint(BaseAPIView):
             # Attaching again re-runs the sync: it is idempotent.
             members = TeamMember.objects.filter(team=team).values_list("member_id", flat=True)
             added = sync_project_members([project.id], members, actor=request.user, request=request)["added"]
-        data = serialize_project_team(_links(slug, project_id).get(pk=link.pk))
+            # Read under the locks, before a concurrent detach can delete the link.
+            data = serialize_project_team(_links(slug, project_id).get(pk=link.pk))
         data["added_member_ids"] = sorted(str(member_id) for member_id in added)
         return Response(data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
@@ -84,7 +85,7 @@ class ProjectTeamDetailEndpoint(BaseAPIView):
             ProjectTeam.objects.filter(pk=link.pk).update(
                 leader_id=leader_id, updated_at=timezone.now(), updated_by=request.user
             )
-        return Response(serialize_project_team(_links(slug, project_id).get(pk=link.pk)))
+            return Response(serialize_project_team(_links(slug, project_id).get(pk=link.pk)))
 
     @allow_permission([ROLE.ADMIN])
     def delete(self, request, slug, project_id, team_id):
