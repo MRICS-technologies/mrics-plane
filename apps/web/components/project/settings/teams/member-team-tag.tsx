@@ -62,14 +62,18 @@ export const ProjectMemberTeamTag = observer(function ProjectMemberTeamTag(props
 
   const [before, after = ""] = t("project_settings.teams.via_team", { team: TEAM_SLOT }).split(TEAM_SLOT);
   return (
-    <span
-      className="flex max-w-32 min-w-0 shrink-0 items-center rounded-xs bg-layer-1 px-2 py-0.5 text-11 text-tertiary"
-      title={t("project_settings.teams.via_team", { team: teamName })}
-      data-testid="project-member-team-tag"
-    >
-      <span className="shrink-0 whitespace-pre">{before}</span>
-      <span className="min-w-0 truncate">{teamName}</span>
-      <span className="shrink-0 whitespace-pre">{after}</span>
+    // Sized from zero, the tag only gets the room the member's name leaves: a long team name
+    // truncates before the person's name does.
+    <span className="flex min-w-0 flex-1 basis-0 items-center overflow-hidden">
+      <span
+        className="flex max-w-32 min-w-0 items-center rounded-xs bg-layer-1 px-2 py-0.5 text-11 text-tertiary"
+        title={t("project_settings.teams.via_team", { team: teamName })}
+        data-testid="project-member-team-tag"
+      >
+        <span className="shrink-0 whitespace-pre">{before}</span>
+        <span className="min-w-0 truncate">{teamName}</span>
+        <span className="shrink-0 whitespace-pre">{after}</span>
+      </span>
     </span>
   );
 });
