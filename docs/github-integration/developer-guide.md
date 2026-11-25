@@ -18,6 +18,8 @@ This page is for maintainers extending or reviewing the GitHub integration.
 | Rename / delete a team                    | `PATCH` / `DELETE` on `/api/workspaces/<workspace-slug>/teams/<team-id>/`                        |
 | Add team members (moves from other teams) | `POST {"member_ids": [...]}` on `/api/workspaces/<workspace-slug>/teams/<team-id>/members/`      |
 | Remove a team member                      | `DELETE /api/workspaces/<workspace-slug>/teams/<team-id>/members/<user-id>/`                     |
+| Project teams (list/attach)               | `GET` / `POST {"team_id": ...}` on `.../projects/<project-id>/teams/`                            |
+| Team leader / detach a team               | `PATCH {"leader_id": ... \| null}` / `DELETE` on `.../projects/<project-id>/teams/<team-id>/`    |
 | Team repositories of a project            | `GET .../projects/<project-id>/github/team-repositories/`                                        |
 | Set / clear a team's project repository   | `PUT {"mapping_id": "<mapping-id>" \| null}` on `.../github/team-repositories/<team-id>/`        |
 
@@ -30,16 +32,16 @@ It opts out of DRF's automatic throttling and throttles in `post()` after the si
 - `GithubEnabledRepository` constrains which installation repositories are usable.
 - `RepoProjectMapping` authorizes a repository to affect a specific Plane project.
 - `IssueGitLink` stores branch and PR links. PR rows include the PR number and GitHub update timestamp.
-- `TeamMember` (hard-deleted rows, one live team per workspace member) and `ProjectTeamRepository` (per project and team, the `RepoProjectMapping` its branches go to; one live row per project and team) drive the branch repository preference; the rule lives in `apps/api/plane/services/github/team_repo.py`.
+- `TeamMember` (hard-deleted rows, one live team per workspace member) and `ProjectTeamRepository` (per project and team, the `RepoProjectMapping` its branches go to; one live row per project and team) drive the branch repository preference; the rule lives in `apps/api/plane/services/github/team_repo.py`. A team repository only counts while the team is attached to the project (`ProjectTeam`, see [Project teams](../teams/project-teams.md)).
 - `GithubWebhookDelivery` stores only a delivery ID and event name for deduplication. It must never store raw payloads or secrets.
 
 ### Team repositories per project
 
-- `GET .../github/team-repositories/` (project admins and members) returns every live team of the workspace, by name: `[{"team": {"id", "name", "member_count"}, "mapping_id": "<uuid>" | null}]`. `member_count` counts active workspace members only.
-- `PUT .../github/team-repositories/<team-id>/` (project admins) with `{"mapping_id": "<uuid>"}` sets the team's repository, `null` clears it; it returns the same row shape. `400` when `mapping_id` is not a live mapping of this project, `404` for a team that is not live in this workspace.
+- `GET .../github/team-repositories/` (project admins and members) returns every live team attached to the project, by name: `[{"team": {"id", "name", "member_count"}, "mapping_id": "<uuid>" | null}]`. `member_count` counts active workspace members only.
+- `PUT .../github/team-repositories/<team-id>/` (project admins) with `{"mapping_id": "<uuid>"}` sets the team's repository, `null` clears it; it returns the same row shape. `400` when `mapping_id` is not a live mapping of this project, `400 {"team_id": ["Attach the team to this project first."]}` for a live team of the workspace that is not attached, `404` for a team that is not live in this workspace.
 - Branch creation without `repo`: the requesting user's team row for this project, else the project default. The mapping list adds `default_for_teams` and `is_my_team_default` per mapping, for this project only.
-- Rows are hard-deleted by the `PUT` with `null`, and in the same transaction as mapping removal (`RepoProjectMappingViewSet.destroy`), team delete and `soft_delete_installations` (force disconnect, App ID reset). Deleting a whole project or workspace soft-deletes them through the usual cascade; reads ignore soft-deleted rows. The `PUT` locks the project, team and mapping rows so it cannot land on a row being removed.
-- The resolver and the mapping-list hints skip rows whose mapping or team is soft-deleted, or whose mapping's repository is disabled, soft-deleted, or on a soft-deleted or inactive installation; legacy mappings without a repository row stay usable. `GET .../team-repositories/` still returns those rows, so admins see the saved choice.
+- Rows are hard-deleted by the `PUT` with `null`, and in the same transaction as mapping removal (`RepoProjectMappingViewSet.destroy`), team detach, team delete and `soft_delete_installations` (force disconnect, App ID reset). Deleting a whole project or workspace soft-deletes them through the usual cascade; reads ignore soft-deleted rows. The `PUT` locks the project, team and mapping rows so it cannot land on a row being removed.
+- The resolver and the mapping-list hints skip rows whose team is not attached to the project, whose mapping or team is soft-deleted, or whose mapping's repository is disabled, soft-deleted, or on a soft-deleted or inactive installation; legacy mappings without a repository row stay usable. For attached teams, `GET .../team-repositories/` still returns a row whose repository is disabled or whose installation is gone, so admins see the saved choice; teams that are not attached are not listed at all.
 
 ## Code map
 
@@ -52,6 +54,8 @@ It opts out of DRF's automatic throttling and throttles in `post()` after the si
 | Contract tests                    | `apps/api/plane/tests/contract/api/test_github_sync.py`     |
 | Team repository per project       | `apps/api/plane/services/github/team_repo.py`               |
 | Team endpoints                    | `apps/api/plane/app/views/workspace/team.py`                |
+| Project team endpoints            | `apps/api/plane/app/views/project/team.py`                  |
+| Project membership sync           | `apps/api/plane/services/teams/project_sync.py`             |
 | Team contract tests               | `apps/api/plane/tests/contract/api/test_workspace_teams.py` |
 | Hosted test workflow              | `.github/workflows/test-github-app-configuration.yml`       |
 

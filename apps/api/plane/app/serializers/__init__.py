@@ -43,6 +43,7 @@ from .project import (
     ProjectMemberAdminSerializer,
     ProjectPublicMemberSerializer,
     ProjectMemberRoleSerializer,
+    ProjectMemberRoleTeamSerializer,
     ProjectMemberPreferenceSerializer,
 )
 from .state import StateSerializer, StateLiteSerializer

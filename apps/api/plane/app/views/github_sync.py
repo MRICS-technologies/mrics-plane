@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 # Third party imports
 import requests
 from django.db import IntegrityError, transaction
-from django.db.models import Count, F, OuterRef, Q, Subquery
+from django.db.models import Count, Exists, F, OuterRef, Q, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -33,7 +33,7 @@ from plane.app.serializers.github_sync import (
     RepoProjectMappingSerializer,
 )
 from plane.authentication.utils.host import base_host
-from plane.db.models import Issue, Project, Team, Workspace
+from plane.db.models import Issue, Project, ProjectTeam, Team, Workspace
 from plane.db.models.integration.github_sync import (
     GithubWebhookDelivery,
     IssueGitLink,
@@ -211,8 +211,8 @@ class RepoProjectMappingViewSet(BaseViewSet):
 
 
 class ProjectTeamRepositoryViewSet(BaseViewSet):
-    """Per workspace team, the project mapping its members' branches go to in
-    this project; mapping_id null means the project default."""
+    """Per team attached to the project, the project mapping its members'
+    branches go to in this project; mapping_id null means the project default."""
 
     model = ProjectTeamRepository
 
@@ -222,7 +222,9 @@ class ProjectTeamRepositoryViewSet(BaseViewSet):
             team=OuterRef("pk"), project_id=project_id, mapping__deleted_at__isnull=True
         )
         # Members who left the workspace are not counted (as on the Teams page).
-        return Team.objects.filter(workspace__slug=slug).annotate(
+        return Team.objects.filter(
+            Exists(ProjectTeam.objects.filter(team=OuterRef("pk"), project_id=project_id)), workspace__slug=slug
+        ).annotate(
             mapping_id=Subquery(override.values("mapping_id")[:1]),
             member_count=Count(
                 "team_members",
@@ -265,6 +267,10 @@ class ProjectTeamRepositoryViewSet(BaseViewSet):
             )
             if not project or not team:
                 return Response(status=status.HTTP_404_NOT_FOUND)
+            if not ProjectTeam.objects.filter(project=project, team=team).exists():
+                return Response(
+                    {"team_id": ["Attach the team to this project first."]}, status=status.HTTP_400_BAD_REQUEST
+                )
             if mapping_id is None:
                 ProjectTeamRepository.all_objects.filter(project=project, team=team).delete()
             else:

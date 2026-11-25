@@ -23,6 +23,7 @@ from .project.member import (
     UserProjectRolesEndpoint,
     ProjectMemberPreferenceEndpoint,
 )
+from .project.team import ProjectTeamEndpoint, ProjectTeamDetailEndpoint
 
 from .user.base import (
     UserEndpoint,

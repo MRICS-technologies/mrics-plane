@@ -58,6 +58,7 @@ from .project import (
     ProjectMemberInvite,
     ProjectNetwork,
     ProjectPublicMember,
+    ProjectTeam,
     ProjectUserProperty,
 )
 from .session import Session
