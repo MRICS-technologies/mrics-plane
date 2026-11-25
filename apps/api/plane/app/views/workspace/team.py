@@ -36,8 +36,7 @@ DUPLICATE_NAME = {"name": ["A team with this name already exists in this workspa
 
 def _teams(slug):
     return Team.objects.filter(workspace__slug=slug).prefetch_related(
-        Prefetch("team_members", queryset=active_team_members()),
-        Prefetch("project_links", queryset=ProjectTeam.objects.filter(project__deleted_at__isnull=True)),
+        Prefetch("team_members", queryset=active_team_members())
     )
 
 

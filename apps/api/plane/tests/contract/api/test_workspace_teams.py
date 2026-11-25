@@ -282,7 +282,8 @@ class TestTeamCrud:
         assert resp.status_code == status.HTTP_200_OK
         assert [team["name"] for team in resp.data] == ["Alpha", "Zeta"]
         alpha = resp.data[0]
-        assert set(alpha) == {"id", "name", "description", "member_ids", "project_ids", "created_at"}
+        # No project ids: they would show secret projects to every workspace member.
+        assert set(alpha) == {"id", "name", "description", "member_ids", "created_at"}
         assert alpha["member_ids"] == [str(member_user.id)]
 
     @pytest.mark.django_db
@@ -1442,20 +1443,6 @@ class TestTeamMembershipSync:
         assert _membership(project, member_user) == (True, 15, None)
         assert _membership(project_y, member_user) == (True, 15, None)
         assert not ProjectTeam.all_objects.filter(team=squad).exists()
-
-    @pytest.mark.django_db
-    def test_workspace_teams_list_their_projects(self, admin_client, workspace, project, project_y):
-        squad = _team(workspace, "Squad")
-        _team(workspace, "Idle")
-        _attach(admin_client, project, squad)
-        _attach(admin_client, project_y, squad)
-
-        teams = {team["name"]: team for team in admin_client.get(_teams_url(workspace.slug)).data}
-
-        assert sorted(teams["Squad"]["project_ids"]) == sorted([str(project.id), str(project_y.id)])
-        assert teams["Idle"]["project_ids"] == []
-        resp = admin_client.patch(_team_url(workspace.slug, squad.id), {"name": "Squad 2"}, format="json")
-        assert sorted(resp.data["project_ids"]) == sorted([str(project.id), str(project_y.id)])
 
 
 @pytest.mark.contract
