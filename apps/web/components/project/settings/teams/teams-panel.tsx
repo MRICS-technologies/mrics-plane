@@ -83,11 +83,10 @@ export function ProjectTeamsPanel(props: Props) {
       revalidate: false,
     });
 
-  const handleRemoved = async () => {
-    await Promise.all([mutate(), refreshProjectMembers()]);
-    // The removed row held the focus: hand it to Add team, the way back to that team.
-    window.setTimeout(() => document.getElementById(ADD_TEAM_TRIGGER_ID)?.focus());
-  };
+  const handleRefresh = () => Promise.all([mutate(), refreshProjectMembers()]);
+
+  // The removed row held the focus: hand it to Add team, the way back to that team.
+  const handleRemoved = () => window.setTimeout(() => document.getElementById(ADD_TEAM_TRIGGER_ID)?.focus());
 
   const addTeamSelect = isAdmin ? (
     <AddTeamSelect
@@ -143,6 +142,7 @@ export function ProjectTeamsPanel(props: Props) {
               projectTeam={projectTeam}
               isAdmin={isAdmin}
               onUpdated={handleUpdated}
+              onRefresh={handleRefresh}
               onRemoved={handleRemoved}
             />
           ))}

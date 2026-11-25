@@ -42,12 +42,14 @@ type Props = {
   isAdmin: boolean;
   /** The row the API returned after a leader change. */
   onUpdated: (projectTeam: TProjectTeam) => Promise<unknown>;
-  /** Refreshes the list and the project members after the team was removed. */
-  onRemoved: () => Promise<unknown>;
+  /** Re-fetches the list and the project members. */
+  onRefresh: () => Promise<unknown>;
+  /** Called once the team is removed and the list re-fetched (this row is gone). */
+  onRemoved: () => void;
 };
 
 export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: Props) {
-  const { workspaceSlug, projectId, projectTeam, isAdmin, onUpdated, onRemoved } = props;
+  const { workspaceSlug, projectId, projectTeam, isAdmin, onUpdated, onRefresh, onRemoved } = props;
   const { team, leader_id: leaderId } = projectTeam;
   const { t } = useTranslation();
   const {
@@ -83,6 +85,8 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
         title: t("common.error.label"),
         message: projectTeamErrorMessage(error, t("project_settings.teams.errors.leader_failed"), forbidden),
       });
+      // A 400 usually means the team changed meanwhile (the picked member left it).
+      void onRefresh();
     }
   };
 
@@ -100,7 +104,8 @@ export const ProjectTeamListItem = observer(function ProjectTeamListItem(props: 
         message: t("project_settings.teams.toasts.members_removed", { removed: removed.length, kept: kept.length }),
       });
       // The row, and this dialog with it, unmount once the list is refreshed.
-      await onRemoved();
+      await onRefresh();
+      onRemoved();
     } catch (error) {
       setToast({
         type: "error",
