@@ -143,6 +143,10 @@ class ProjectMemberViewSet(BaseViewSet):
 
         # Bulk create the project members and issue properties
         project_members = ProjectMember.objects.bulk_create(bulk_project_members, batch_size=10, ignore_conflicts=True)
+        # A row the team sync inserted concurrently (the insert above skipped it) is individual too.
+        ProjectMember.objects.filter(
+            project_id=project_id, member_id__in=[member.get("member_id") for member in members]
+        ).update(source_team=None)
 
         _ = ProjectUserProperty.objects.bulk_create(bulk_issue_props, batch_size=10, ignore_conflicts=True)
 

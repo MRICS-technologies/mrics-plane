@@ -83,9 +83,12 @@ class ProjectSerializer(BaseSerializer):
             # an unchanged assignment may be resent after the user left the workspace
             if user is not None and self.instance and getattr(self.instance, f"{field}_id") == user.pk:
                 continue
-            if user is not None and not WorkspaceMember.objects.filter(
-                workspace_id=self.context["workspace_id"], member=user, is_active=True
-            ).exists():
+            if (
+                user is not None
+                and not WorkspaceMember.objects.filter(
+                    workspace_id=self.context["workspace_id"], member=user, is_active=True
+                ).exists()
+            ):
                 raise serializers.ValidationError({field: "The provided user is not a member of this workspace."})
 
         # Validate description content for security
@@ -174,7 +177,8 @@ class ProjectMemberSerializer(BaseSerializer):
     class Meta:
         model = ProjectMember
         fields = "__all__"
-        read_only_fields = ["deleted_at", "created_by", "updated_by"]
+        # source_team is set only by the team sync (plane.services.teams).
+        read_only_fields = ["deleted_at", "created_by", "updated_by", "source_team"]
 
 
 class ProjectMemberPreferenceSerializer(BaseSerializer):
@@ -197,6 +201,7 @@ class ProjectMemberAdminSerializer(BaseSerializer):
     class Meta:
         model = ProjectMember
         fields = "__all__"
+        read_only_fields = ["source_team"]
 
 
 class ProjectMemberRoleSerializer(DynamicBaseSerializer):

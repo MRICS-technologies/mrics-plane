@@ -51,11 +51,10 @@ class Command(BaseCommand):
             if not WorkspaceMember.objects.filter(workspace=project.workspace, member=user, is_active=True).exists():
                 raise CommandError("User not member in workspace")
 
-
             if ProjectMember.objects.filter(project=project, member=user).exists():
                 # Update the project member
                 ProjectMember.objects.filter(project=project, member=user).update(
-                    is_active=True, role=role
+                    is_active=True, role=role, source_team=None
                 )
             else:
                 # Create the project member

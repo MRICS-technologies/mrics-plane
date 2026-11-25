@@ -186,6 +186,8 @@ class UserProjectInvitationsViewset(BaseViewSet):
             ],
             ignore_conflicts=True,
         )
+        # Joining by hand makes the membership individual, even one the team sync just inserted.
+        ProjectMember.objects.filter(project_id__in=validated_project_ids, member=request.user).update(source_team=None)
 
         ProjectUserProperty.objects.bulk_create(
             [

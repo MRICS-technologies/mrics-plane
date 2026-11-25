@@ -1609,3 +1609,17 @@ class TestIndividualAddClearsTheTeamSource:
 
         assert resp.status_code == status.HTTP_200_OK, resp.data
         assert _membership(project, dev) == (True, 15, None)
+
+
+@pytest.mark.contract
+class TestSourceTeamGuards:
+    @pytest.mark.django_db
+    def test_the_member_patch_cannot_set_the_source(self, admin_client, project, member_user, frontend):
+        row = ProjectMember.objects.get(project=project, member=member_user)
+
+        resp = admin_client.patch(
+            f"{_plane_add_url(project)}{row.id}/", {"source_team": str(frontend.id)}, format="json"
+        )
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert _membership(project, member_user) == (True, 15, None)
