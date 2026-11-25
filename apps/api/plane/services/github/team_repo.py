@@ -6,10 +6,9 @@
 
 Order when no repository is named: the mapping the member's team uses in this
 project (ProjectTeamRepository, team attached to the project), else the project
-default mapping. A team
-mapping whose repository is disabled on GitHub, or whose installation is gone,
-is skipped. The rule lives only here; the mapping list exposes it to the web
-picker.
+default mapping. A team mapping whose repository is disabled on GitHub, or
+whose installation is gone, is skipped. The rule lives only here; the mapping
+list exposes it to the web picker.
 """
 
 from django.db.models import Exists, OuterRef, Q

@@ -22,9 +22,8 @@ from django.utils import timezone
 
 from plane.bgtasks.project_add_user_email_task import project_add_user_email
 from plane.db.models import ProjectMember, ProjectTeam, ProjectUserProperty, Team, WorkspaceMember
+from plane.db.models.project import ROLE
 from plane.utils.host import base_host
-
-ADMIN = 20
 
 
 def locked_teams(slug):
@@ -113,7 +112,7 @@ def sync_project_members(project_ids, user_ids, *, actor, request):
         if pair in team_of or not row.is_active or row.source_team_id is None:
             continue
         row.source_team_id = None
-        if row.role != ADMIN and roles.get((row.workspace_id, row.member_id)) != ADMIN and not row.is_bot:
+        if ROLE.ADMIN.value not in (row.role, roles.get((row.workspace_id, row.member_id))) and not row.is_bot:
             # Removed the way Plane removes a project member; issue assignments stay.
             row.is_active = False
             removed.add(row.member_id)
