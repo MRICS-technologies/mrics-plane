@@ -4,7 +4,7 @@
 
 # Django imports
 from django.db import IntegrityError, transaction
-from django.db.models import Exists, OuterRef, Prefetch
+from django.db.models import Prefetch
 from django.utils import timezone
 
 # Third party imports
@@ -13,7 +13,12 @@ from rest_framework.response import Response
 
 # Module imports
 from plane.app.permissions import ROLE, allow_permission
-from plane.app.serializers.team import TeamMembersSerializer, TeamWriteSerializer, serialize_team
+from plane.app.serializers.team import (
+    TeamMembersSerializer,
+    TeamWriteSerializer,
+    active_team_members,
+    serialize_team,
+)
 from plane.db.models import ProjectTeamRepository, Team, TeamMember, Workspace, WorkspaceMember
 from ..base import BaseAPIView
 
@@ -21,15 +26,9 @@ DUPLICATE_NAME = {"name": ["A team with this name already exists in this workspa
 
 
 def _teams(slug):
-    # Members who left the workspace keep their row but are not listed.
-    active_members = TeamMember.objects.filter(
-        Exists(
-            WorkspaceMember.objects.filter(
-                workspace_id=OuterRef("workspace_id"), member_id=OuterRef("member_id"), is_active=True
-            )
-        )
+    return Team.objects.filter(workspace__slug=slug).prefetch_related(
+        Prefetch("team_members", queryset=active_team_members())
     )
-    return Team.objects.filter(workspace__slug=slug).prefetch_related(Prefetch("team_members", queryset=active_members))
 
 
 class WorkspaceTeamEndpoint(BaseAPIView):

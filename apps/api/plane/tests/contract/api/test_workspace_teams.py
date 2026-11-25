@@ -29,9 +29,11 @@ from rest_framework.test import APIClient
 
 from plane.db.models import (
     Issue,
+    IssueAssignee,
     Project,
     ProjectMember,
     ProjectTeam,
+    ProjectUserProperty,
     Team,
     TeamMember,
     User,
@@ -1025,3 +1027,298 @@ class TestProjectTeamSchema:
         assert ProjectTeam.objects.get(project=project, team=backend).id == existing.id
         # No membership changes.
         assert not ProjectMember.objects.filter(source_team__isnull=False).exists()
+
+
+def _project_teams_url(project):
+    return f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/teams/"
+
+
+def _project_team_url(project, team_id):
+    return f"{_project_teams_url(project)}{team_id}/"
+
+
+def _ws_user(workspace, email, role=15):
+    user = _user(email)
+    WorkspaceMember.objects.create(workspace=workspace, member=user, role=role)
+    return user
+
+
+def _attach(client, project, team):
+    resp = client.post(_project_teams_url(project), {"team_id": str(team.id)}, format="json")
+    assert resp.status_code in (200, 201), resp.data
+    return resp
+
+
+def _membership(project, user):
+    """(is_active, role, source_team_id) of the user's live project membership, or None."""
+    return (
+        ProjectMember.objects.filter(project=project, member=user)
+        .values_list("is_active", "role", "source_team_id")
+        .first()
+    )
+
+
+def _ids(*users):
+    return sorted(str(user.id) for user in users)
+
+
+@pytest.mark.contract
+class TestAttachTeam:
+    @pytest.mark.django_db
+    def test_members_join_with_their_workspace_role(
+        self, admin_client, workspace, project, create_user, django_capture_on_commit_callbacks
+    ):
+        dev = _ws_user(workspace, "dev@plane.so", role=15)
+        guest = _ws_user(workspace, "ws-guest@plane.so", role=5)
+        boss = _ws_user(workspace, "boss@plane.so", role=20)
+        squad = _team(workspace, "Squad", members=[dev, guest, boss])
+
+        with (
+            patch("plane.services.teams.project_sync.project_add_user_email") as email,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            resp = _attach(admin_client, project, squad)
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        link = ProjectTeam.objects.get(project=project, team=squad)
+        assert resp.data == {
+            "id": str(link.id),
+            "team": {"id": str(squad.id), "name": "Squad", "member_ids": resp.data["team"]["member_ids"]},
+            "leader_id": None,
+            "created_at": resp.data["created_at"],
+            "added_member_ids": _ids(dev, guest, boss),
+        }
+        assert sorted(resp.data["team"]["member_ids"]) == _ids(dev, guest, boss)
+        assert _membership(project, dev) == (True, 15, squad.id)
+        assert _membership(project, guest) == (True, 5, squad.id)
+        assert _membership(project, boss) == (True, 20, squad.id)
+        assert ProjectUserProperty.objects.filter(project=project, user__in=[dev, guest, boss]).count() == 3
+        # Plane's "added to project" email, once per new member, after commit.
+        assert [call.args[2] for call in email.delay.call_args_list] == [create_user.id] * 3
+        added_rows = {str(call.args[1]) for call in email.delay.call_args_list}
+        assert added_rows == {
+            str(pk)
+            for pk in ProjectMember.objects.filter(project=project, source_team=squad).values_list("id", flat=True)
+        }
+
+    @pytest.mark.django_db
+    def test_attaching_again_is_200_and_changes_nothing(self, admin_client, workspace, project):
+        dev = _ws_user(workspace, "dev@plane.so")
+        squad = _team(workspace, "Squad", members=[dev])
+        _attach(admin_client, project, squad)
+
+        resp = _attach(admin_client, project, squad)
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert resp.data["added_member_ids"] == []
+        assert ProjectTeam.all_objects.filter(project=project, team=squad).count() == 1
+        assert ProjectMember.all_objects.filter(project=project, member=dev).count() == 1
+        assert ProjectUserProperty.all_objects.filter(project=project, user=dev).count() == 1
+
+    @pytest.mark.django_db
+    def test_existing_members_keep_their_role_and_stay_individual(
+        self, admin_client, workspace, project, create_user, member_user
+    ):
+        project_guest = _ws_user(workspace, "pguest@plane.so", role=15)
+        ProjectMember.objects.create(workspace=workspace, project=project, member=project_guest, role=5)
+        squad = _team(workspace, "Squad", members=[create_user, member_user, project_guest])
+
+        resp = _attach(admin_client, project, squad)
+
+        assert resp.data["added_member_ids"] == []
+        assert _membership(project, create_user) == (True, 20, None)
+        assert _membership(project, member_user) == (True, 15, None)
+        assert _membership(project, project_guest) == (True, 5, None)
+
+    @pytest.mark.django_db
+    def test_a_removed_member_is_reactivated_from_the_team(self, admin_client, workspace, project):
+        dev = _ws_user(workspace, "dev@plane.so")
+        ProjectMember.objects.create(workspace=workspace, project=project, member=dev, role=5, is_active=False)
+        squad = _team(workspace, "Squad", members=[dev])
+
+        resp = _attach(admin_client, project, squad)
+
+        assert resp.data["added_member_ids"] == _ids(dev)
+        assert _membership(project, dev) == (True, 15, squad.id)
+        assert ProjectMember.all_objects.filter(project=project, member=dev).count() == 1
+        assert ProjectUserProperty.objects.filter(project=project, user=dev).exists()
+
+    @pytest.mark.django_db
+    def test_members_who_left_the_workspace_are_not_added(self, admin_client, workspace, project):
+        left = _user("left@plane.so")
+        WorkspaceMember.objects.create(workspace=workspace, member=left, role=15, is_active=False)
+        squad = _team(workspace, "Squad", members=[left])
+
+        resp = _attach(admin_client, project, squad)
+
+        assert resp.data["added_member_ids"] == []
+        assert resp.data["team"]["member_ids"] == []
+        assert _membership(project, left) is None
+
+    @pytest.mark.django_db
+    def test_unknown_foreign_or_deleted_team_is_404_and_bad_body_is_400(
+        self, admin_client, workspace, other_workspace, project
+    ):
+        foreign = _team(other_workspace, "Foreign")
+        gone = _team(workspace, "Gone")
+        Team.objects.filter(pk=gone.pk).update(deleted_at=timezone.now())
+        url = _project_teams_url(project)
+
+        for team_id in (uuid.uuid4(), foreign.id, gone.id):
+            assert admin_client.post(url, {"team_id": str(team_id)}, format="json").status_code == 404, team_id
+        for body in ({}, {"team_id": "nope"}, {"team_id": None}):
+            assert admin_client.post(url, body, format="json").status_code == 400, body
+        assert not ProjectTeam.all_objects.exists()
+
+    @pytest.mark.django_db
+    def test_attach_takes_a_bounded_number_of_queries(
+        self, admin_client, workspace, project, django_assert_max_num_queries
+    ):
+        squad = _team(workspace, "Squad", members=[_ws_user(workspace, f"dev{i}@plane.so") for i in range(10)])
+
+        with django_assert_max_num_queries(20):
+            resp = _attach(admin_client, project, squad)
+
+        assert len(resp.data["added_member_ids"]) == 10
+
+
+@pytest.mark.contract
+class TestDetachTeam:
+    @pytest.mark.django_db
+    def test_only_team_sourced_members_are_removed(
+        self, admin_client, workspace, project, project_y, member_user, mapping_a, mapping_b, repo_c, create_bot_user
+    ):
+        dev = _ws_user(workspace, "dev@plane.so")
+        promoted = _ws_user(workspace, "promoted@plane.so")
+        boss = _ws_user(workspace, "boss@plane.so", role=20)
+        WorkspaceMember.objects.create(workspace=workspace, member=create_bot_user, role=15)
+        squad = _team(workspace, "Squad", members=[dev, promoted, boss, member_user, create_bot_user])
+        _attach(admin_client, project, squad)
+        ProjectMember.objects.filter(project=project, member=promoted).update(role=20)
+        _override(project, squad, mapping_b)
+        kept_override = _override(project_y, squad, _mapping(project_y, repo_c, is_default=True))
+
+        resp = admin_client.delete(_project_team_url(project, squad.id))
+
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data == {
+            "removed_member_ids": _ids(dev),
+            "kept_member_ids": _ids(promoted, boss, member_user, create_bot_user),
+        }
+        assert _membership(project, dev) == (False, 15, None)
+        # Promoted to project admin, workspace admin, individually added, bot: kept as individual members.
+        assert _membership(project, promoted) == (True, 20, None)
+        assert _membership(project, boss) == (True, 20, None)
+        assert _membership(project, member_user) == (True, 15, None)
+        assert _membership(project, create_bot_user)[0] is True
+        assert not ProjectTeam.all_objects.filter(project=project).exists()
+        assert list(ProjectTeamRepository.all_objects.values_list("id", flat=True)) == [kept_override.id]
+
+    @pytest.mark.django_db
+    def test_assignments_of_a_removed_member_are_kept(self, admin_client, workspace, project, issue):
+        dev = _ws_user(workspace, "dev@plane.so")
+        squad = _team(workspace, "Squad", members=[dev])
+        _attach(admin_client, project, squad)
+        IssueAssignee.objects.create(issue=issue, assignee=dev, project=project, workspace=workspace)
+
+        assert admin_client.delete(_project_team_url(project, squad.id)).data["removed_member_ids"] == _ids(dev)
+
+        assert IssueAssignee.objects.filter(issue=issue, assignee=dev).exists()
+
+    @pytest.mark.django_db
+    def test_detaching_a_team_that_is_not_attached_is_404(self, admin_client, workspace, other_workspace, project):
+        squad = _team(workspace, "Squad")
+        foreign = _team(other_workspace, "Foreign")
+        for team_id in (squad.id, foreign.id, uuid.uuid4()):
+            assert admin_client.delete(_project_team_url(project, team_id)).status_code == 404, team_id
+
+    @pytest.mark.django_db
+    def test_other_projects_keep_the_team(self, admin_client, workspace, project, project_y):
+        dev = _ws_user(workspace, "dev@plane.so")
+        squad = _team(workspace, "Squad", members=[dev])
+        _attach(admin_client, project, squad)
+        _attach(admin_client, project_y, squad)
+
+        admin_client.delete(_project_team_url(project, squad.id))
+
+        assert _membership(project, dev) == (False, 15, None)
+        assert _membership(project_y, dev) == (True, 15, squad.id)
+
+
+@pytest.mark.contract
+class TestListProjectTeams:
+    @pytest.mark.django_db
+    def test_list_is_ordered_by_team_name_and_hides_members_who_left(
+        self, admin_client, workspace, project, project_y, create_user
+    ):
+        dev = _ws_user(workspace, "dev@plane.so")
+        left = _ws_user(workspace, "left@plane.so")
+        zeta = _team(workspace, "Zeta", members=[dev, left])
+        alpha = _team(workspace, "Alpha", members=[create_user])
+        _attach(admin_client, project, zeta)
+        _attach(admin_client, project, alpha)
+        _team(workspace, "Not attached")
+        ProjectTeam.objects.filter(project=project, team=zeta).update(leader=left)
+        WorkspaceMember.objects.filter(workspace=workspace, member=left).update(is_active=False)
+
+        resp = admin_client.get(_project_teams_url(project))
+
+        assert resp.status_code == status.HTTP_200_OK
+        assert [(row["team"]["name"], row["team"]["member_ids"], row["leader_id"]) for row in resp.data] == [
+            ("Alpha", _ids(create_user), None),
+            ("Zeta", _ids(dev), None),
+        ]
+        assert set(resp.data[0]) == {"id", "team", "leader_id", "created_at"}
+        assert admin_client.get(_project_teams_url(project_y)).data == []
+
+    @pytest.mark.django_db
+    def test_list_takes_a_constant_number_of_queries(self, admin_client, workspace, project):
+        _attach(admin_client, project, _team(workspace, "Squad", members=[_ws_user(workspace, "dev@plane.so")]))
+
+        def count_queries():
+            with CaptureQueriesContext(connection) as ctx:
+                assert admin_client.get(_project_teams_url(project)).status_code == status.HTTP_200_OK
+            return len(ctx)
+
+        baseline = count_queries()
+        for i in range(4):
+            team = _team(workspace, f"Team {i}", members=[_ws_user(workspace, f"m{i}@plane.so")])
+            ProjectTeam.objects.create(project=project, team=team, leader=team.team_members.get().member)
+        assert count_queries() == baseline
+
+
+@pytest.mark.contract
+class TestProjectTeamPermissions:
+    @pytest.mark.django_db
+    def test_project_member_reads_but_cannot_write(self, admin_client, workspace, project, member_user):
+        squad = _team(workspace, "Squad", members=[member_user])
+        other = _team(workspace, "Other")
+        _attach(admin_client, project, squad)
+        client = _client(member_user)
+
+        assert client.get(_project_teams_url(project)).status_code == status.HTTP_200_OK
+        forbidden = [
+            client.post(_project_teams_url(project), {"team_id": str(other.id)}, format="json"),
+            client.patch(_project_team_url(project, squad.id), {"leader_id": str(member_user.id)}, format="json"),
+            client.delete(_project_team_url(project, squad.id)),
+        ]
+        assert [resp.status_code for resp in forbidden] == [403] * 3
+        assert list(ProjectTeam.objects.values_list("team_id", "leader_id")) == [(squad.id, None)]
+
+    @pytest.mark.django_db
+    def test_guests_outsiders_and_non_member_workspace_admins_are_403(self, admin_client, workspace, project):
+        squad = _team(workspace, "Squad")
+        guest = _ws_user(workspace, "pguest@plane.so", role=15)
+        ProjectMember.objects.create(workspace=workspace, project=project, member=guest, role=5)
+        outsider = _user("outsider@plane.so")
+        # Plane's rule: a workspace admin needs a project membership too.
+        boss = _ws_user(workspace, "boss@plane.so", role=20)
+
+        for user in (guest, outsider, boss):
+            client = _client(user)
+            responses = [
+                client.get(_project_teams_url(project)),
+                client.post(_project_teams_url(project), {"team_id": str(squad.id)}, format="json"),
+            ]
+            assert [resp.status_code for resp in responses] == [403, 403], user.email
+        assert not ProjectTeam.all_objects.exists()
