@@ -51,6 +51,13 @@ from plane.services.github.team_repo import pick_branch_mapping
 from plane.services.teams.project_sync import locked_teams
 
 
+@pytest.fixture(autouse=True)
+def _app_url(settings):
+    # Plane's "added to project" email (and its own member add) needs the app
+    # URL; CI does not set WEB_URL/APP_BASE_URL.
+    settings.WEB_URL = "http://localhost:3000"
+
+
 def _teams_url(slug):
     return f"/api/workspaces/{slug}/teams/"
 
@@ -1146,6 +1153,24 @@ class TestAttachTeam:
             str(pk)
             for pk in ProjectMember.objects.filter(project=project, source_team=squad).values_list("id", flat=True)
         }
+
+    @pytest.mark.django_db
+    def test_missing_app_url_skips_the_email_but_not_the_membership(
+        self, admin_client, workspace, project, settings, django_capture_on_commit_callbacks
+    ):
+        settings.WEB_URL = settings.APP_BASE_URL = None
+        dev = _ws_user(workspace, "dev@plane.so")
+        squad = _team(workspace, "Squad", members=[dev])
+
+        with (
+            patch("plane.services.teams.project_sync.project_add_user_email") as email,
+            django_capture_on_commit_callbacks(execute=True),
+        ):
+            resp = _attach(admin_client, project, squad)
+
+        assert resp.status_code == status.HTTP_201_CREATED
+        assert _membership(project, dev) == (True, 15, squad.id)
+        email.delay.assert_not_called()
 
     @pytest.mark.django_db
     def test_attaching_again_is_200_and_changes_nothing(self, admin_client, workspace, project):

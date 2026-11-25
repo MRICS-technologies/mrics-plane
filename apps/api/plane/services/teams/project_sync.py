@@ -16,6 +16,9 @@ workspace admin or a bot: they stay as individual members. Adding someone by
 hand clears the source, so no team removes them later.
 """
 
+import logging
+
+from django.core.exceptions import ImproperlyConfigured
 from django.db import transaction
 from django.db.models import F, Min
 from django.utils import timezone
@@ -127,8 +130,13 @@ def sync_project_members(project_ids, user_ids, *, actor, request):
     ProjectMember.objects.bulk_update(changed, ["is_active", "role", "source_team", "updated_at", "updated_by"])
     if added:
         _create_user_properties(added, actor)
-        host, ids = base_host(request=request, is_app=True), [row.id for row in added]
-        transaction.on_commit(lambda: [project_add_user_email.delay(host, pk, actor.id) for pk in ids])
+        try:
+            host, ids = base_host(request=request, is_app=True), [row.id for row in added]
+        except ImproperlyConfigured:
+            # The email is best effort: a missing WEB_URL/APP_BASE_URL must not block the membership change.
+            logging.getLogger("plane.api").warning("Team sync: WEB_URL/APP_BASE_URL not set, project emails skipped")
+        else:
+            transaction.on_commit(lambda: [project_add_user_email.delay(host, pk, actor.id) for pk in ids])
     return {"added": {row.member_id for row in added}, "removed": removed}
 
 
