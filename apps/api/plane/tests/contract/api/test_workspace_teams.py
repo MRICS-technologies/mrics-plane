@@ -15,10 +15,12 @@ plus the team repository in branch creation and the mapping list.
 None of these tests contact GitHub.
 """
 
+import importlib
 import uuid
 from unittest.mock import patch
 
 import pytest
+from django.apps import apps as django_apps
 from django.db import IntegrityError, connection, transaction
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -29,6 +31,7 @@ from plane.db.models import (
     Issue,
     Project,
     ProjectMember,
+    ProjectTeam,
     Team,
     TeamMember,
     User,
@@ -969,3 +972,56 @@ class TestMappingListTeamHints:
         for i in range(5):
             _override(project, _team(workspace, f"Team {i}"), mapping_a if i % 2 else mapping_b)
         assert count_queries() == baseline
+
+
+# ============================================================================
+# Project teams: the link, the leader and the membership source
+# ============================================================================
+
+
+def _migration_0133():
+    return importlib.import_module("plane.db.migrations.0133_project_team_leader_member_source")
+
+
+@pytest.mark.contract
+class TestProjectTeamSchema:
+    @pytest.mark.django_db
+    def test_db_allows_one_live_link_per_project_team(self, project, frontend):
+        ProjectTeam.objects.create(project=project, team=frontend)
+        with pytest.raises(IntegrityError), transaction.atomic():
+            ProjectTeam.objects.create(project=project, team=frontend)
+
+    @pytest.mark.django_db
+    def test_backfill_links_the_teams_that_have_a_repository_in_a_project(
+        self, workspace, project, project_y, mapping_a, mapping_b, repo_c, frontend
+    ):
+        backend = _team(workspace, "Backend")
+        gone = _team(workspace, "Gone")
+        stale = _team(workspace, "Stale")
+        mapping_y = _mapping(project_y, repo_c, is_default=True)
+        for proj, team, mapping in [
+            (project, frontend, mapping_b),
+            (project_y, frontend, mapping_y),
+            (project, backend, mapping_a),
+            (project, gone, mapping_a),
+            (project, stale, mapping_a),
+        ]:
+            ProjectTeamRepository.objects.create(project=proj, team=team, mapping=mapping)
+        Team.objects.filter(pk=gone.pk).update(deleted_at=timezone.now())
+        ProjectTeamRepository.objects.filter(team=stale).update(deleted_at=timezone.now())
+        existing = ProjectTeam.objects.create(project=project, team=backend)
+
+        _migration_0133().backfill_project_teams(django_apps, None)
+        _migration_0133().backfill_project_teams(django_apps, None)
+
+        links = ProjectTeam.all_objects.values_list("project_id", "team_id", "workspace_id")
+        assert sorted(links) == sorted(
+            [
+                (project.id, frontend.id, workspace.id),
+                (project_y.id, frontend.id, workspace.id),
+                (project.id, backend.id, workspace.id),
+            ]
+        )
+        assert ProjectTeam.objects.get(project=project, team=backend).id == existing.id
+        # No membership changes.
+        assert not ProjectMember.objects.filter(source_team__isnull=False).exists()

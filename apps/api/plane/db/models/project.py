@@ -272,6 +272,11 @@ class ProjectMember(ProjectBaseModel):
     preferences = models.JSONField(default=get_default_preferences)
     sort_order = models.FloatField(default=65535)
     is_active = models.BooleanField(default=True)
+    # The team whose sync created or reactivated this membership; NULL means
+    # added individually. See plane.services.teams.project_sync.
+    source_team = models.ForeignKey(
+        "db.Team", on_delete=models.SET_NULL, null=True, blank=True, related_name="sourced_project_members"
+    )
 
     def save(self, *args, **kwargs):
         if self._state.adding and self.member:
@@ -308,6 +313,35 @@ class ProjectMember(ProjectBaseModel):
     def __str__(self):
         """Return members of the project"""
         return f"{self.member.email} <{self.project.name}>"
+
+
+class ProjectTeam(ProjectBaseModel):
+    """A workspace team attached to a project: its members are project members
+    (plane.services.teams.project_sync). Rows are hard-deleted. It has its own
+    id so per-project team settings (e.g. routing rules) can reference it."""
+
+    team = models.ForeignKey("db.Team", on_delete=models.CASCADE, related_name="project_links")
+    # Per project: the same team can have a different leader in each project.
+    # Must be a member of the team; cleared when they leave it.
+    leader = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="led_project_teams"
+    )
+
+    def __str__(self):
+        return f"{self.team_id} <{self.project_id}>"
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["project", "team"],
+                condition=Q(deleted_at__isnull=True),
+                name="project_team_unique_project_team_when_deleted_at_null",
+            )
+        ]
+        verbose_name = "Project Team"
+        verbose_name_plural = "Project Teams"
+        db_table = "project_teams"
+        ordering = ("-created_at",)
 
 
 # TODO: Remove workspace relation later
