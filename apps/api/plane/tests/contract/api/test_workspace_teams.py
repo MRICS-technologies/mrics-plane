@@ -103,7 +103,14 @@ def _mapping(project, repo, is_default=False):
     )
 
 
+def _link(project, team):
+    """Attach without the membership sync (the team repository tests do not need it)."""
+    return ProjectTeam.objects.get_or_create(project=project, team=team)[0]
+
+
 def _override(project, team, mapping):
+    # A team repository needs the team attached to the project.
+    _link(project, team)
     return ProjectTeamRepository.objects.create(project=project, team=team, mapping=mapping)
 
 
@@ -568,7 +575,7 @@ class TestTeamMembership:
 @pytest.mark.contract
 class TestProjectTeamRepositoryApi:
     @pytest.mark.django_db
-    def test_list_returns_every_live_team_with_its_repository_in_this_project(
+    def test_list_returns_every_attached_team_with_its_repository_in_this_project(
         self, admin_client, workspace, project, project_y, repo_a, repo_b, mapping_a, mapping_b, create_user
     ):
         left = _user("left@plane.so")
@@ -576,8 +583,11 @@ class TestProjectTeamRepositoryApi:
         frontend = _team(workspace, "Frontend", members=[create_user, left])
         backend = _team(workspace, "Backend")
         gone = _team(workspace, "Gone")
+        _link(project, gone)
         Team.objects.filter(pk=gone.pk).update(deleted_at=timezone.now())
+        _team(workspace, "Not attached")
         _override(project, frontend, mapping_b)
+        _link(project, backend)
         _override(project_y, backend, _mapping(project_y, repo_a, is_default=True))
 
         resp = admin_client.get(_team_repos_url(project))
@@ -608,6 +618,7 @@ class TestProjectTeamRepositoryApi:
     def test_admin_sets_changes_and_clears_a_team_repository(
         self, admin_client, project, mapping_a, mapping_b, frontend
     ):
+        _link(project, frontend)
         url = _team_repo_url(project, frontend.id)
 
         resp = admin_client.put(url, {"mapping_id": str(mapping_b.id)}, format="json")
@@ -706,10 +717,26 @@ class TestProjectTeamRepositoryApi:
             name="Foreign", identifier="FRN", workspace=other_workspace, created_by=create_user
         )
         _override(foreign_project, foreign, _mapping(foreign_project, _repo(other_installation, 2001, "acme/web")))
+        _link(project, frontend)
 
         resp = admin_client.get(_team_repos_url(project))
 
         assert [row["team"]["name"] for row in resp.data] == ["Frontend"]
+
+    @pytest.mark.django_db
+    def test_only_attached_teams_have_a_repository(self, admin_client, workspace, project, mapping_b, frontend):
+        url = _team_repo_url(project, frontend.id)
+        assert admin_client.get(_team_repos_url(project)).data == []
+        for mapping_id in (str(mapping_b.id), None):
+            resp = admin_client.put(url, {"mapping_id": mapping_id}, format="json")
+            assert resp.status_code == status.HTTP_400_BAD_REQUEST, mapping_id
+            assert resp.data == {"team_id": ["Attach the team to this project first."]}
+        assert not ProjectTeamRepository.all_objects.exists()
+
+        _attach(admin_client, project, frontend)
+
+        assert [row["team"]["name"] for row in admin_client.get(_team_repos_url(project)).data] == ["Frontend"]
+        assert admin_client.put(url, {"mapping_id": str(mapping_b.id)}, format="json").status_code == 200
 
     @pytest.mark.django_db
     def test_db_allows_one_live_repository_per_project_team(self, project, mapping_a, mapping_b, frontend):
@@ -838,6 +865,22 @@ class TestBranchUsesTeamRepository:
         assert pick_branch_mapping(workspace.slug, project.id, create_user) == mapping_b
         Team.objects.filter(pk=frontend.pk).update(deleted_at=timezone.now())
         assert pick_branch_mapping(workspace.slug, project.id, create_user) == mapping_a
+
+    @pytest.mark.django_db
+    def test_detaching_the_team_drops_its_repository(self, admin_client, project, issue, mapping_b, frontend):
+        _override(project, frontend, mapping_b)
+        assert _create_branch(admin_client, project, issue) == "acme/web"
+
+        assert admin_client.delete(_project_team_url(project, frontend.id)).status_code == 200
+
+        assert _create_branch(admin_client, project, issue) == "acme/api"
+        assert not ProjectTeamRepository.all_objects.exists()
+
+    @pytest.mark.django_db
+    def test_override_of_a_team_not_attached_is_ignored(self, workspace, project, mapping_a, mapping_b, frontend):
+        # A cleanup path that missed the row must still fall back.
+        ProjectTeamRepository.objects.create(project=project, team=frontend, mapping=mapping_b)
+        assert pick_branch_mapping(workspace.slug, project.id, frontend.team_members.get().member) == mapping_a
 
     @pytest.mark.django_db
     def test_override_on_a_legacy_mapping_works(self, admin_client, project, issue, mapping_b, frontend):
