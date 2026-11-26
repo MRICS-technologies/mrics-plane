@@ -352,7 +352,7 @@ class IssueCreateSerializer(BaseSerializer):
                 (
                     issue,
                     added_label_ids,
-                    issue.parent_id if "parent" in validated_data and issue.parent_id != old_parent_id else None,
+                    issue.parent_id if issue.parent_id != old_parent_id else None,
                 )
             ]
         )
