@@ -300,5 +300,5 @@ by any view, so it is not hooked.
     `teams` and `workspaces`. The new table is empty, so the check is instant,
     but the lock waits behind long transactions on those tables.
 - **No environment variables, no new services.**
-- **Bot user:** `routing_rule_bot` (`routing-rule-bot@plane.invalid`) is
-  created the first time a rule fires. It needs no setup.
+- **Bot user:** `routing_rule_bot` is created the first time a rule fires,
+  with a random `@plane.invalid` email. It needs no setup.

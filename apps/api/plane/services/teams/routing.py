@@ -12,6 +12,7 @@ Not retroactive: creating or enabling a rule changes no existing work item.
 """
 
 import json
+import uuid
 from collections import defaultdict
 from functools import partial
 
@@ -29,11 +30,13 @@ BOT_USERNAME = "routing_rule_bot"
 def get_routing_bot():
     """The instance-wide actor of routing rule changes. It is in no workspace
     and can't sign in (a bot, with an unusable password)."""
-    # get_or_create retries the read when a concurrent create wins.
+    # get_or_create retries the read when a concurrent create wins. Keyed on
+    # the username, which users can't choose; the email is unguessable because
+    # sign-up doesn't verify emails, so a fixed one could be taken first.
     return User.objects.get_or_create(
         username=BOT_USERNAME,
         defaults={
-            "email": "routing-rule-bot@plane.invalid",
+            "email": f"routing-rule-bot-{uuid.uuid4().hex}@plane.invalid",
             "display_name": "Routing rule",
             "first_name": "Routing rule",
             "is_bot": True,

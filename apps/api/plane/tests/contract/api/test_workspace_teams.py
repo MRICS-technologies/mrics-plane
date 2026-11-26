@@ -1847,6 +1847,17 @@ class TestRoutingRuleBot:
         assert not bot.has_usable_password()
         assert not WorkspaceMember.objects.filter(member=bot).exists()
 
+    @pytest.mark.django_db
+    def test_a_user_with_a_bot_like_email_does_not_block_routing(self, admin_client, project, issue, routing):
+        # Sign-up doesn't verify emails: anyone can register this one first.
+        _user("routing-rule-bot@plane.invalid")
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+
+        resp = routing.call("patch", f"{_issues_url(project)}{issue.id}/", {"label_ids": [str(routing.label.id)]})
+        assert resp.status_code == status.HTTP_204_NO_CONTENT, resp.data
+        assert _assignee_ids(issue) == _ids(routing.leader)
+        assert list(IssueLabel.objects.filter(issue=issue).values_list("label_id", flat=True)) == [routing.label.id]
+
 
 @pytest.mark.contract
 class TestRoutingRuleApi:
