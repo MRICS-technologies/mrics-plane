@@ -27,6 +27,7 @@ from plane.db.models import (
     User,
     EstimatePoint,
 )
+from plane.services.teams.routing import apply_routing_rules
 from plane.utils.content_validator import (
     validate_html_content,
     validate_binary_data,
@@ -262,11 +263,19 @@ class IssueSerializer(BaseSerializer):
             except IntegrityError:
                 pass
 
+        apply_routing_rules([(issue, labels, issue.parent_id)])
         return issue
 
     def update(self, instance, validated_data):
         assignees = validated_data.pop("assignees", None)
         labels = validated_data.pop("labels", None)
+        # Routing rules fire on labels gained (read before they are replaced) and on a new parent.
+        added_label_ids = (
+            set(labels) - set(IssueLabel.objects.filter(issue=instance).values_list("label_id", flat=True))
+            if labels is not None
+            else ()
+        )
+        old_parent_id = instance.parent_id
 
         # Related models
         project_id = instance.project_id
@@ -318,7 +327,17 @@ class IssueSerializer(BaseSerializer):
 
         # Time updation occues even when other related models are updated
         instance.updated_at = timezone.now()
-        return super().update(instance, validated_data)
+        issue = super().update(instance, validated_data)
+        apply_routing_rules(
+            [
+                (
+                    issue,
+                    added_label_ids,
+                    issue.parent_id if "parent" in validated_data and issue.parent_id != old_parent_id else None,
+                )
+            ]
+        )
+        return issue
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
