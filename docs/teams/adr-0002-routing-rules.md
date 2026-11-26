@@ -73,7 +73,9 @@ Plane facts that shaped the design:
      password.
    - Leaders are reported through Plane's own `issue_activity` task, sent
      after commit with the bot as actor, so leaders get Plane's normal
-     activity, notification and webhooks.
+     activity and notification. No issue webhook is sent for the bot's
+     assignee change (Plane sends those from views, via `model_activity`);
+     a webhook consumer sees the user's label or parent change.
 8. **Direct children only.** Only a work item whose parent becomes the epic
    is routed, not that item's own sub-items.
 

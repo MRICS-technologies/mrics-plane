@@ -168,7 +168,8 @@ def apply_routing_rules(changes):
 
     for issue, leader_ids in added.items():
         current = [str(assignee_id) for assignee_id in before[issue.id]]
-        # Plane's "added assignee" activity, notification and webhooks, by the bot.
+        # Plane's "added assignee" activity and notification, by the bot. No issue
+        # webhook: those come from model_activity, which only views send.
         # No origin, like issue_automation_task: the request's own activity sets it.
         transaction.on_commit(
             partial(

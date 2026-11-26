@@ -157,7 +157,8 @@ and can't sign in.
 
 **Leader added.** Plane's own `issue_activity` task writes this entry after
 the request commits. It is the same entry as when a user adds an assignee,
-with the same notification and webhooks:
+with the same notification. It sends no issue webhook: a webhook consumer
+sees the user's label or parent change, not the bot's assignee change.
 
 ```json
 {
