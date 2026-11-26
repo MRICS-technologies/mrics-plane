@@ -2125,6 +2125,7 @@ class TestRoutingRuleFiring:
         resp = routing.call("post", _v1_issues_url(project), body, client=v1)
         assert resp.status_code == status.HTTP_201_CREATED, resp.data
         assert resp.data["assignees"] == [str(routing.leader.id)]
+        created_id = str(resp.data["id"])
 
         resp = routing.call(
             "patch", f"{_v1_issues_url(project)}{issue.id}/", {"parent": str(routing.epic.id)}, client=v1
@@ -2132,6 +2133,13 @@ class TestRoutingRuleFiring:
         assert resp.status_code == status.HTTP_200_OK, resp.data
         assert resp.data["assignees"] == [str(routing.leader.id)]
         assert len(_bot_calls(routing.celery)) == 2
+        # The leader's assignee activity is the bot's, not the API key user's.
+        bot_id = str(get_routing_bot().id)
+        assert [
+            (call.kwargs["issue_id"], call.kwargs["actor_id"])
+            for call in routing.celery.call_args_list
+            if "assignee_ids" in str(call.kwargs.get("requested_data"))
+        ] == [(created_id, bot_id), (str(issue.id), bot_id)]
 
     @pytest.mark.django_db
     def test_sub_issues_post_assigns_only_the_reparented_items(self, admin_client, project, routing):
