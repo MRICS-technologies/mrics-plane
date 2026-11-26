@@ -19,7 +19,14 @@ from plane.app.serializers.team import (
     active_team_members,
     serialize_project_team,
 )
-from plane.db.models import Project, ProjectMember, ProjectTeam, ProjectTeamRepository, TeamMember
+from plane.db.models import (
+    Project,
+    ProjectMember,
+    ProjectRoutingRule,
+    ProjectTeam,
+    ProjectTeamRepository,
+    TeamMember,
+)
 from plane.services.teams.project_sync import locked_teams, sync_project_members
 from ..base import BaseAPIView
 
@@ -100,9 +107,11 @@ class ProjectTeamDetailEndpoint(BaseAPIView):
                     "member_id", flat=True
                 )
             )
-            # Hard-deleted, the team's repository in this project with it.
+            # Hard-deleted, the team's repository in this project with it. Its
+            # routing rules here are kept, disabled.
             ProjectTeam.all_objects.filter(project=project, team=team).delete()
             ProjectTeamRepository.all_objects.filter(project=project, team=team).delete()
+            ProjectRoutingRule.all_objects.filter(project=project, team=team).update(enabled=False)
             removed = sync_project_members([project.id], user_ids, actor=request.user, request=request)["removed"]
             kept = ProjectMember.objects.filter(project=project, member_id__in=user_ids, is_active=True).values_list(
                 "member_id", flat=True
