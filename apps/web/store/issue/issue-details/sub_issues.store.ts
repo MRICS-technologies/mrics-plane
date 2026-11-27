@@ -186,6 +186,7 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
         });
       });
 
+      // oxlint-disable-next-line no-shadow
       const issueIds = subIssues.map((issue) => issue.id);
       update(this.subIssues, [parentIssueId], (issues) => {
         if (!issues) return issueIds;
@@ -201,6 +202,12 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
       [parentIssueId, "sub_issues_count"],
       this.subIssues[parentIssueId].length
     );
+
+    // A routing rule may have assigned the moved work items (MRICS); the response leaves out assignees.
+    void this.issueService
+      .retrieveIssues(workspaceSlug, projectId, issueIds)
+      .then((issues) => this.rootIssueDetailStore.rootIssueStore.issues.addIssue(issues))
+      .catch(() => undefined);
 
     return;
   };
