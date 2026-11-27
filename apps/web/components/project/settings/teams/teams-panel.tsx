@@ -135,13 +135,13 @@ export function ProjectTeamsPanel(props: Props) {
     }
   };
 
-  const handleUpdated = (updated: TProjectTeam) =>
-    Promise.all([
-      mutate((current) => current?.map((projectTeam) => (projectTeam.id === updated.id ? updated : projectTeam)), {
-        revalidate: false,
-      }),
-      refreshRoutingRules(),
-    ]);
+  // The rules re-fetch in the background: the leader's toast doesn't wait for them.
+  const handleUpdated = (updated: TProjectTeam) => {
+    void refreshRoutingRules();
+    return mutate((current) => current?.map((projectTeam) => (projectTeam.id === updated.id ? updated : projectTeam)), {
+      revalidate: false,
+    });
+  };
 
   const handleRefresh = () => Promise.all([mutate(), refreshProjectMembers(), refreshRoutingRules()]);
 

@@ -87,7 +87,8 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
   const selectedLabel = labels?.find((label) => label.id === labelId) ?? null;
   const selectedTeam = projectTeams.find((projectTeam) => projectTeam.team.id === teamId) ?? null;
   const triggerError = triggerType === "label" ? fieldErrors.label_id : fieldErrors.epic_id;
-  const canSubmit = !!teamId && (triggerType === "label" ? !!labelId : !!epic) && !isSubmitting;
+  // A team detached meanwhile drops out of the list, and out of the selection with it.
+  const canSubmit = !!selectedTeam && (triggerType === "label" ? !!selectedLabel : !!epic) && !isSubmitting;
 
   // Any change clears the server's verdict on the old values.
   const clearErrors = (...fields: string[]) => {
@@ -100,11 +101,11 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || !teamId) return;
+    if (!canSubmit || !selectedTeam) return;
     const data: TProjectRoutingRuleCreate =
       triggerType === "label"
-        ? { trigger_type: "label", label_id: labelId ?? "", team_id: teamId }
-        : { trigger_type: "epic", epic_id: epic?.id ?? "", team_id: teamId };
+        ? { trigger_type: "label", label_id: selectedLabel?.id ?? "", team_id: selectedTeam.team.id }
+        : { trigger_type: "epic", epic_id: epic?.id ?? "", team_id: selectedTeam.team.id };
     setIsSubmitting(true);
     try {
       const rule = await projectRoutingRuleService.create(workspaceSlug, projectId, data);
