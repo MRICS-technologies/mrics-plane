@@ -109,6 +109,8 @@ export const GITHUB_PROJECT_TEAM_REPOSITORIES_KEY = (workspaceSlug: string, proj
 export const WORKSPACE_TEAMS_KEY = (workspaceSlug: string) => `WORKSPACE_TEAMS_${workspaceSlug.toUpperCase()}`;
 export const PROJECT_TEAMS_KEY = (workspaceSlug: string, projectId: string) =>
   `PROJECT_TEAMS_${workspaceSlug.toUpperCase()}_${projectId.toUpperCase()}`;
+export const PROJECT_ROUTING_RULES_KEY = (workspaceSlug: string, projectId: string) =>
+  `PROJECT_ROUTING_RULES_${workspaceSlug.toUpperCase()}_${projectId.toUpperCase()}`;
 export const GITHUB_ISSUE_GIT_LINKS_KEY = (workspaceSlug: string, projectId: string, issueId: string) =>
   `GITHUB_ISSUE_GIT_LINKS_${workspaceSlug.toUpperCase()}_${projectId.toUpperCase()}_${issueId.toUpperCase()}`;
 
