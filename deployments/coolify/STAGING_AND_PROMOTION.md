@@ -39,7 +39,7 @@ the same questions.
 | Production approval | Hijazi approves after staging testing. |
 | Production image tags | Use pinned SHA/digest tags, not rolling `:dev`. |
 | Pre-production backup | Mandatory fresh backup before every production deploy. |
-| Staging user data | Full prod clone is acceptable while this is internal Scalezy Plane; revisit anonymization if external/customer users grow. |
+| Staging user data | Full clone of the MRICS Plane (plane.mrics.art), set by `PLANE_STAGING_SOURCE_SERVICE_UUID` (must be one of the production services); revisit anonymization if external/customer users grow. |
 | Production downtime target | Under ~2 minutes; short 502/503 during API/migrator restart is expected. |
 | Incomplete features | Use feature flags. Do not expose half-built features in production. |
 | Manual DB edits | Emergency only; normal changes are migrations, seeds, or admin UI actions. |

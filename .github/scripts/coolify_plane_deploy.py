@@ -67,9 +67,10 @@ TARGET = env("PLANE_TARGET_ENV")
 SERVICE = env("PLANE_SERVICE_UUID")
 SERVER = env("PLANE_SERVER_UUID")
 PROD_SERVICE = env("PLANE_PRODUCTION_SERVICE_UUID")
-# Every production instance that receives production releases (Scalezy + MRICS). PROD_SERVICE stays
-# Scalezy: the only source for the prod->staging refresh.
+# Every production instance that receives production releases (Scalezy + MRICS).
 PROD_SERVICES = {s for s in env("PLANE_PRODUCTION_SERVICE_UUIDS", PROD_SERVICE).split(",") if s}
+# Production instance the prod->staging refresh copies DB + MinIO from (must be in PROD_SERVICES).
+STAGING_SOURCE_SERVICE = env("PLANE_STAGING_SOURCE_SERVICE_UUID", PROD_SERVICE)
 SERVER_IP = env("PLANE_SERVER_IP")
 PUBLIC_HOST = env("PLANE_PUBLIC_HOST")
 BACKEND_IMAGE = env("PLANE_BACKEND_IMAGE")
@@ -510,9 +511,9 @@ probe_routes_once() {{
 
 def staging_script(encoded_compose: str) -> str:
     ts = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
-    prod_dir = service_dir(PROD_SERVICE)
+    prod_dir = service_dir(STAGING_SOURCE_SERVICE)
     return remote_common(encoded_compose) + f"""
-PROD_DC="sudo docker compose -f {prod_dir}/docker-compose.yml -p {PROD_SERVICE}"
+PROD_DC="sudo docker compose -f {prod_dir}/docker-compose.yml -p {STAGING_SOURCE_SERVICE}"
 data_volume() {{ sudo docker inspect "$1" --format '{{{{range .Mounts}}}}{{{{if eq .Destination "/data"}}}}{{{{.Name}}}}{{{{end}}}}{{{{end}}}}'; }}
 
 echo resolve_minio_volumes
@@ -638,6 +639,8 @@ def main() -> None:
         raise SystemExit("PLANE_TARGET_ENV must be staging or production")
     if TARGET == "staging" and SERVICE in PROD_SERVICES:
         raise SystemExit("refusing: staging target resolves to the production service uuid")
+    if TARGET == "staging" and (STAGING_SOURCE_SERVICE not in PROD_SERVICES or STAGING_SOURCE_SERVICE == SERVICE):
+        raise SystemExit("refusing: staging source is not a production service other than the staging target")
     if TARGET == "production" and SERVICE not in PROD_SERVICES:
         raise SystemExit("refusing: production target is not in PLANE_PRODUCTION_SERVICE_UUIDS")
     check_service_env()

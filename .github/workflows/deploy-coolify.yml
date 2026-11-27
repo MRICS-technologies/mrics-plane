@@ -279,6 +279,8 @@ jobs:
           PLANE_PUBLIC_HOST: ${{ matrix.public_host }}
           PLANE_PRODUCTION_SERVICE_UUID: ${{ env.PLANE_PRODUCTION_SERVICE_UUID }}
           PLANE_PRODUCTION_SERVICE_UUIDS: ${{ env.PLANE_PRODUCTION_SERVICE_UUID }},${{ env.PLANE_MRICS_SERVICE_UUID }}
+          # Staging refresh copies DB + MinIO from the MRICS Plane (plane.mrics.art); only read for target=staging.
+          PLANE_STAGING_SOURCE_SERVICE_UUID: ${{ env.PLANE_MRICS_SERVICE_UUID }}
           PLANE_BACKEND_IMAGE: ${{ needs.build-backend.outputs.image }}
           PLANE_FRONTEND_IMAGE: ${{ steps.refs.outputs.frontend_image }}
           PLANE_ADMIN_IMAGE: ${{ steps.refs.outputs.admin_image }}
