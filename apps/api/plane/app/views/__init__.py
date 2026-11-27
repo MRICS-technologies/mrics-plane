@@ -24,6 +24,7 @@ from .project.member import (
     ProjectMemberPreferenceEndpoint,
 )
 from .project.team import ProjectTeamEndpoint, ProjectTeamDetailEndpoint
+from .project.routing_rule import ProjectRoutingRuleEndpoint, ProjectRoutingRuleDetailEndpoint
 
 from .user.base import (
     UserEndpoint,

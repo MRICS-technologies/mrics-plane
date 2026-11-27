@@ -21,6 +21,7 @@ from plane.app.serializers.team import (
 )
 from plane.db.models import (
     ProjectMember,
+    ProjectRoutingRule,
     ProjectTeam,
     ProjectTeamRepository,
     Team,
@@ -101,6 +102,7 @@ class WorkspaceTeamDetailEndpoint(BaseAPIView):
             TeamMember.all_objects.filter(team=team).delete()
             ProjectTeamRepository.all_objects.filter(team=team).delete()
             ProjectTeam.all_objects.filter(team=team).delete()
+            ProjectRoutingRule.all_objects.filter(team=team).update(enabled=False)
             sync_team_members(team.workspace_id, user_ids, actor=request.user, request=request)
         return Response(status=status.HTTP_204_NO_CONTENT)
 

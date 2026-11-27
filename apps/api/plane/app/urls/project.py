@@ -20,6 +20,8 @@ from plane.app.views import (
     ProjectMemberPreferenceEndpoint,
     ProjectTeamEndpoint,
     ProjectTeamDetailEndpoint,
+    ProjectRoutingRuleEndpoint,
+    ProjectRoutingRuleDetailEndpoint,
 )
 
 
@@ -100,6 +102,16 @@ urlpatterns = [
         "workspaces/<str:slug>/projects/<uuid:project_id>/teams/<uuid:team_id>/",
         ProjectTeamDetailEndpoint.as_view(),
         name="project-team-detail",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/routing-rules/",
+        ProjectRoutingRuleEndpoint.as_view(),
+        name="project-routing-rules",
+    ),
+    path(
+        "workspaces/<str:slug>/projects/<uuid:project_id>/routing-rules/<uuid:rule_id>/",
+        ProjectRoutingRuleDetailEndpoint.as_view(),
+        name="project-routing-rule-detail",
     ),
     path(
         "workspaces/<str:slug>/projects/<uuid:project_id>/project-views/",

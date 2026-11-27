@@ -85,6 +85,74 @@
         "leader_failed": "Nie udało się zmienić lidera. Prosimy spróbować ponownie.",
         "leader_not_member": "Ta osoba nie jest już członkiem zespołu {team}.",
         "forbidden": "Tylko administratorzy projektu mogą zmieniać jego zespoły."
+      },
+      "routing": {
+        "label": "Kierowanie",
+        "description": "Elementy pracy z określoną etykietą lub epikiem można kierować bezpośrednio do lidera zespołu.",
+        "add_rule": "Dodaj regułę",
+        "attach_team_first": "Najpierw należy przypisać zespół.",
+        "trigger": {
+          "label": "Etykieta",
+          "epic": "Epik"
+        },
+        "rule_label": "Etykieta {name}",
+        "rule_epic": "Epik {identifier} {name}",
+        "rule_summary": "{trigger} kieruje do zespołu {team}",
+        "routes_to": "kieruje do zespołu",
+        "leader_name": "Lider: {name}",
+        "no_leader": "Brak lidera",
+        "no_leader_hint": "Pasujące elementy pracy nie będą przypisywane, dopóki ten zespół nie będzie miał lidera.",
+        "state": {
+          "on": "Włączona",
+          "off": "Wyłączona"
+        },
+        "toggle_aria_label": "Włącz lub wyłącz regułę: {rule}",
+        "delete_aria_label": "Usuń regułę: {rule}",
+        "inactive": {
+          "label_deleted": "Etykieta została usunięta. Tę regułę należy usunąć.",
+          "epic_deleted": "Epik został usunięty lub zarchiwizowany.",
+          "team_detached": "Ten zespół nie jest już przypisany do projektu. Należy go przypisać, a następnie włączyć regułę."
+        },
+        "form": {
+          "trigger_type": "Warunek dla elementów pracy",
+          "select_label": "Wybierz etykietę",
+          "search_labels": "Szukaj etykiet",
+          "no_labels": "Ten projekt nie ma jeszcze etykiet.",
+          "select_epic": "Wybierz epik",
+          "search_epics": "Szukaj elementów pracy",
+          "no_epics": "Brak pasujących elementów pracy.",
+          "team": "Kieruj do zespołu",
+          "select_team": "Wybierz zespół",
+          "no_leader_warning": "Zespół {team} nie ma lidera w tym projekcie. Pasujące elementy pracy nie będą przypisywane, dopóki lider nie zostanie wybrany powyżej.",
+          "submit": "Dodaj regułę",
+          "submitting": "Dodawanie…",
+          "duplicate": "Ta reguła już istnieje."
+        },
+        "delete_modal": {
+          "title": "Usunąć tę regułę?",
+          "content_label": "Nowe elementy pracy z etykietą {label} nie będą już kierowane do zespołu {team}. Elementy pracy, które już przypisano, zachowają obecne przypisania.",
+          "content_epic": "Nowe elementy pracy w epiku {epic} nie będą już kierowane do zespołu {team}. Elementy pracy, które już przypisano, zachowają obecne przypisania.",
+          "confirm": "Usuń regułę",
+          "confirming": "Usuwanie…"
+        },
+        "toasts": {
+          "created": "Dodano regułę.",
+          "deleted": "Usunięto regułę.",
+          "already_deleted": "Ta reguła została już usunięta.",
+          "enabled": "Włączono regułę.",
+          "disabled": "Wyłączono regułę."
+        },
+        "errors": {
+          "load_failed": "Nie udało się wczytać reguł kierowania.",
+          "create_failed": "Nie udało się dodać reguły. Prosimy spróbować ponownie.",
+          "update_failed": "Nie udało się zmienić reguły. Prosimy spróbować ponownie.",
+          "delete_failed": "Nie udało się usunąć reguły. Prosimy spróbować ponownie.",
+          "not_found": "Ta reguła już nie istnieje.",
+          "forbidden": "Tylko administratorzy projektu mogą zmieniać reguły kierowania.",
+          "team_not_attached": "Najpierw należy przypisać zespół do tego projektu.",
+          "label_deleted": "Etykieta została usunięta.",
+          "epic_deleted": "Epik został usunięty lub zarchiwizowany."
+        }
       }
     },
     "states": {

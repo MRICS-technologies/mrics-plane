@@ -58,6 +58,7 @@ from .project import (
     ProjectMemberInvite,
     ProjectNetwork,
     ProjectPublicMember,
+    ProjectRoutingRule,
     ProjectTeam,
     ProjectUserProperty,
 )

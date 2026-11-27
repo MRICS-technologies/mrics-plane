@@ -6,6 +6,7 @@
 import json
 
 # Django imports
+from django.db import transaction
 from django.utils import timezone
 from django.db.models import OuterRef, F, Value, UUIDField, Subquery, Count, IntegerField
 from django.utils.decorators import method_decorator
@@ -24,6 +25,7 @@ from plane.app.serializers import IssueSerializer
 from plane.app.permissions import ProjectEntityPermission
 from plane.db.models import Issue, IssueLink, FileAsset, CycleIssue, IssueLabel, IssueAssignee, ModuleIssue
 from plane.bgtasks.issue_activities_task import issue_activity
+from plane.services.teams.routing import apply_routing_rules
 from plane.utils.timezone_converter import user_timezone_converter
 from collections import defaultdict
 from plane.utils.host import base_host
@@ -232,10 +234,14 @@ class SubIssuesEndpoint(BaseAPIView):
             id__in=sub_issue_ids, workspace__slug=slug, project_id=project_id
         )
 
+        # Routing rules fire for the work items that actually get a new parent.
+        reparented = [sub_issue for sub_issue in sub_issues if sub_issue.parent_id != parent_issue.id]
         for sub_issue in sub_issues:
             sub_issue.parent = parent_issue
 
-        _ = Issue.objects.bulk_update(sub_issues, ["parent"], batch_size=10)
+        with transaction.atomic():
+            _ = Issue.objects.bulk_update(sub_issues, ["parent"], batch_size=10)
+            apply_routing_rules([(sub_issue, (), parent_issue.id) for sub_issue in reparented])
 
         # Only the issues that were actually re-parented — i.e. the project-scoped
         # `sub_issues`, not the raw caller-supplied ids. Otherwise a cross-project id

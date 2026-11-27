@@ -19,6 +19,8 @@ import type {
 } from "@plane/types";
 // services
 import { IssueService } from "@/services/issue";
+// MRICS
+import { refreshRoutedAssignees } from "../helpers/routing-refresh";
 // store
 import type { IIssueDetail } from "./root.store";
 import type { IWorkItemSubIssueFiltersStore } from "./sub_issues_filter.store";
@@ -186,6 +188,7 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
         });
       });
 
+      // oxlint-disable-next-line no-shadow
       const issueIds = subIssues.map((issue) => issue.id);
       update(this.subIssues, [parentIssueId], (issues) => {
         if (!issues) return issueIds;
@@ -201,6 +204,10 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
       [parentIssueId, "sub_issues_count"],
       this.subIssues[parentIssueId].length
     );
+
+    // A routing rule (MRICS) may have assigned the moved work items; the response leaves out assignees.
+    const routingStore = { rootIssueStore: this.rootIssueDetailStore.rootIssueStore, issueService: this.issueService };
+    void refreshRoutedAssignees(routingStore, workspaceSlug, projectId, issueIds);
 
     return;
   };

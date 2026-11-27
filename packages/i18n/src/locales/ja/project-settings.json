@@ -85,6 +85,74 @@
         "leader_failed": "リーダーを変更できませんでした。もう一度お試しください。",
         "leader_not_member": "このユーザーはもう「{team}」のメンバーではありません。",
         "forbidden": "プロジェクトのチームを変更できるのはプロジェクト管理者のみです。"
+      },
+      "routing": {
+        "label": "振り分け",
+        "description": "ラベルやエピックが設定された作業項目を、チームのリーダーに直接割り当てます。",
+        "add_rule": "ルールを追加",
+        "attach_team_first": "先にチームを追加してください。",
+        "trigger": {
+          "label": "ラベル",
+          "epic": "エピック"
+        },
+        "rule_label": "ラベル {name}",
+        "rule_epic": "エピック {identifier} {name}",
+        "rule_summary": "{trigger}を「{team}」に振り分け",
+        "routes_to": "振り分け先",
+        "leader_name": "リーダー：{name}",
+        "no_leader": "リーダーなし",
+        "no_leader_hint": "このチームにリーダーが設定されるまで、該当する作業項目は割り当てられません。",
+        "state": {
+          "on": "オン",
+          "off": "オフ"
+        },
+        "toggle_aria_label": "ルールのオンとオフを切り替え：{rule}",
+        "delete_aria_label": "ルールを削除：{rule}",
+        "inactive": {
+          "label_deleted": "ラベルが削除されました。このルールを削除してください。",
+          "epic_deleted": "エピックが削除またはアーカイブされました。",
+          "team_detached": "このチームはもうプロジェクトに追加されていません。チームを追加してから、ルールをオンにしてください。"
+        },
+        "form": {
+          "trigger_type": "作業項目の条件",
+          "select_label": "ラベルを選択",
+          "search_labels": "ラベルを検索",
+          "no_labels": "このプロジェクトにはまだラベルがありません。",
+          "select_epic": "エピックを選択",
+          "search_epics": "作業項目を検索",
+          "no_epics": "一致する作業項目がありません。",
+          "team": "送信先チーム",
+          "select_team": "チームを選択",
+          "no_leader_warning": "このプロジェクトでは「{team}」にリーダーがいません。上でリーダーを選択するまで、該当する作業項目は割り当てられません。",
+          "submit": "ルールを追加",
+          "submitting": "追加中…",
+          "duplicate": "このルールはすでに存在します。"
+        },
+        "delete_modal": {
+          "title": "このルールを削除しますか？",
+          "content_label": "ラベル「{label}」が付いた新しい作業項目は、今後「{team}」に振り分けられなくなります。割り当て済みの作業項目の担当者は変わりません。",
+          "content_epic": "エピック「{epic}」配下の新しい作業項目は、今後「{team}」に振り分けられなくなります。割り当て済みの作業項目の担当者は変わりません。",
+          "confirm": "ルールを削除",
+          "confirming": "削除中…"
+        },
+        "toasts": {
+          "created": "ルールを追加しました。",
+          "deleted": "ルールを削除しました。",
+          "already_deleted": "このルールはすでに削除されています。",
+          "enabled": "ルールをオンにしました。",
+          "disabled": "ルールをオフにしました。"
+        },
+        "errors": {
+          "load_failed": "振り分けルールを読み込めませんでした。",
+          "create_failed": "ルールを追加できませんでした。もう一度お試しください。",
+          "update_failed": "ルールを変更できませんでした。もう一度お試しください。",
+          "delete_failed": "ルールを削除できませんでした。もう一度お試しください。",
+          "not_found": "このルールはもう存在しません。",
+          "forbidden": "振り分けルールを変更できるのはプロジェクト管理者のみです。",
+          "team_not_attached": "先にチームをこのプロジェクトに追加してください。",
+          "label_deleted": "ラベルが削除されました。",
+          "epic_deleted": "エピックが削除またはアーカイブされました。"
+        }
       }
     },
     "states": {

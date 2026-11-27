@@ -40,6 +40,7 @@ export * from "./page";
 export * from "./payment";
 export * from "./pragmatic";
 export * from "./project";
+export * from "./project-routing-rule";
 export * from "./project-team";
 export * from "./publish";
 export * from "./reaction";

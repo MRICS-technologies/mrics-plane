@@ -30,6 +30,7 @@ import {
   IssueAttachmentActivity,
   IssueArchivedAtActivity,
   IssueInboxActivity,
+  IssueRoutingRuleActivity,
 } from "./actions";
 
 type TIssueActivityItem = {
@@ -91,6 +92,8 @@ export const IssueActivityItem = observer(function IssueActivityItem(props: TIss
     case "intake":
     case "inbox":
       return <IssueInboxActivity {...componentDefaultProps} />;
+    case "routing_rule":
+      return <IssueRoutingRuleActivity {...componentDefaultProps} />;
     default:
       return null;
   }

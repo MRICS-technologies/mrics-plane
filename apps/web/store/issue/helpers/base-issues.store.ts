@@ -45,6 +45,7 @@ import {
   getSubGroupIssueKeyActions,
 } from "./base-issues-utils";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
+import { refreshRoutedIssue } from "./routing-refresh";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
 
@@ -577,6 +578,9 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
 
       // call API to update the issue
       await this.issueService.patchIssue(workspaceSlug, projectId, issueId, data);
+
+      // A routing rule (MRICS) may have added an assignee: read the assignees back.
+      void refreshRoutedIssue(this, workspaceSlug, projectId, issueId, issueBeforeUpdate, data);
 
       // call fetch Parent Stats
       this.fetchParentStats(workspaceSlug, projectId);

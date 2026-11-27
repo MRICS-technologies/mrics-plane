@@ -85,6 +85,74 @@
         "leader_failed": "Non è stato possibile cambiare il responsabile. Riprovi.",
         "leader_not_member": "Questa persona non fa più parte del team {team}.",
         "forbidden": "Solo gli amministratori del progetto possono modificarne i team."
+      },
+      "routing": {
+        "label": "Instradamento",
+        "description": "Invii gli elementi di lavoro con un’etichetta o un epic direttamente al responsabile di un team.",
+        "add_rule": "Aggiungi regola",
+        "attach_team_first": "Associ prima un team.",
+        "trigger": {
+          "label": "Etichetta",
+          "epic": "Epic"
+        },
+        "rule_label": "Etichetta {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} instrada verso {team}",
+        "routes_to": "instrada verso",
+        "leader_name": "Responsabile: {name}",
+        "no_leader": "Nessun responsabile",
+        "no_leader_hint": "Gli elementi di lavoro corrispondenti non verranno assegnati finché questo team non avrà un responsabile.",
+        "state": {
+          "on": "Attivata",
+          "off": "Disattivata"
+        },
+        "toggle_aria_label": "Attiva o disattiva la regola: {rule}",
+        "delete_aria_label": "Elimina la regola: {rule}",
+        "inactive": {
+          "label_deleted": "L’etichetta è stata eliminata. Elimini questa regola.",
+          "epic_deleted": "L’epic è stato eliminato o archiviato.",
+          "team_detached": "Questo team non è più associato al progetto. Lo associ, poi attivi la regola."
+        },
+        "form": {
+          "trigger_type": "Quando l’elemento di lavoro ha",
+          "select_label": "Seleziona un’etichetta",
+          "search_labels": "Cerca etichette",
+          "no_labels": "Questo progetto non ha ancora etichette.",
+          "select_epic": "Seleziona un epic",
+          "search_epics": "Cerca elementi di lavoro",
+          "no_epics": "Nessun elemento di lavoro corrispondente.",
+          "team": "Invia al team",
+          "select_team": "Seleziona un team",
+          "no_leader_warning": "{team} non ha un responsabile in questo progetto. Gli elementi di lavoro corrispondenti non verranno assegnati finché non ne sceglierà uno qui sopra.",
+          "submit": "Aggiungi regola",
+          "submitting": "Aggiunta…",
+          "duplicate": "Questa regola esiste già."
+        },
+        "delete_modal": {
+          "title": "Eliminare questa regola?",
+          "content_label": "I nuovi elementi di lavoro con l’etichetta {label} non andranno più a {team}. Gli elementi di lavoro già assegnati mantengono i loro assegnatari.",
+          "content_epic": "I nuovi elementi di lavoro sotto l’epic {epic} non andranno più a {team}. Gli elementi di lavoro già assegnati mantengono i loro assegnatari.",
+          "confirm": "Elimina regola",
+          "confirming": "Eliminazione…"
+        },
+        "toasts": {
+          "created": "Regola aggiunta.",
+          "deleted": "Regola eliminata.",
+          "already_deleted": "Questa regola era già stata eliminata.",
+          "enabled": "Regola attivata.",
+          "disabled": "Regola disattivata."
+        },
+        "errors": {
+          "load_failed": "Non è stato possibile caricare le regole di instradamento.",
+          "create_failed": "Non è stato possibile aggiungere la regola. Riprovi.",
+          "update_failed": "Non è stato possibile modificare la regola. Riprovi.",
+          "delete_failed": "Non è stato possibile eliminare la regola. Riprovi.",
+          "not_found": "Questa regola non esiste più.",
+          "forbidden": "Solo gli amministratori del progetto possono modificare le regole di instradamento.",
+          "team_not_attached": "Associ prima il team a questo progetto.",
+          "label_deleted": "L’etichetta è stata eliminata.",
+          "epic_deleted": "L’epic è stato eliminato o archiviato."
+        }
       }
     },
     "states": {

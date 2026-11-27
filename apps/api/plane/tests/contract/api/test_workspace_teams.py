@@ -16,7 +16,9 @@ None of these tests contact GitHub.
 """
 
 import importlib
+import json
 import uuid
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -27,12 +29,19 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from plane.bgtasks.deletion_task import soft_delete_related_objects
+from plane.bgtasks.issue_activities_task import issue_activity
 from plane.db.models import (
     Issue,
+    IssueActivity,
     IssueAssignee,
+    IssueLabel,
+    IssueSubscriber,
+    Label,
     Project,
     ProjectMember,
     ProjectMemberInvite,
+    ProjectRoutingRule,
     ProjectTeam,
     ProjectUserProperty,
     Team,
@@ -49,6 +58,7 @@ from plane.license.utils.encryption import encrypt_data
 from plane.services.github.installations import soft_delete_installations
 from plane.services.github.team_repo import pick_branch_mapping
 from plane.services.teams.project_sync import locked_teams
+from plane.services.teams.routing import apply_routing_rules, get_routing_bot
 
 
 @pytest.fixture(autouse=True)
@@ -1716,3 +1726,670 @@ class TestSourceTeamGuards:
         assert resp.data == {"member_ids": ["Team membership changed, try again."]}
         assert TeamMember.objects.get(member=dev).team_id == t3.id
         assert _membership(project, dev) is None
+
+
+# ============================================================================
+# Routing rules (label / epic -> team -> the team's leader in the project)
+# ============================================================================
+
+
+def _rules_url(project):
+    return f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/routing-rules/"
+
+
+def _rule_url(project, rule_id):
+    return f"{_rules_url(project)}{rule_id}/"
+
+
+def _issues_url(project):
+    return f"/api/workspaces/{project.workspace.slug}/projects/{project.id}/issues/"
+
+
+def _v1_issues_url(project):
+    return f"/api/v1/workspaces/{project.workspace.slug}/projects/{project.id}/issues/"
+
+
+def _new_rule(client, project, team, label=None, epic=None):
+    body = (
+        {"trigger_type": "label", "label_id": str(label.id)}
+        if label
+        else {"trigger_type": "epic", "epic_id": str(epic.id)}
+    )
+    resp = client.post(_rules_url(project), {**body, "team_id": str(team.id)}, format="json")
+    assert resp.status_code == status.HTTP_201_CREATED, resp.data
+    return resp.data
+
+
+def _assignee_ids(issue):
+    return sorted(
+        str(user_id) for user_id in IssueAssignee.objects.filter(issue=issue).values_list("assignee_id", flat=True)
+    )
+
+
+def _routing_notes(issue):
+    return sorted(IssueActivity.objects.filter(issue=issue, field="routing_rule").values_list("actor_id", "comment"))
+
+
+def _bot_calls(celery):
+    """issue_activity.delay kwargs sent by the routing rule bot."""
+    bot_id = str(get_routing_bot().id)
+    return [call.kwargs for call in celery.call_args_list if call.kwargs.get("actor_id") == bot_id]
+
+
+def _squad(admin_client, workspace, project, name, leader_email, role=15):
+    """A team attached to the project with one member, its leader there."""
+    leader = _ws_user(workspace, leader_email, role=role)
+    team = _team(workspace, name, members=[leader])
+    _attach(admin_client, project, team)
+    ProjectTeam.objects.filter(project=project, team=team).update(leader=leader)
+    return team, leader
+
+
+@pytest.fixture
+def routing(admin_client, workspace, project, mock_celery, django_capture_on_commit_callbacks):
+    """Label "Flutter" -> team Flutter, whose leader in the project is Ahmed.
+    Each request runs its on-commit callbacks; every .delay() is mocked."""
+    flutter, ahmed = _squad(admin_client, workspace, project, "Flutter", "ahmed@plane.so")
+    label = Label.objects.create(name="Flutter", color="#00aaff", project=project, workspace=workspace)
+    epic = Issue.objects.create(name="Mobile app", project=project, workspace=workspace)
+
+    def call(method, url, body=None, client=admin_client):
+        with django_capture_on_commit_callbacks(execute=True):
+            return getattr(client, method)(url, body, format="json")
+
+    return SimpleNamespace(team=flutter, leader=ahmed, label=label, epic=epic, call=call, celery=mock_celery)
+
+
+@pytest.mark.contract
+class TestRoutingRuleSchema:
+    @pytest.mark.django_db
+    def test_db_ties_the_trigger_to_its_type(self, project, frontend, issue):
+        label = Label.objects.create(name="Bug", project=project, workspace=project.workspace)
+        for kwargs in (
+            {"trigger_type": "label", "label": label, "epic": issue},
+            {"trigger_type": "label", "epic": issue},
+            {"trigger_type": "epic", "label": label},
+            {"trigger_type": "epic"},
+        ):
+            with pytest.raises(IntegrityError), transaction.atomic():
+                ProjectRoutingRule.objects.create(project=project, team=frontend, **kwargs)
+
+    @pytest.mark.django_db
+    def test_db_allows_one_live_rule_per_project_trigger_team(self, workspace, project, frontend, issue):
+        label = Label.objects.create(name="Bug", project=project, workspace=workspace)
+        ProjectRoutingRule.objects.create(project=project, team=frontend, trigger_type="label", label=label)
+        ProjectRoutingRule.objects.create(project=project, team=frontend, trigger_type="epic", epic=issue)
+        for kwargs in ({"trigger_type": "label", "label": label}, {"trigger_type": "epic", "epic": issue}):
+            with pytest.raises(IntegrityError), transaction.atomic():
+                ProjectRoutingRule.objects.create(project=project, team=frontend, **kwargs)
+        # The same label can route to several teams.
+        ProjectRoutingRule.objects.create(
+            project=project, team=_team(workspace, "Other"), trigger_type="label", label=label
+        )
+
+
+@pytest.mark.contract
+class TestRoutingRuleBot:
+    @pytest.mark.django_db
+    def test_bot_is_created_once_in_no_workspace_and_cannot_sign_in(self, workspace):
+        bot = get_routing_bot()
+        assert get_routing_bot().id == bot.id
+        assert User.objects.filter(username="routing_rule_bot").count() == 1
+        assert (bot.is_bot, bot.bot_type, bot.display_name, bot.first_name) == (
+            True,
+            "ROUTING_RULE",
+            "Routing rule",
+            "Routing rule",
+        )
+        assert bot.email.endswith(".invalid")
+        # Password sign-in can't match, and the adapter rejects every bot
+        # (BOT_USER_LOGIN_FORBIDDEN, test_authentication.py).
+        assert not bot.has_usable_password()
+        assert not WorkspaceMember.objects.filter(member=bot).exists()
+
+    @pytest.mark.django_db
+    def test_a_user_with_a_bot_like_email_does_not_block_routing(self, admin_client, project, issue, routing):
+        # Sign-up doesn't verify emails: anyone can register this one first.
+        _user("routing-rule-bot@plane.invalid")
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+
+        resp = routing.call("patch", f"{_issues_url(project)}{issue.id}/", {"label_ids": [str(routing.label.id)]})
+        assert resp.status_code == status.HTTP_204_NO_CONTENT, resp.data
+        assert _assignee_ids(issue) == _ids(routing.leader)
+        assert list(IssueLabel.objects.filter(issue=issue).values_list("label_id", flat=True)) == [routing.label.id]
+
+
+@pytest.mark.contract
+class TestRoutingRuleApi:
+    @pytest.mark.django_db
+    def test_admin_creates_label_and_epic_rules(self, admin_client, workspace, project, routing):
+        resp = admin_client.post(
+            _rules_url(project),
+            {"trigger_type": "label", "label_id": str(routing.label.id), "team_id": str(routing.team.id)},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        rule = ProjectRoutingRule.objects.get(pk=resp.data["id"])
+        assert resp.data == {
+            "id": str(rule.id),
+            "trigger_type": "label",
+            "label": {"id": str(routing.label.id), "name": "Flutter", "color": "#00aaff"},
+            "epic": None,
+            "team": {"id": str(routing.team.id), "name": "Flutter"},
+            "leader_id": str(routing.leader.id),
+            "team_attached": True,
+            "enabled": True,
+            "is_active": True,
+            "inactive_reason": None,
+            "created_at": rule.created_at,
+        }
+        epic_rule = _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        assert (epic_rule["trigger_type"], epic_rule["label"]) == ("epic", None)
+        assert epic_rule["epic"] == {
+            "id": str(routing.epic.id),
+            "name": "Mobile app",
+            "sequence_id": routing.epic.sequence_id,
+            "project_identifier": "TMP",
+        }
+        assert [row["id"] for row in admin_client.get(_rules_url(project)).data] == [str(rule.id), epic_rule["id"]]
+
+    @pytest.mark.django_db
+    def test_create_validates_the_trigger_and_the_team(
+        self, admin_client, workspace, other_workspace, project, project_y, routing
+    ):
+        team, label, epic = str(routing.team.id), str(routing.label.id), str(routing.epic.id)
+        foreign_label = Label.objects.create(name="Y", project=project_y, workspace=workspace)
+        deleted_label = Label.objects.create(name="Gone", project=project, workspace=workspace)
+        Label.objects.filter(pk=deleted_label.pk).update(deleted_at=timezone.now())
+        archived = Issue.objects.create(name="Old", project=project, workspace=workspace)
+        Issue.objects.filter(pk=archived.pk).update(archived_at=timezone.now())
+        foreign_epic = Issue.objects.create(name="Y", project=project_y, workspace=workspace)
+        unattached = _team(workspace, "Unattached")
+        foreign_team = _team(other_workspace, "Foreign")
+        cases = [
+            ({"label_id": label, "team_id": team}, "trigger_type"),
+            ({"trigger_type": "story", "label_id": label, "team_id": team}, "trigger_type"),
+            ({"trigger_type": "label", "team_id": team}, "label_id"),
+            ({"trigger_type": "label", "epic_id": epic, "team_id": team}, "label_id"),
+            ({"trigger_type": "label", "label_id": label, "epic_id": epic, "team_id": team}, "epic_id"),
+            ({"trigger_type": "epic", "label_id": label, "team_id": team}, "epic_id"),
+            ({"trigger_type": "label", "label_id": "nope", "team_id": team}, "label_id"),
+            ({"trigger_type": "label", "label_id": label}, "team_id"),
+            ({"trigger_type": "label", "label_id": str(foreign_label.id), "team_id": team}, "label_id"),
+            ({"trigger_type": "label", "label_id": str(deleted_label.id), "team_id": team}, "label_id"),
+            ({"trigger_type": "epic", "epic_id": str(foreign_epic.id), "team_id": team}, "epic_id"),
+            ({"trigger_type": "epic", "epic_id": str(archived.id), "team_id": team}, "epic_id"),
+            ({"trigger_type": "label", "label_id": label, "team_id": str(uuid.uuid4())}, "team_id"),
+            ({"trigger_type": "label", "label_id": label, "team_id": str(foreign_team.id)}, "team_id"),
+        ]
+        for body, field in cases:
+            resp = admin_client.post(_rules_url(project), body, format="json")
+            assert resp.status_code == status.HTTP_400_BAD_REQUEST, body
+            assert field in resp.data, (body, resp.data)
+        resp = admin_client.post(
+            _rules_url(project),
+            {"trigger_type": "label", "label_id": label, "team_id": str(unattached.id)},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_400_BAD_REQUEST
+        assert resp.data == {"team_id": ["Attach the team to this project first."]}
+        # A null id of the other trigger is accepted.
+        resp = admin_client.post(
+            _rules_url(project),
+            {"trigger_type": "label", "label_id": label, "epic_id": None, "team_id": team},
+            format="json",
+        )
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert ProjectRoutingRule.objects.count() == 1
+
+    @pytest.mark.django_db
+    def test_duplicate_is_409_with_the_existing_id(self, admin_client, workspace, project, routing):
+        rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        epic_rule = _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        for body in (
+            {"trigger_type": "label", "label_id": str(routing.label.id)},
+            {"trigger_type": "epic", "epic_id": str(routing.epic.id)},
+        ):
+            resp = admin_client.post(_rules_url(project), {**body, "team_id": str(routing.team.id)}, format="json")
+            assert resp.status_code == status.HTTP_409_CONFLICT
+            assert resp.data["id"] == (rule["id"] if "label_id" in body else epic_rule["id"])
+        # The same label to another team is a second rule.
+        other, _ = _squad(admin_client, workspace, project, "iOS", "ios@plane.so")
+        _new_rule(admin_client, project, other, label=routing.label)
+        assert ProjectRoutingRule.objects.count() == 3
+
+    @pytest.mark.django_db
+    def test_patch_toggles_enabled_only(self, admin_client, project, routing):
+        rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        url = _rule_url(project, rule["id"])
+
+        resp = admin_client.patch(url, {"enabled": False}, format="json")
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert (resp.data["enabled"], resp.data["is_active"], resp.data["inactive_reason"]) == (
+            False,
+            False,
+            "disabled",
+        )
+        resp = admin_client.patch(url, {"enabled": True}, format="json")
+        assert (resp.data["enabled"], resp.data["is_active"], resp.data["inactive_reason"]) == (True, True, None)
+
+        for body in ({"enabled": True, "team_id": str(routing.team.id)}, {"label_id": str(routing.label.id)}, {}):
+            assert admin_client.patch(url, body, format="json").status_code == status.HTTP_400_BAD_REQUEST, body
+        resp = admin_client.patch(url, {"enabled": False, "trigger_type": "epic"}, format="json")
+        assert resp.data == {"trigger_type": ["This field can't be changed."]}
+        assert ProjectRoutingRule.objects.get(pk=rule["id"]).enabled is True
+
+    @pytest.mark.django_db
+    def test_delete_is_204_then_404_and_other_projects_rules_are_404(self, admin_client, project, project_y, routing):
+        rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        for url in (_rule_url(project_y, rule["id"]), _rule_url(project, uuid.uuid4())):
+            assert admin_client.patch(url, {"enabled": False}, format="json").status_code == 404
+            assert admin_client.delete(url).status_code == 404
+        assert ProjectRoutingRule.objects.get(pk=rule["id"]).enabled is True
+        assert admin_client.get(_rules_url(project_y)).data == []
+
+        assert admin_client.delete(_rule_url(project, rule["id"])).status_code == status.HTTP_204_NO_CONTENT
+        assert not ProjectRoutingRule.all_objects.exists()
+        assert admin_client.delete(_rule_url(project, rule["id"])).status_code == status.HTTP_404_NOT_FOUND
+
+    @pytest.mark.django_db
+    def test_list_takes_a_bounded_number_of_queries(
+        self, admin_client, workspace, project, routing, django_assert_max_num_queries
+    ):
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+
+        def count_queries():
+            with CaptureQueriesContext(connection) as ctx:
+                assert admin_client.get(_rules_url(project)).status_code == status.HTTP_200_OK
+            return len(ctx)
+
+        baseline = count_queries()
+        for i in range(9):
+            team = routing.team if i % 2 else _squad(admin_client, workspace, project, f"T{i}", f"t{i}@plane.so")[0]
+            if i % 3:
+                label = Label.objects.create(name=f"L{i}", project=project, workspace=workspace)
+                _new_rule(admin_client, project, team, label=label)
+            else:
+                _new_rule(admin_client, project, team, epic=Issue.objects.create(name=f"E{i}", project=project))
+        assert count_queries() == baseline
+        with django_assert_max_num_queries(8):
+            assert len(admin_client.get(_rules_url(project)).data) == 10
+
+
+@pytest.mark.contract
+class TestRoutingRulePermissions:
+    @pytest.mark.django_db
+    def test_project_member_reads_but_cannot_write(self, admin_client, project, member_user, routing):
+        rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        client = _client(member_user)
+        assert client.get(_rules_url(project)).status_code == status.HTTP_200_OK
+        forbidden = [
+            client.post(
+                _rules_url(project),
+                {"trigger_type": "epic", "epic_id": str(routing.epic.id), "team_id": str(routing.team.id)},
+                format="json",
+            ),
+            client.patch(_rule_url(project, rule["id"]), {"enabled": False}, format="json"),
+            client.delete(_rule_url(project, rule["id"])),
+        ]
+        assert [resp.status_code for resp in forbidden] == [403] * 3
+        assert list(ProjectRoutingRule.objects.values_list("id", "enabled")) == [(uuid.UUID(rule["id"]), True)]
+
+    @pytest.mark.django_db
+    def test_guests_outsiders_and_non_member_workspace_admins_are_403(self, admin_client, workspace, project, routing):
+        rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        guest = _ws_user(workspace, "pguest@plane.so")
+        ProjectMember.objects.create(workspace=workspace, project=project, member=guest, role=5)
+        outsider = _user("outsider@plane.so")
+        # Plane's rule: a workspace admin needs a project membership too.
+        boss = _ws_user(workspace, "boss@plane.so", role=20)
+        for user in (guest, outsider, boss):
+            client = _client(user)
+            responses = [
+                client.get(_rules_url(project)),
+                client.post(
+                    _rules_url(project),
+                    {"trigger_type": "epic", "epic_id": str(routing.epic.id), "team_id": str(routing.team.id)},
+                    format="json",
+                ),
+                client.patch(_rule_url(project, rule["id"]), {"enabled": False}, format="json"),
+                client.delete(_rule_url(project, rule["id"])),
+            ]
+            assert [resp.status_code for resp in responses] == [403] * 4, user.email
+        assert list(ProjectRoutingRule.objects.values_list("enabled", flat=True)) == [True]
+
+
+@pytest.mark.contract
+class TestRoutingRuleFiring:
+    @pytest.mark.django_db
+    def test_ui_create_with_the_label_assigns_the_leader_as_the_bot(self, admin_client, project, create_user, routing):
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+
+        resp = routing.call("post", _issues_url(project), {"name": "Login", "label_ids": [str(routing.label.id)]})
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert [str(user_id) for user_id in resp.data["assignee_ids"]] == [str(routing.leader.id)]
+        issue = Issue.objects.get(pk=resp.data["id"])
+        bot = get_routing_bot()
+        assert IssueAssignee.objects.get(issue=issue).created_by_id == bot.id
+
+        [kwargs] = _bot_calls(routing.celery)
+        assert kwargs == {
+            "type": "issue.activity.updated",
+            "requested_data": json.dumps({"assignee_ids": [str(routing.leader.id)]}),
+            "current_instance": json.dumps({"assignee_ids": []}),
+            "actor_id": str(bot.id),
+            "issue_id": str(issue.id),
+            "project_id": str(project.id),
+            "epoch": kwargs["epoch"],
+            "notification": True,
+            "subscriber": False,
+        }
+        # Plane's own task turns it into its usual "added assignee" activity.
+        issue_activity(**kwargs)
+        activity = IssueActivity.objects.get(issue=issue, field="assignees")
+        assert (activity.actor_id, activity.verb, activity.old_value, activity.new_value, activity.new_identifier) == (
+            bot.id,
+            "updated",
+            "",
+            routing.leader.display_name,
+            routing.leader.id,
+        )
+        assert not IssueSubscriber.objects.filter(issue=issue, subscriber=bot).exists()
+
+    @pytest.mark.django_db
+    def test_ui_patch_adding_the_label_or_the_epic_assigns_the_leader(self, admin_client, project, issue, routing):
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+        _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        url = f"{_issues_url(project)}{issue.id}/"
+
+        resp = routing.call("patch", url, {"label_ids": [str(routing.label.id)]})
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert [str(user_id) for user_id in admin_client.get(url).data["assignee_ids"]] == [str(routing.leader.id)]
+
+        child = Issue.objects.create(name="Child", project=project)
+        resp = routing.call("patch", f"{_issues_url(project)}{child.id}/", {"parent_id": str(routing.epic.id)})
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert _assignee_ids(child) == _ids(routing.leader)
+        resp = routing.call("post", _issues_url(project), {"name": "New child", "parent_id": str(routing.epic.id)})
+        assert [str(user_id) for user_id in resp.data["assignee_ids"]] == [str(routing.leader.id)]
+        assert len(_bot_calls(routing.celery)) == 3
+
+    @pytest.mark.django_db
+    def test_public_api_create_and_patch_assign_the_leader(self, admin_client, api_token, project, issue, routing):
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+        _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        v1 = APIClient()
+        v1.credentials(HTTP_X_API_KEY=api_token.token)
+
+        body = {"name": "Via MCP", "labels": [str(routing.label.id)]}
+        resp = routing.call("post", _v1_issues_url(project), body, client=v1)
+        assert resp.status_code == status.HTTP_201_CREATED, resp.data
+        assert resp.data["assignees"] == [str(routing.leader.id)]
+        created_id = str(resp.data["id"])
+
+        resp = routing.call(
+            "patch", f"{_v1_issues_url(project)}{issue.id}/", {"parent": str(routing.epic.id)}, client=v1
+        )
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["assignees"] == [str(routing.leader.id)]
+        assert len(_bot_calls(routing.celery)) == 2
+        # The leader's assignee activity is the bot's, not the API key user's.
+        bot_id = str(get_routing_bot().id)
+        assert [
+            (call.kwargs["issue_id"], call.kwargs["actor_id"])
+            for call in routing.celery.call_args_list
+            if "assignee_ids" in str(call.kwargs.get("requested_data"))
+        ] == [(created_id, bot_id), (str(issue.id), bot_id)]
+
+    @pytest.mark.django_db
+    def test_sub_issues_post_assigns_only_the_reparented_items(self, admin_client, project, routing):
+        _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        already = Issue.objects.create(name="Already", project=project, parent=routing.epic)
+        moved = Issue.objects.create(name="Moved", project=project)
+        url = f"{_issues_url(project)}{routing.epic.id}/sub-issues/"
+
+        resp = routing.call("post", url, {"sub_issue_ids": [str(already.id), str(moved.id)]})
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert (_assignee_ids(already), _assignee_ids(moved)) == ([], _ids(routing.leader))
+        assert [kwargs["issue_id"] for kwargs in _bot_calls(routing.celery)] == [str(moved.id)]
+
+    @pytest.mark.django_db
+    def test_nothing_fires_without_a_newly_matched_trigger(self, admin_client, workspace, project, routing):
+        rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        other = Label.objects.create(name="Other", project=project, workspace=workspace)
+        labelled = Issue.objects.create(name="Labelled", project=project)
+        IssueLabel.objects.create(issue=labelled, label=routing.label, project=project)
+        child = Issue.objects.create(name="Child", project=project, parent=routing.epic)
+        url = lambda item: f"{_issues_url(project)}{item.id}/"  # noqa: E731
+
+        # The label was already there (re-sent unchanged, or kept alongside a new one).
+        routing.call("patch", url(labelled), {"label_ids": [str(routing.label.id)]})
+        routing.call("patch", url(labelled), {"label_ids": [str(routing.label.id), str(other.id)]})
+        # Removed.
+        routing.call("patch", url(labelled), {"label_ids": [str(other.id)]})
+        # A grandchild of the epic, and a parent re-sent unchanged.
+        routing.call("post", _issues_url(project), {"name": "Grandchild", "parent_id": str(child.id)})
+        routing.call("patch", url(child), {"parent_id": str(routing.epic.id), "name": "Child 2"})
+        # A disabled rule.
+        admin_client.patch(_rule_url(project, rule["id"]), {"enabled": False}, format="json")
+        resp = routing.call("post", _issues_url(project), {"name": "Off", "label_ids": [str(routing.label.id)]})
+        assert resp.status_code == status.HTTP_201_CREATED
+
+        assert not IssueAssignee.objects.exists()
+        assert not IssueActivity.objects.filter(field="routing_rule").exists()
+        assert _bot_calls(routing.celery) == []
+
+    @pytest.mark.django_db
+    def test_creating_a_rule_changes_no_existing_item(self, admin_client, project, routing):
+        labelled = Issue.objects.create(name="Labelled", project=project)
+        IssueLabel.objects.create(issue=labelled, label=routing.label, project=project)
+        Issue.objects.create(name="Child", project=project, parent=routing.epic)
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+        _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        assert not IssueAssignee.objects.exists()
+
+    @pytest.mark.django_db
+    def test_deleted_trigger_never_routes_and_lists_inactive(self, admin_client, workspace, project, routing):
+        label_rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        epic_rule = _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        routing.label.delete()  # Plane's soft delete
+        Issue.objects.filter(pk=routing.epic.pk).update(archived_at=timezone.now())
+        issue = Issue.objects.create(name="Item", project=project)
+
+        # The API drops a deleted label itself; the evaluator ignores it too.
+        with transaction.atomic():
+            apply_routing_rules([(issue, [routing.label.id], None)])
+        resp = routing.call("patch", f"{_issues_url(project)}{issue.id}/", {"parent_id": str(routing.epic.id)})
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert _assignee_ids(issue) == []
+
+        rows = {row["id"]: row for row in admin_client.get(_rules_url(project)).data}
+        assert (rows[label_rule["id"]]["inactive_reason"], rows[label_rule["id"]]["is_active"]) == (
+            "label_deleted",
+            False,
+        )
+        assert rows[epic_rule["id"]]["inactive_reason"] == "epic_deleted"
+        for rule_id, reason in (
+            (label_rule["id"], "The label was deleted."),
+            (epic_rule["id"], "The epic was deleted or archived."),
+        ):
+            resp = admin_client.patch(_rule_url(project, rule_id), {"enabled": True}, format="json")
+            assert (resp.status_code, resp.data) == (400, {"enabled": [reason]})
+
+        # Plane's async soft-delete cascade soft-deletes the rule with its label:
+        # it stays listed (inactive) and deletable.
+        soft_delete_related_objects("db", "label", routing.label.id)
+        assert ProjectRoutingRule.all_objects.get(pk=label_rule["id"]).deleted_at is not None
+        assert {row["id"]: row["inactive_reason"] for row in admin_client.get(_rules_url(project)).data} == {
+            label_rule["id"]: "label_deleted",
+            epic_rule["id"]: "epic_deleted",
+        }
+        assert admin_client.delete(_rule_url(project, label_rule["id"])).status_code == status.HTTP_204_NO_CONTENT
+        assert not ProjectRoutingRule.all_objects.filter(pk=label_rule["id"]).exists()
+
+    @pytest.mark.django_db
+    def test_assignees_are_never_removed_nor_duplicated(self, admin_client, project, member_user, issue, routing):
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+        url = f"{_issues_url(project)}{issue.id}/"
+        IssueAssignee.objects.create(issue=issue, assignee=member_user, project=project)
+
+        # The user sets assignees and the label together: both end up assigned,
+        # and the bot reports only the leader.
+        resp = routing.call("patch", url, {"assignee_ids": [str(member_user.id)], "label_ids": [str(routing.label.id)]})
+        assert resp.status_code == status.HTTP_204_NO_CONTENT
+        assert _assignee_ids(issue) == _ids(member_user, routing.leader)
+        [kwargs] = _bot_calls(routing.celery)
+        assert json.loads(kwargs["current_instance"]) == {"assignee_ids": [str(member_user.id)]}
+        assert json.loads(kwargs["requested_data"]) == {"assignee_ids": [str(member_user.id), str(routing.leader.id)]}
+
+        # Leader already assigned: no second row, no second activity.
+        routing.call("patch", url, {"label_ids": []})
+        routing.call("patch", url, {"label_ids": [str(routing.label.id)]})
+        assert IssueAssignee.objects.filter(issue=issue, assignee=routing.leader).count() == 1
+        assert len(_bot_calls(routing.celery)) == 1
+        resp = routing.call(
+            "post",
+            _issues_url(project),
+            {"name": "Mine", "assignee_ids": [str(routing.leader.id)], "label_ids": [str(routing.label.id)]},
+        )
+        assert IssueAssignee.objects.filter(issue_id=resp.data["id"]).count() == 1
+        assert len(_bot_calls(routing.celery)) == 1
+
+    @pytest.mark.django_db
+    def test_every_matching_rule_adds_its_leader_once(self, admin_client, workspace, project, issue, routing):
+        ios, sara = _squad(admin_client, workspace, project, "iOS", "sara@plane.so")
+        swift = Label.objects.create(name="Swift", project=project, workspace=workspace)
+        mobile = Label.objects.create(name="Mobile", project=project, workspace=workspace)
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+        _new_rule(admin_client, project, ios, label=swift)
+        # Same leader (Ahmed) through a second rule.
+        _new_rule(admin_client, project, routing.team, label=mobile)
+
+        labels = [str(routing.label.id), str(swift.id), str(mobile.id)]
+        routing.call("patch", f"{_issues_url(project)}{issue.id}/", {"label_ids": labels})
+        assert _assignee_ids(issue) == _ids(routing.leader, sara)
+        [kwargs] = _bot_calls(routing.celery)
+        assert sorted(json.loads(kwargs["requested_data"])["assignee_ids"]) == _ids(routing.leader, sara)
+
+    @pytest.mark.django_db
+    def test_a_rule_that_cannot_assign_leaves_a_routing_rule_activity(self, admin_client, workspace, project, routing):
+        _new_rule(admin_client, project, routing.team, label=routing.label)
+        # A workspace guest leads "QA": attached, they are a project guest (5).
+        qa, guest_leader = _squad(admin_client, workspace, project, "QA", "qa@plane.so", role=5)
+        _new_rule(admin_client, project, qa, label=routing.label)
+        ProjectTeam.objects.filter(team=routing.team).update(leader=None)
+
+        resp = routing.call("post", _issues_url(project), {"name": "Item", "label_ids": [str(routing.label.id)]})
+        issue = Issue.objects.get(pk=resp.data["id"])
+        assert _assignee_ids(issue) == []
+        bot = get_routing_bot()
+        assert _routing_notes(issue) == [
+            (bot.id, 'matched (label "Flutter" → team Flutter), team has no leader'),
+            (
+                bot.id,
+                'matched (label "Flutter" → team QA), leader can\'t be assigned (not an active project member)',
+            ),
+        ]
+        assert IssueActivity.objects.filter(issue=issue, field="routing_rule", verb="updated").count() == 2
+        assert _bot_calls(routing.celery) == []
+
+    @pytest.mark.django_db
+    def test_a_link_gone_without_a_detach_is_reported(self, admin_client, project, routing):
+        _new_rule(admin_client, project, routing.team, epic=routing.epic)
+        ProjectTeam.objects.filter(team=routing.team).delete()  # bypasses detach, rule stays enabled
+        resp = routing.call("post", _issues_url(project), {"name": "Item", "parent_id": str(routing.epic.id)})
+        assert [comment for _, comment in _routing_notes(Issue.objects.get(pk=resp.data["id"]))] == [
+            'matched (epic "Mobile app" → team Flutter), team is not attached to the project'
+        ]
+
+    @pytest.mark.django_db
+    def test_patch_matching_three_rules_takes_a_bounded_number_of_queries(
+        self, admin_client, workspace, project, routing, django_assert_max_num_queries
+    ):
+        labels, teams = [routing.label], [routing.team]
+        for name in ("iOS", "Web"):
+            labels.append(Label.objects.create(name=name, project=project, workspace=workspace))
+            teams.append(_squad(admin_client, workspace, project, name, f"{name.lower()}@plane.so")[0])
+        rules = [_new_rule(admin_client, project, team, label=label)["id"] for label, team in zip(labels, teams)]
+        get_routing_bot()
+
+        def count_queries():
+            # The same three labels each time (Plane looks each label id up).
+            issue = Issue.objects.create(name="Item", project=project)
+            with CaptureQueriesContext(connection) as ctx:
+                resp = routing.call(
+                    "patch", f"{_issues_url(project)}{issue.id}/", {"label_ids": [str(label.id) for label in labels]}
+                )
+            assert resp.status_code == status.HTTP_204_NO_CONTENT
+            return len(ctx), len(_assignee_ids(issue))
+
+        ProjectRoutingRule.objects.filter(pk__in=rules[1:]).update(enabled=False)
+        one = count_queries()
+        ProjectRoutingRule.objects.update(enabled=True)
+        three = count_queries()
+        assert (one[1], three[1]) == (1, 3)
+        assert three[0] == one[0]
+        issue = Issue.objects.create(name="Direct", project=project)
+        # Rules, links, assignable leaders, current assignees, bot, assignee insert.
+        with django_assert_max_num_queries(6):
+            apply_routing_rules([(issue, [label.id for label in labels], None)])
+        assert len(_assignee_ids(issue)) == 3
+
+
+@pytest.mark.contract
+class TestRoutingRulesFollowTheTeam:
+    @pytest.mark.django_db
+    def test_detach_disables_the_rules_and_reattach_then_enable_fires_again(self, admin_client, project, routing):
+        rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        assert admin_client.delete(_project_team_url(project, routing.team.id)).status_code == status.HTTP_200_OK
+
+        [row] = admin_client.get(_rules_url(project)).data
+        assert (row["enabled"], row["team_attached"], row["leader_id"], row["inactive_reason"]) == (
+            False,
+            False,
+            None,
+            "team_detached",
+        )
+        resp = admin_client.patch(_rule_url(project, rule["id"]), {"enabled": True}, format="json")
+        assert (resp.status_code, resp.data) == (400, {"enabled": ["Attach the team to this project first."]})
+        resp = routing.call("post", _issues_url(project), {"name": "Off", "label_ids": [str(routing.label.id)]})
+        assert _assignee_ids(Issue.objects.get(pk=resp.data["id"])) == []
+
+        # Re-attaching keeps the rule disabled until enabled again.
+        _attach(admin_client, project, routing.team)
+        ProjectTeam.objects.filter(team=routing.team).update(leader=routing.leader)
+        assert admin_client.get(_rules_url(project)).data[0]["inactive_reason"] == "disabled"
+        resp = admin_client.patch(_rule_url(project, rule["id"]), {"enabled": True}, format="json")
+        assert resp.status_code == status.HTTP_200_OK, resp.data
+        assert resp.data["is_active"] is True
+        resp = routing.call("post", _issues_url(project), {"name": "On", "label_ids": [str(routing.label.id)]})
+        assert _assignee_ids(Issue.objects.get(pk=resp.data["id"])) == _ids(routing.leader)
+
+    @pytest.mark.django_db
+    def test_detach_and_team_delete_disable_only_that_teams_rules(
+        self, admin_client, workspace, project, project_y, routing
+    ):
+        ios, _ = _squad(admin_client, workspace, project, "iOS", "sara@plane.so")
+        _attach(admin_client, project_y, routing.team)
+        label_y = Label.objects.create(name="Y", project=project_y, workspace=workspace)
+        flutter_rule = _new_rule(admin_client, project, routing.team, label=routing.label)
+        ios_rule = _new_rule(admin_client, project, ios, label=routing.label)
+        rule_y = _new_rule(admin_client, project_y, routing.team, label=label_y)
+        enabled = lambda: dict(ProjectRoutingRule.objects.values_list("id", "enabled"))  # noqa: E731
+
+        admin_client.delete(_project_team_url(project, routing.team.id))
+        assert enabled() == {
+            uuid.UUID(flutter_rule["id"]): False,
+            uuid.UUID(ios_rule["id"]): True,
+            uuid.UUID(rule_y["id"]): True,
+        }
+
+        assert admin_client.delete(_team_url(workspace.slug, routing.team.id)).status_code == status.HTTP_204_NO_CONTENT
+        assert enabled() == {
+            uuid.UUID(flutter_rule["id"]): False,
+            uuid.UUID(ios_rule["id"]): True,
+            uuid.UUID(rule_y["id"]): False,
+        }
+        [row] = admin_client.get(_rules_url(project_y)).data
+        assert (row["team"]["name"], row["inactive_reason"]) == ("Flutter", "team_detached")
