@@ -111,6 +111,12 @@ export const RoutingRulesSection = observer(function RoutingRulesSection(props: 
     });
   };
 
+  const handleDuplicate = async (ruleId: string) => {
+    // Another admin may have added it after the list loaded: load it before pointing at it.
+    if (!rules?.some((rule) => rule.id === ruleId)) await mutate();
+    highlight(ruleId);
+  };
+
   const handleUpdated = (updated: TProjectRoutingRule) =>
     mutate((current) => current?.map((rule) => (rule.id === updated.id ? updated : rule)), { revalidate: false });
 
@@ -186,7 +192,7 @@ export const RoutingRulesSection = observer(function RoutingRulesSection(props: 
                 projectTeams={projectTeams}
                 onCancel={closeForm}
                 onCreated={handleCreated}
-                onDuplicate={highlight}
+                onDuplicate={(ruleId) => void handleDuplicate(ruleId)}
               />
             ) : (
               <div className="flex flex-col items-start gap-1.5">
