@@ -104,6 +104,8 @@ Known limitations (Plane behaviour, not changed):
 
 ## Future: routing rules (not built)
 
+Built in [ADR-0002](adr-0002-routing-rules.md), which supersedes this sketch where they differ.
+
 Goal: "an issue with label X or in epic Y in project P goes to team T, and its
 leader in P is assigned automatically." Sketch:
 

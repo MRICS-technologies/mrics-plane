@@ -344,6 +344,52 @@ class ProjectTeam(ProjectBaseModel):
         ordering = ("-created_at",)
 
 
+class ProjectRoutingRule(ProjectBaseModel):
+    """A work item that gains the label, or is put directly under the epic, gets
+    the project leader of the team (ProjectTeam.leader) as an assignee
+    (plane.services.teams.routing). Rows are hard-deleted. It points at the team,
+    not the ProjectTeam link: detaching deletes the link and disables the rule."""
+
+    class TriggerType(models.TextChoices):
+        LABEL = "label", "Label"
+        EPIC = "epic", "Epic"
+
+    team = models.ForeignKey("db.Team", on_delete=models.CASCADE, related_name="routing_rules")
+    trigger_type = models.CharField(max_length=10, choices=TriggerType.choices)
+    label = models.ForeignKey("db.Label", on_delete=models.CASCADE, null=True, blank=True, related_name="routing_rules")
+    # The parent work item (CE has no epic type): any work item of the project.
+    epic = models.ForeignKey("db.Issue", on_delete=models.CASCADE, null=True, blank=True, related_name="routing_rules")
+    enabled = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.trigger_type} {self.label_id or self.epic_id} -> {self.team_id} <{self.project_id}>"
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(trigger_type="label", label__isnull=False, epic__isnull=True)
+                | Q(trigger_type="epic", epic__isnull=False, label__isnull=True),
+                name="project_routing_rule_trigger_matches_type",
+            ),
+            # Two partial constraints: one over (project, label, epic, team) would
+            # never fire, Postgres treats the NULL label / epic as distinct.
+            models.UniqueConstraint(
+                fields=["project", "label", "team"],
+                condition=Q(deleted_at__isnull=True, label__isnull=False),
+                name="project_routing_rule_unique_label_team_when_deleted_at_null",
+            ),
+            models.UniqueConstraint(
+                fields=["project", "epic", "team"],
+                condition=Q(deleted_at__isnull=True, epic__isnull=False),
+                name="project_routing_rule_unique_epic_team_when_deleted_at_null",
+            ),
+        ]
+        verbose_name = "Project Routing Rule"
+        verbose_name_plural = "Project Routing Rules"
+        db_table = "project_routing_rules"
+        ordering = ("created_at",)
+
+
 # TODO: Remove workspace relation later
 class ProjectIdentifier(AuditModel):
     workspace = models.ForeignKey("db.Workspace", models.CASCADE, related_name="project_identifiers", null=True)

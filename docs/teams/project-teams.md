@@ -84,7 +84,7 @@ can have a different leader in each project.
 - Detaching the team or deleting it removes the link, and the leader with it.
 - A leader who has since left the workspace reads as `"leader_id": null`.
 
-The leader is not used anywhere yet; see the routing rules sketch in the ADR.
+[Routing rules](routing-rules.md) assign the leader to matching work items.
 
 ## API
 
