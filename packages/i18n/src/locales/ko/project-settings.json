@@ -85,6 +85,74 @@
         "leader_failed": "리더를 변경할 수 없습니다. 다시 시도해 주세요.",
         "leader_not_member": "이 사용자는 더 이상 {team} 팀의 멤버가 아닙니다.",
         "forbidden": "프로젝트 관리자만 프로젝트의 팀을 변경할 수 있습니다."
+      },
+      "routing": {
+        "label": "라우팅",
+        "description": "레이블이나 에픽이 있는 작업 항목을 팀 리더에게 바로 보냅니다.",
+        "add_rule": "규칙 추가",
+        "attach_team_first": "먼저 팀을 연결하세요.",
+        "trigger": {
+          "label": "레이블",
+          "epic": "에픽"
+        },
+        "rule_label": "레이블 {name}",
+        "rule_epic": "에픽 {identifier} {name}",
+        "rule_summary": "{team} 팀으로 라우팅되는 {trigger}",
+        "routes_to": "라우팅 대상",
+        "leader_name": "리더: {name}",
+        "no_leader": "리더 없음",
+        "no_leader_hint": "이 팀에 리더가 지정될 때까지 해당 작업 항목은 할당되지 않습니다.",
+        "state": {
+          "on": "켜짐",
+          "off": "꺼짐"
+        },
+        "toggle_aria_label": "규칙 켜기/끄기: {rule}",
+        "delete_aria_label": "규칙 삭제: {rule}",
+        "inactive": {
+          "label_deleted": "레이블이 삭제되었습니다. 이 규칙을 삭제하세요.",
+          "epic_deleted": "에픽이 삭제되었거나 아카이브되었습니다.",
+          "team_detached": "이 팀은 더 이상 프로젝트에 연결되어 있지 않습니다. 팀을 연결한 다음 규칙을 켜세요."
+        },
+        "form": {
+          "trigger_type": "작업 항목 조건",
+          "select_label": "레이블 선택",
+          "search_labels": "레이블 검색",
+          "no_labels": "이 프로젝트에는 아직 레이블이 없습니다.",
+          "select_epic": "에픽 선택",
+          "search_epics": "작업 항목 검색",
+          "no_epics": "일치하는 작업 항목이 없습니다.",
+          "team": "보낼 팀",
+          "select_team": "팀 선택",
+          "no_leader_warning": "이 프로젝트에서 {team} 팀에 리더가 없습니다. 위에서 리더를 선택할 때까지 해당 작업 항목은 할당되지 않습니다.",
+          "submit": "규칙 추가",
+          "submitting": "추가 중…",
+          "duplicate": "이 규칙은 이미 있습니다."
+        },
+        "delete_modal": {
+          "title": "이 규칙을 삭제하시겠습니까?",
+          "content_label": "{label} 레이블이 있는 새 작업 항목은 더 이상 {team} 팀으로 보내지지 않습니다. 이미 할당된 작업 항목의 담당자는 유지됩니다.",
+          "content_epic": "{epic} 에픽 하위의 새 작업 항목은 더 이상 {team} 팀으로 보내지지 않습니다. 이미 할당된 작업 항목의 담당자는 유지됩니다.",
+          "confirm": "규칙 삭제",
+          "confirming": "삭제 중…"
+        },
+        "toasts": {
+          "created": "규칙이 추가되었습니다.",
+          "deleted": "규칙이 삭제되었습니다.",
+          "already_deleted": "이 규칙은 이미 삭제되었습니다.",
+          "enabled": "규칙이 켜졌습니다.",
+          "disabled": "규칙이 꺼졌습니다."
+        },
+        "errors": {
+          "load_failed": "라우팅 규칙을 불러올 수 없습니다.",
+          "create_failed": "규칙을 추가할 수 없습니다. 다시 시도해 주세요.",
+          "update_failed": "규칙을 변경할 수 없습니다. 다시 시도해 주세요.",
+          "delete_failed": "규칙을 삭제할 수 없습니다. 다시 시도해 주세요.",
+          "not_found": "이 규칙은 더 이상 존재하지 않습니다.",
+          "forbidden": "프로젝트 관리자만 라우팅 규칙을 변경할 수 있습니다.",
+          "team_not_attached": "먼저 이 프로젝트에 팀을 연결하세요.",
+          "label_deleted": "레이블이 삭제되었습니다.",
+          "epic_deleted": "에픽이 삭제되었거나 아카이브되었습니다."
+        }
       }
     },
     "states": {

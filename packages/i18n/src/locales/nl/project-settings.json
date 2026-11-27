@@ -85,6 +85,74 @@
         "leader_failed": "De leider kon niet worden gewijzigd. Probeer het opnieuw.",
         "leader_not_member": "Deze persoon is geen lid meer van {team}.",
         "forbidden": "Alleen projectbeheerders kunnen de teams van het project wijzigen."
+      },
+      "routing": {
+        "label": "Routering",
+        "description": "Stuur werkitems met een label of epic direct naar de leider van een team.",
+        "add_rule": "Regel toevoegen",
+        "attach_team_first": "Koppel eerst een team.",
+        "trigger": {
+          "label": "Label",
+          "epic": "Epic"
+        },
+        "rule_label": "Label {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} gaat naar {team}",
+        "routes_to": "gaat naar",
+        "leader_name": "Leider: {name}",
+        "no_leader": "Geen leider",
+        "no_leader_hint": "Overeenkomende werkitems worden pas toegewezen als dit team een leider heeft.",
+        "state": {
+          "on": "Aan",
+          "off": "Uit"
+        },
+        "toggle_aria_label": "Regel in- of uitschakelen: {rule}",
+        "delete_aria_label": "Regel verwijderen: {rule}",
+        "inactive": {
+          "label_deleted": "Het label is verwijderd. Verwijder deze regel.",
+          "epic_deleted": "De epic is verwijderd of gearchiveerd.",
+          "team_detached": "Dit team is niet meer aan het project gekoppeld. Koppel het en schakel daarna de regel in."
+        },
+        "form": {
+          "trigger_type": "Werkitems met",
+          "select_label": "Selecteer een label",
+          "search_labels": "Labels zoeken",
+          "no_labels": "Dit project heeft nog geen labels.",
+          "select_epic": "Selecteer een epic",
+          "search_epics": "Werkitems zoeken",
+          "no_epics": "Geen overeenkomende werkitems.",
+          "team": "Naar team sturen",
+          "select_team": "Selecteer een team",
+          "no_leader_warning": "{team} heeft in dit project geen leider. Overeenkomende werkitems worden pas toegewezen als u hierboven een leider kiest.",
+          "submit": "Regel toevoegen",
+          "submitting": "Toevoegen…",
+          "duplicate": "Deze regel bestaat al."
+        },
+        "delete_modal": {
+          "title": "Deze regel verwijderen?",
+          "content_label": "Nieuwe werkitems met het label {label} gaan niet meer naar {team}. Werkitems die al zijn toegewezen, behouden hun toegewezenen.",
+          "content_epic": "Nieuwe werkitems onder de epic {epic} gaan niet meer naar {team}. Werkitems die al zijn toegewezen, behouden hun toegewezenen.",
+          "confirm": "Regel verwijderen",
+          "confirming": "Verwijderen…"
+        },
+        "toasts": {
+          "created": "Regel toegevoegd.",
+          "deleted": "Regel verwijderd.",
+          "already_deleted": "Deze regel was al verwijderd.",
+          "enabled": "Regel ingeschakeld.",
+          "disabled": "Regel uitgeschakeld."
+        },
+        "errors": {
+          "load_failed": "De routeringsregels konden niet worden geladen.",
+          "create_failed": "De regel kon niet worden toegevoegd. Probeer het opnieuw.",
+          "update_failed": "De regel kon niet worden gewijzigd. Probeer het opnieuw.",
+          "delete_failed": "De regel kon niet worden verwijderd. Probeer het opnieuw.",
+          "not_found": "Deze regel bestaat niet meer.",
+          "forbidden": "Alleen projectbeheerders kunnen routeringsregels wijzigen.",
+          "team_not_attached": "Koppel het team eerst aan dit project.",
+          "label_deleted": "Het label is verwijderd.",
+          "epic_deleted": "De epic is verwijderd of gearchiveerd."
+        }
       }
     },
     "states": {

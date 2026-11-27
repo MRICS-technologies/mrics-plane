@@ -85,6 +85,74 @@
         "leader_failed": "Não foi possível alterar o líder. Tente novamente.",
         "leader_not_member": "Essa pessoa não é mais membro da equipe {team}.",
         "forbidden": "Somente administradores do projeto podem alterar as equipes do projeto."
+      },
+      "routing": {
+        "label": "Roteamento",
+        "description": "Envie itens de trabalho com uma etiqueta ou um epic diretamente ao líder de uma equipe.",
+        "add_rule": "Adicionar regra",
+        "attach_team_first": "Vincule uma equipe primeiro.",
+        "trigger": {
+          "label": "Etiqueta",
+          "epic": "Epic"
+        },
+        "rule_label": "Etiqueta {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} direciona para {team}",
+        "routes_to": "direciona para",
+        "leader_name": "Líder: {name}",
+        "no_leader": "Sem líder",
+        "no_leader_hint": "Os itens de trabalho correspondentes não serão atribuídos até que esta equipe tenha um líder.",
+        "state": {
+          "on": "Ativada",
+          "off": "Desativada"
+        },
+        "toggle_aria_label": "Ativar ou desativar a regra: {rule}",
+        "delete_aria_label": "Excluir a regra: {rule}",
+        "inactive": {
+          "label_deleted": "A etiqueta foi excluída. Exclua esta regra.",
+          "epic_deleted": "O epic foi excluído ou arquivado.",
+          "team_detached": "Esta equipe não está mais vinculada ao projeto. Vincule-a e depois ative a regra."
+        },
+        "form": {
+          "trigger_type": "Quando o item de trabalho tem",
+          "select_label": "Selecionar uma etiqueta",
+          "search_labels": "Pesquisar etiquetas",
+          "no_labels": "Este projeto ainda não tem etiquetas.",
+          "select_epic": "Selecionar um epic",
+          "search_epics": "Pesquisar itens de trabalho",
+          "no_epics": "Nenhum item de trabalho correspondente.",
+          "team": "Enviar para a equipe",
+          "select_team": "Selecionar uma equipe",
+          "no_leader_warning": "{team} não tem líder neste projeto. Os itens de trabalho correspondentes não serão atribuídos até que você escolha um acima.",
+          "submit": "Adicionar regra",
+          "submitting": "Adicionando…",
+          "duplicate": "Esta regra já existe."
+        },
+        "delete_modal": {
+          "title": "Excluir esta regra?",
+          "content_label": "Novos itens de trabalho com a etiqueta {label} não serão mais enviados para {team}. Os itens de trabalho já atribuídos mantêm seus responsáveis.",
+          "content_epic": "Novos itens de trabalho sob o epic {epic} não serão mais enviados para {team}. Os itens de trabalho já atribuídos mantêm seus responsáveis.",
+          "confirm": "Excluir regra",
+          "confirming": "Excluindo…"
+        },
+        "toasts": {
+          "created": "Regra adicionada.",
+          "deleted": "Regra excluída.",
+          "already_deleted": "Esta regra já foi excluída.",
+          "enabled": "Regra ativada.",
+          "disabled": "Regra desativada."
+        },
+        "errors": {
+          "load_failed": "Não foi possível carregar as regras de roteamento.",
+          "create_failed": "Não foi possível adicionar a regra. Tente novamente.",
+          "update_failed": "Não foi possível alterar a regra. Tente novamente.",
+          "delete_failed": "Não foi possível excluir a regra. Tente novamente.",
+          "not_found": "Esta regra não existe mais.",
+          "forbidden": "Somente administradores do projeto podem alterar as regras de roteamento.",
+          "team_not_attached": "Vincule a equipe a este projeto primeiro.",
+          "label_deleted": "A etiqueta foi excluída.",
+          "epic_deleted": "O epic foi excluído ou arquivado."
+        }
       }
     },
     "states": {

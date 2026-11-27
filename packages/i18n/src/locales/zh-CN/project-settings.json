@@ -85,6 +85,74 @@
         "leader_failed": "无法更改负责人，请重试。",
         "leader_not_member": "此人已不再是 {team} 的成员。",
         "forbidden": "只有项目管理员可以更改项目的团队。"
+      },
+      "routing": {
+        "label": "分派",
+        "description": "将带有某个标签或史诗的工作项直接分派给团队负责人。",
+        "add_rule": "添加规则",
+        "attach_team_first": "请先关联一个团队。",
+        "trigger": {
+          "label": "标签",
+          "epic": "史诗"
+        },
+        "rule_label": "标签 {name}",
+        "rule_epic": "史诗 {identifier} {name}",
+        "rule_summary": "{trigger} 分派给 {team}",
+        "routes_to": "分派给",
+        "leader_name": "负责人：{name}",
+        "no_leader": "无负责人",
+        "no_leader_hint": "在此团队设置负责人之前，匹配的工作项不会被分配。",
+        "state": {
+          "on": "开启",
+          "off": "关闭"
+        },
+        "toggle_aria_label": "开启或关闭规则：{rule}",
+        "delete_aria_label": "删除规则：{rule}",
+        "inactive": {
+          "label_deleted": "该标签已被删除。请删除此规则。",
+          "epic_deleted": "该史诗已被删除或归档。",
+          "team_detached": "此团队已不再关联到此项目。请先关联该团队，再开启规则。"
+        },
+        "form": {
+          "trigger_type": "当工作项具有",
+          "select_label": "选择标签",
+          "search_labels": "搜索标签",
+          "no_labels": "此项目还没有标签。",
+          "select_epic": "选择史诗",
+          "search_epics": "搜索工作项",
+          "no_epics": "没有匹配的工作项。",
+          "team": "分派给团队",
+          "select_team": "选择团队",
+          "no_leader_warning": "{team} 在此项目中没有负责人。在您于上方选择负责人之前，匹配的工作项不会被分配。",
+          "submit": "添加规则",
+          "submitting": "添加中…",
+          "duplicate": "此规则已存在。"
+        },
+        "delete_modal": {
+          "title": "要删除此规则吗？",
+          "content_label": "带有标签 {label} 的新工作项将不再分派给 {team}。已分配的工作项保持现有分配不变。",
+          "content_epic": "史诗 {epic} 下的新工作项将不再分派给 {team}。已分配的工作项保持现有分配不变。",
+          "confirm": "删除规则",
+          "confirming": "删除中…"
+        },
+        "toasts": {
+          "created": "规则已添加。",
+          "deleted": "规则已删除。",
+          "already_deleted": "此规则已被删除。",
+          "enabled": "规则已开启。",
+          "disabled": "规则已关闭。"
+        },
+        "errors": {
+          "load_failed": "无法加载分派规则。",
+          "create_failed": "无法添加规则，请重试。",
+          "update_failed": "无法更改规则，请重试。",
+          "delete_failed": "无法删除规则，请重试。",
+          "not_found": "此规则已不存在。",
+          "forbidden": "只有项目管理员可以更改分派规则。",
+          "team_not_attached": "请先将团队关联到此项目。",
+          "label_deleted": "该标签已被删除。",
+          "epic_deleted": "该史诗已被删除或归档。"
+        }
       }
     },
     "states": {

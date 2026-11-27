@@ -85,6 +85,74 @@
         "leader_failed": "無法變更負責人，請再試一次。",
         "leader_not_member": "此人已不再是 {team} 的成員。",
         "forbidden": "只有專案管理員可以變更專案的團隊。"
+      },
+      "routing": {
+        "label": "分派",
+        "description": "將帶有特定標籤或史詩的工作事項直接分派給團隊負責人。",
+        "add_rule": "新增規則",
+        "attach_team_first": "請先關聯一個團隊。",
+        "trigger": {
+          "label": "標籤",
+          "epic": "史詩"
+        },
+        "rule_label": "標籤 {name}",
+        "rule_epic": "史詩 {identifier} {name}",
+        "rule_summary": "{trigger} 分派給 {team}",
+        "routes_to": "分派給",
+        "leader_name": "負責人：{name}",
+        "no_leader": "無負責人",
+        "no_leader_hint": "在此團隊設定負責人之前，符合條件的工作事項不會被指派。",
+        "state": {
+          "on": "開啟",
+          "off": "關閉"
+        },
+        "toggle_aria_label": "開啟或關閉規則：{rule}",
+        "delete_aria_label": "刪除規則：{rule}",
+        "inactive": {
+          "label_deleted": "該標籤已被刪除。請刪除此規則。",
+          "epic_deleted": "該史詩已被刪除或封存。",
+          "team_detached": "此團隊已不再關聯至此專案。請先關聯該團隊，再開啟規則。"
+        },
+        "form": {
+          "trigger_type": "當工作事項具有",
+          "select_label": "選擇標籤",
+          "search_labels": "搜尋標籤",
+          "no_labels": "此專案尚無標籤。",
+          "select_epic": "選擇史詩",
+          "search_epics": "搜尋工作事項",
+          "no_epics": "沒有符合的工作事項。",
+          "team": "分派給團隊",
+          "select_team": "選擇團隊",
+          "no_leader_warning": "{team} 在此專案中沒有負責人。在您於上方選擇負責人之前，符合條件的工作事項不會被指派。",
+          "submit": "新增規則",
+          "submitting": "新增中…",
+          "duplicate": "此規則已存在。"
+        },
+        "delete_modal": {
+          "title": "要刪除此規則嗎？",
+          "content_label": "帶有標籤 {label} 的新工作事項將不再分派給 {team}。已指派的工作事項會保留現有的指派對象。",
+          "content_epic": "史詩 {epic} 下的新工作事項將不再分派給 {team}。已指派的工作事項會保留現有的指派對象。",
+          "confirm": "刪除規則",
+          "confirming": "刪除中…"
+        },
+        "toasts": {
+          "created": "已新增規則。",
+          "deleted": "已刪除規則。",
+          "already_deleted": "此規則已被刪除。",
+          "enabled": "已開啟規則。",
+          "disabled": "已關閉規則。"
+        },
+        "errors": {
+          "load_failed": "無法載入分派規則。",
+          "create_failed": "無法新增規則，請再試一次。",
+          "update_failed": "無法變更規則，請再試一次。",
+          "delete_failed": "無法刪除規則，請再試一次。",
+          "not_found": "此規則已不存在。",
+          "forbidden": "只有專案管理員可以變更分派規則。",
+          "team_not_attached": "請先將團隊關聯至此專案。",
+          "label_deleted": "該標籤已被刪除。",
+          "epic_deleted": "該史詩已被刪除或封存。"
+        }
       }
     },
     "states": {

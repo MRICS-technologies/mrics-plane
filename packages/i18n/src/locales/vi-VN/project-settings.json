@@ -85,6 +85,74 @@
         "leader_failed": "Không thể thay đổi trưởng nhóm. Vui lòng thử lại.",
         "leader_not_member": "Người này không còn là thành viên của {team}.",
         "forbidden": "Chỉ quản trị viên dự án mới có thể thay đổi các nhóm của dự án."
+      },
+      "routing": {
+        "label": "Định tuyến",
+        "description": "Gửi các mục công việc có nhãn hoặc epic thẳng đến trưởng nhóm.",
+        "add_rule": "Thêm quy tắc",
+        "attach_team_first": "Hãy gắn một nhóm trước.",
+        "trigger": {
+          "label": "Nhãn",
+          "epic": "Epic"
+        },
+        "rule_label": "Nhãn {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} chuyển đến {team}",
+        "routes_to": "chuyển đến",
+        "leader_name": "Trưởng nhóm: {name}",
+        "no_leader": "Không có trưởng nhóm",
+        "no_leader_hint": "Các mục công việc phù hợp sẽ không được giao cho đến khi nhóm này có trưởng nhóm.",
+        "state": {
+          "on": "Bật",
+          "off": "Tắt"
+        },
+        "toggle_aria_label": "Bật hoặc tắt quy tắc: {rule}",
+        "delete_aria_label": "Xóa quy tắc: {rule}",
+        "inactive": {
+          "label_deleted": "Nhãn đã bị xóa. Hãy xóa quy tắc này.",
+          "epic_deleted": "Epic đã bị xóa hoặc lưu trữ.",
+          "team_detached": "Nhóm này không còn được gắn với dự án. Hãy gắn lại nhóm, sau đó bật quy tắc."
+        },
+        "form": {
+          "trigger_type": "Khi mục công việc có",
+          "select_label": "Chọn một nhãn",
+          "search_labels": "Tìm nhãn",
+          "no_labels": "Dự án này chưa có nhãn nào.",
+          "select_epic": "Chọn một epic",
+          "search_epics": "Tìm mục công việc",
+          "no_epics": "Không có mục công việc phù hợp.",
+          "team": "Gửi đến nhóm",
+          "select_team": "Chọn một nhóm",
+          "no_leader_warning": "{team} không có trưởng nhóm trong dự án này. Các mục công việc phù hợp sẽ không được giao cho đến khi bạn chọn một trưởng nhóm ở trên.",
+          "submit": "Thêm quy tắc",
+          "submitting": "Đang thêm…",
+          "duplicate": "Quy tắc này đã tồn tại."
+        },
+        "delete_modal": {
+          "title": "Xóa quy tắc này?",
+          "content_label": "Các mục công việc mới có nhãn {label} sẽ không còn được chuyển đến {team}. Các mục công việc đã được giao vẫn giữ nguyên người phụ trách.",
+          "content_epic": "Các mục công việc mới thuộc epic {epic} sẽ không còn được chuyển đến {team}. Các mục công việc đã được giao vẫn giữ nguyên người phụ trách.",
+          "confirm": "Xóa quy tắc",
+          "confirming": "Đang xóa…"
+        },
+        "toasts": {
+          "created": "Đã thêm quy tắc.",
+          "deleted": "Đã xóa quy tắc.",
+          "already_deleted": "Quy tắc này đã bị xóa trước đó.",
+          "enabled": "Đã bật quy tắc.",
+          "disabled": "Đã tắt quy tắc."
+        },
+        "errors": {
+          "load_failed": "Không thể tải các quy tắc định tuyến.",
+          "create_failed": "Không thể thêm quy tắc. Vui lòng thử lại.",
+          "update_failed": "Không thể thay đổi quy tắc. Vui lòng thử lại.",
+          "delete_failed": "Không thể xóa quy tắc. Vui lòng thử lại.",
+          "not_found": "Quy tắc này không còn tồn tại.",
+          "forbidden": "Chỉ quản trị viên dự án mới có thể thay đổi quy tắc định tuyến.",
+          "team_not_attached": "Hãy gắn nhóm vào dự án này trước.",
+          "label_deleted": "Nhãn đã bị xóa.",
+          "epic_deleted": "Epic đã bị xóa hoặc lưu trữ."
+        }
       }
     },
     "states": {
