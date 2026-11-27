@@ -124,10 +124,11 @@ export const RoutingRulesSection = observer(function RoutingRulesSection(props: 
     const index = rules?.findIndex((rule) => rule.id === ruleId) ?? -1;
     const nextRuleId = index >= 0 ? rules?.[index + 1]?.id : undefined;
     await mutate((current) => current?.filter((rule) => rule.id !== ruleId), { revalidate: false });
-    // The deleted row held the focus: hand it to the next rule, or to Add rule after the last one.
+    // The deleted row held the focus: hand it to the next rule, or to Add rule after the last one (Retry when
+    // the list failed to load meanwhile).
     window.setTimeout(() => {
       if (nextRuleId && document.getElementById(routingRuleRowId(nextRuleId))) focusRuleRow(nextRuleId);
-      else addRuleRef.current?.focus();
+      else (retryRef.current ?? addRuleRef.current)?.focus();
     });
   };
 
