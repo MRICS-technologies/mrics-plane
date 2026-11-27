@@ -19,6 +19,8 @@ import type {
 } from "@plane/types";
 // services
 import { IssueService } from "@/services/issue";
+// MRICS
+import { refreshRoutedAssignees } from "../helpers/routing-refresh";
 // store
 import type { IIssueDetail } from "./root.store";
 import type { IWorkItemSubIssueFiltersStore } from "./sub_issues_filter.store";
@@ -203,11 +205,9 @@ export class IssueSubIssuesStore implements IIssueSubIssuesStore {
       this.subIssues[parentIssueId].length
     );
 
-    // A routing rule may have assigned the moved work items (MRICS); the response leaves out assignees.
-    void this.issueService
-      .retrieveIssues(workspaceSlug, projectId, issueIds)
-      .then((issues) => this.rootIssueDetailStore.rootIssueStore.issues.addIssue(issues))
-      .catch(() => undefined);
+    // A routing rule (MRICS) may have assigned the moved work items; the response leaves out assignees.
+    const routingStore = { rootIssueStore: this.rootIssueDetailStore.rootIssueStore, issueService: this.issueService };
+    void refreshRoutedAssignees(routingStore, workspaceSlug, projectId, issueIds);
 
     return;
   };

@@ -40,6 +40,7 @@ export const refreshRoutedAssignees = async (
   issueIds: string[],
   knownAssigneeIds: string[] = []
 ) => {
+  if (!issueIds.length) return;
   const { issues } = store.rootIssueStore;
   const before = new Map(
     issueIds.map((issueId) => [issueId, [...knownAssigneeIds, ...(issues.getIssueById(issueId)?.assignee_ids ?? [])]])
