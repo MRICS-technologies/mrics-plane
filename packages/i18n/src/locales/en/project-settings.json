@@ -85,6 +85,74 @@
         "leader_failed": "The leader could not be changed. Please try again.",
         "leader_not_member": "This person isn’t a member of {team} anymore.",
         "forbidden": "Only project admins can change the project’s teams."
+      },
+      "routing": {
+        "label": "Routing",
+        "description": "Send work with a label or epic straight to a team’s leader.",
+        "add_rule": "Add rule",
+        "attach_team_first": "Attach a team first.",
+        "trigger": {
+          "label": "Label",
+          "epic": "Epic"
+        },
+        "rule_label": "Label {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} routes to {team}",
+        "routes_to": "routes to",
+        "leader_name": "Leader: {name}",
+        "no_leader": "No leader",
+        "no_leader_hint": "Matching work won’t be assigned until this team has a leader.",
+        "state": {
+          "on": "On",
+          "off": "Off"
+        },
+        "toggle_aria_label": "Turn rule on or off: {rule}",
+        "delete_aria_label": "Delete rule: {rule}",
+        "inactive": {
+          "label_deleted": "The label was deleted. Delete this rule.",
+          "epic_deleted": "The epic was deleted or archived.",
+          "team_detached": "This team isn’t attached to the project any more. Attach it, then turn the rule on."
+        },
+        "form": {
+          "trigger_type": "When work has",
+          "select_label": "Select a label",
+          "search_labels": "Search labels",
+          "no_labels": "This project has no labels yet.",
+          "select_epic": "Select an epic",
+          "search_epics": "Search work items",
+          "no_epics": "No matching work items.",
+          "team": "Send to team",
+          "select_team": "Select a team",
+          "no_leader_warning": "{team} has no leader in this project. Matching work won’t be assigned until you pick one above.",
+          "submit": "Add rule",
+          "submitting": "Adding…",
+          "duplicate": "This rule already exists."
+        },
+        "delete_modal": {
+          "title": "Delete this rule?",
+          "content_label": "New work with the label {label} will no longer go to {team}. Work already assigned keeps its assignees.",
+          "content_epic": "New work under the epic {epic} will no longer go to {team}. Work already assigned keeps its assignees.",
+          "confirm": "Delete rule",
+          "confirming": "Deleting…"
+        },
+        "toasts": {
+          "created": "Rule added.",
+          "deleted": "Rule deleted.",
+          "already_deleted": "This rule was already deleted.",
+          "enabled": "Rule on.",
+          "disabled": "Rule off."
+        },
+        "errors": {
+          "load_failed": "The routing rules could not be loaded.",
+          "create_failed": "The rule could not be added. Please try again.",
+          "update_failed": "The rule could not be changed. Please try again.",
+          "delete_failed": "The rule could not be deleted. Please try again.",
+          "not_found": "This rule no longer exists.",
+          "forbidden": "Only project admins can change routing rules.",
+          "team_not_attached": "Attach the team to this project first.",
+          "label_deleted": "The label was deleted.",
+          "epic_deleted": "The epic was deleted or archived."
+        }
       }
     },
     "states": {
