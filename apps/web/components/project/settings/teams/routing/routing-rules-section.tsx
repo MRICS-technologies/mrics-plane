@@ -76,9 +76,13 @@ export const RoutingRulesSection = observer(function RoutingRulesSection(props: 
 
   useEffect(() => () => window.clearTimeout(highlightTimerRef.current), []);
 
-  if (!canRead) return null;
-
   const hasNoTeams = projectTeams?.length === 0;
+  // The last team was detached above: close the form, so attaching one later doesn't reopen it and take the focus.
+  useEffect(() => {
+    if (hasNoTeams) setIsFormOpen(false);
+  }, [hasNoTeams]);
+
+  if (!canRead) return null;
 
   const highlight = (ruleId: string) => {
     setHighlightedRuleId(ruleId);
