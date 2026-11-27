@@ -186,7 +186,9 @@ export const RoutingRuleRow = observer(function RoutingRuleRow(props: Props) {
               <span className="shrink-0 text-11 font-medium text-tertiary">
                 {rule.epic.project_identifier}-{rule.epic.sequence_id}
               </span>
-              <span className="max-w-60 min-w-0 truncate">{rule.epic.name}</span>
+              <span className="max-w-60 min-w-0 truncate" title={rule.epic.name}>
+                {rule.epic.name}
+              </span>
             </span>
           ) : (
             <span className="inline-flex max-w-40 min-w-0 shrink items-center gap-1.5 rounded-full border border-strong px-2 py-0.5 text-11">
@@ -195,14 +197,18 @@ export const RoutingRuleRow = observer(function RoutingRuleRow(props: Props) {
                 style={{ backgroundColor: rule.label?.color || "#000000" }}
                 aria-hidden="true"
               />
-              <span className="truncate font-medium">{rule.label?.name}</span>
+              <span className="truncate font-medium" title={rule.label?.name}>
+                {rule.label?.name}
+              </span>
             </span>
           )}
           <span className="shrink-0 text-tertiary" aria-hidden="true">
             →
           </span>
           <span className="sr-only">{t("project_settings.teams.routing.routes_to")}</span>
-          <span className="min-w-0 truncate font-medium">{rule.team.name}</span>
+          <span className="min-w-0 truncate font-medium" title={rule.team.name}>
+            {rule.team.name}
+          </span>
         </div>
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
