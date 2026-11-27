@@ -10,7 +10,7 @@
  * so these helpers read the assignees back.
  */
 
-import { clone, uniq } from "lodash-es";
+import { clone, uniq, xor } from "lodash-es";
 import { runInAction } from "mobx";
 import type { TIssue } from "@plane/types";
 import type { IssueService } from "@/services/issue";
@@ -41,6 +41,9 @@ const isOpenWorkItem = (rootIssueStore: IIssueRootStore, issueId: string) => {
  * Reads the work items' assignees back and adds the ones that are new on the server: not in the store when the
  * call starts, nor in `knownAssigneeIds`. Add only: a rule never removes anyone, and an assignee edit made in the
  * meantime must survive. Writes nothing when nothing is new. Best effort: the change itself has succeeded.
+ *
+ * An assignee save made while the read ran sent the list without the new ones, and a save replaces the whole
+ * list on the server, so in that case the merged list is saved once more.
  */
 export const refreshRoutedAssignees = async (
   store: TRoutingRefreshStore,
@@ -51,23 +54,31 @@ export const refreshRoutedAssignees = async (
 ) => {
   if (!issueIds.length) return;
   const { issues } = store.rootIssueStore;
-  const before = new Map(
-    issueIds.map((issueId) => [issueId, [...knownAssigneeIds, ...(issues.getIssueById(issueId)?.assignee_ids ?? [])]])
-  );
+  const snapshot = new Map(issueIds.map((issueId) => [issueId, issues.getIssueById(issueId)?.assignee_ids ?? []]));
   try {
     const serverIssues = await store.issueService.retrieveIssues(workspaceSlug, projectId, issueIds);
+    const toSave: { id: string; assigneeIds: string[] }[] = [];
     runInAction(() => {
       for (const { id, assignee_ids: serverAssigneeIds = [] } of serverIssues) {
         const issue = clone(issues.getIssueById(id));
         if (!issue) continue;
+        const before = snapshot.get(id) ?? [];
         const current = issue.assignee_ids ?? [];
-        const added = serverAssigneeIds.filter((assigneeId) => !before.get(id)?.includes(assigneeId));
+        const added = serverAssigneeIds.filter(
+          (assigneeId) => !before.includes(assigneeId) && !knownAssigneeIds.includes(assigneeId)
+        );
         const assigneeIds = uniq([...current, ...added]);
         if (assigneeIds.length === current.length) continue;
         issues.updateIssue(id, { assignee_ids: assigneeIds });
         store.updateIssueList?.({ ...issue, assignee_ids: assigneeIds }, issue);
+        if (xor(before, current).length) toSave.push({ id, assigneeIds });
       }
     });
+    await Promise.all(
+      toSave.map(({ id, assigneeIds }) =>
+        store.issueService.patchIssue(workspaceSlug, projectId, id, { assignee_ids: assigneeIds })
+      )
+    );
   } catch {
     // The next fetch of the work items shows them.
   }
