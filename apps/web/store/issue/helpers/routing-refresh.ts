@@ -28,6 +28,15 @@ const mayRouteIssue = (issueBeforeUpdate: TIssue | undefined, data: Partial<TIss
   (!!data.parent_id && data.parent_id !== issueBeforeUpdate?.parent_id) ||
   (data.label_ids ?? []).some((labelId) => !issueBeforeUpdate?.label_ids?.includes(labelId));
 
+/** Whether the work item is open in peek or on its detail page right now. */
+const isOpenWorkItem = (rootIssueStore: IIssueRootStore, issueId: string) => {
+  const workItem = rootIssueStore.rootStore.router.query.workItem?.toString();
+  return (
+    rootIssueStore.issueDetail.peekIssue?.issueId === issueId ||
+    (!!workItem && rootIssueStore.issues.getIssueIdByIdentifier(workItem) === issueId)
+  );
+};
+
 /**
  * Reads the work items' assignees back and adds the ones that are new on the server: not in the store when the
  * call starts, nor in `knownAssigneeIds`. Add only: a rule never removes anyone, and an assignee edit made in the
@@ -65,9 +74,9 @@ export const refreshRoutedAssignees = async (
 };
 
 /**
- * After an update that may fire a rule: adds the assignee the rule may have added and, when the work item's
- * history is loaded, re-reads it for the rule's entry (the detail page loads the history in parallel with the
- * PATCH, so it can miss that entry).
+ * After an update that may fire a rule: adds the assignee the rule may have added and, when the work item is open
+ * in peek or on its detail page, re-reads its history for the rule's entry (the detail page loads the history in
+ * parallel with the PATCH, so it can miss that entry).
  */
 export const refreshRoutedIssue = async (
   store: TRoutingRefreshStore,
@@ -81,6 +90,6 @@ export const refreshRoutedIssue = async (
   // The assignees before the PATCH count as known too, so one removed while it ran doesn't come back.
   await refreshRoutedAssignees(store, workspaceSlug, projectId, [issueId], issueBeforeUpdate?.assignee_ids);
   const { activity } = store.rootIssueStore.issueDetail;
-  if (!activity.getActivitiesByIssueId(issueId)) return;
+  if (!isOpenWorkItem(store.rootIssueStore, issueId) || !activity.getActivitiesByIssueId(issueId)) return;
   await activity.fetchActivities(workspaceSlug, projectId, issueId).catch(() => undefined);
 };
