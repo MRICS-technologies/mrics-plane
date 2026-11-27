@@ -69,9 +69,13 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
   const triggerPickerId = `${formId}-trigger`;
   const teamPickerId = `${formId}-team`;
 
-  // Opening the form moves the focus to its first control, the checked trigger type.
+  // Opening the form moves the focus to its first control, the checked trigger type. A tick later, so the
+  // radio group's own focus tracking is in place and the first arrow key already moves the selection.
   useEffect(() => {
-    formRef.current?.querySelector<HTMLElement>("[role='radio'][aria-checked='true']")?.focus();
+    const timer = window.setTimeout(() =>
+      formRef.current?.querySelector<HTMLElement>("[role='radio'][aria-checked='true']")?.focus()
+    );
+    return () => window.clearTimeout(timer);
   }, []);
 
   const labels = getProjectLabels(projectId);
