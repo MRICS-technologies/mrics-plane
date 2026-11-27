@@ -45,6 +45,7 @@ import {
   getSubGroupIssueKeyActions,
 } from "./base-issues-utils";
 import type { IBaseIssueFilterStore } from "./issue-filter-helper.store";
+import { refreshRoutedIssue } from "./routing-refresh";
 
 export type TIssueDisplayFilterOptions = Exclude<TIssueGroupByOptions, null> | "target_date";
 
@@ -172,14 +173,6 @@ const ISSUE_ORDERBY_KEY: Record<TIssueOrderByOptions, keyof TIssue> = {
   sub_issues_count: "sub_issues_count",
   "-sub_issues_count": "sub_issues_count",
 };
-
-/**
- * Whether an update can fire a routing rule (MRICS): a label the work item didn't have, or a new parent.
- * The rule's leader is added on the server, which the PATCH (no body) doesn't report.
- */
-const mayRouteIssue = (issueBeforeUpdate: TIssue | undefined, data: Partial<TIssue>) =>
-  (!!data.parent_id && data.parent_id !== issueBeforeUpdate?.parent_id) ||
-  (data.label_ids ?? []).some((labelId) => !issueBeforeUpdate?.label_ids?.includes(labelId));
 
 export abstract class BaseIssuesStore implements IBaseIssuesStore {
   loader: Record<string, TLoader> = {};
@@ -586,8 +579,8 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       // call API to update the issue
       await this.issueService.patchIssue(workspaceSlug, projectId, issueId, data);
 
-      // A routing rule may have added an assignee: read the assignees back.
-      if (mayRouteIssue(issueBeforeUpdate, data)) void this.refreshRoutedIssue(workspaceSlug, projectId, issueId);
+      // A routing rule (MRICS) may have added an assignee: read the assignees back.
+      void refreshRoutedIssue(this, workspaceSlug, projectId, issueId, issueBeforeUpdate, data);
 
       // call fetch Parent Stats
       this.fetchParentStats(workspaceSlug, projectId);
@@ -596,30 +589,6 @@ export abstract class BaseIssuesStore implements IBaseIssuesStore {
       this.rootIssueStore.issues.updateIssue(issueId, issueBeforeUpdate ?? {});
       this.updateIssueList(issueBeforeUpdate, { ...issueBeforeUpdate, ...data } as TIssue);
       throw error;
-    }
-  }
-
-  /**
-   * Reads a work item's assignees back after a label or parent change (MRICS routing rules), so a later
-   * assignee save doesn't drop the leader a rule added, and refreshes its open history for the rule's
-   * entry. Best effort: the update itself has succeeded.
-   */
-  private async refreshRoutedIssue(workspaceSlug: string, projectId: string, issueId: string) {
-    try {
-      const { assignee_ids: assigneeIds = [] } = await this.issueService.retrieve(workspaceSlug, projectId, issueId);
-      const issue = clone(this.rootIssueStore.issues.getIssueById(issueId));
-      if (
-        issue &&
-        (assigneeIds.length !== issue.assignee_ids.length ||
-          assigneeIds.some((assigneeId) => !issue.assignee_ids.includes(assigneeId)))
-      ) {
-        this.rootIssueStore.issues.updateIssue(issueId, { assignee_ids: assigneeIds });
-        this.updateIssueList({ ...issue, assignee_ids: assigneeIds }, issue);
-      }
-      const { activity } = this.rootIssueStore.issueDetail;
-      if (activity.getActivitiesByIssueId(issueId)) await activity.fetchActivities(workspaceSlug, projectId, issueId);
-    } catch {
-      // The next fetch of the work item shows them.
     }
   }
 
