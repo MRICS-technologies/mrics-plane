@@ -62,6 +62,8 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Two submits in one frame both see the old state; the ref stops the second POST.
+  const isSubmittingRef = useRef(false);
   // Every work item the epic search returned: the infinite Select reports the picked id only.
   const searchedEpicsRef = useRef(new Map<string, ISearchIssueResponse>());
   const formRef = useRef<HTMLFormElement>(null);
@@ -101,11 +103,12 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit || !selectedTeam) return;
+    if (!canSubmit || !selectedTeam || isSubmittingRef.current) return;
     const data: TProjectRoutingRuleCreate =
       triggerType === "label"
         ? { trigger_type: "label", label_id: selectedLabel?.id ?? "", team_id: selectedTeam.team.id }
         : { trigger_type: "epic", epic_id: epic?.id ?? "", team_id: selectedTeam.team.id };
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       const rule = await projectRoutingRuleService.create(workspaceSlug, projectId, data);
@@ -127,6 +130,7 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
             message: routingRuleErrorMessage(error, t, t("project_settings.teams.routing.errors.create_failed")),
           });
       }
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
