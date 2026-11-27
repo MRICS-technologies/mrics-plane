@@ -140,10 +140,10 @@ export const RoutingRuleRow = observer(function RoutingRuleRow(props: Props) {
       className="relative isolate flex flex-col gap-1 border-b border-subtle py-3"
       data-testid="routing-rule"
     >
-      {/* The highlight bleeds past the text so it doesn't sit flush on it; the row's own edges stay put. */}
+      {/* The highlight bleeds past the text through its ring, which (unlike a wider box) adds no scroll overflow. */}
       <span
         className={cn(
-          "pointer-events-none absolute -inset-x-2 inset-y-0 -z-10 rounded-md bg-accent-subtle opacity-0 transition-opacity duration-700 motion-reduce:transition-none",
+          "pointer-events-none absolute inset-x-0 inset-y-2 -z-10 rounded-xs bg-accent-subtle opacity-0 ring-8 ring-accent-subtle transition-opacity duration-700 motion-reduce:transition-none",
           { "opacity-100": isHighlighted }
         )}
         aria-hidden="true"
