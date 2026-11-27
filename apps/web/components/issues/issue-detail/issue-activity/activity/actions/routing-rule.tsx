@@ -30,6 +30,8 @@ export const IssueRoutingRuleActivity = observer(function IssueRoutingRuleActivi
       icon={<AutomationsOutline className="h-3.5 w-3.5 flex-shrink-0 text-secondary" aria-hidden="true" />}
       activityId={activityId}
       ends={ends}
+      // The routing rule bot has no profile page to link to.
+      customUserName={activity.actor_detail?.is_bot ? activity.actor_detail.display_name : undefined}
     >
       {/* The server's own English sentence, e.g. `routing rule matched (label "Flutter" → team Flutter), team has no leader`. */}
       {activity.comment}
