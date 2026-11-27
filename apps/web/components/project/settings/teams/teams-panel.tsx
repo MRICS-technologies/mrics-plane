@@ -13,7 +13,12 @@ import { WarningTriangleOutline } from "@makeplane/propel/icons";
 import { EmptyStateCompact } from "@plane/blocks/empty-state";
 import { Loader } from "@plane/blocks/skeleton";
 import { setToast } from "@plane/blocks/toast";
-import { GITHUB_PROJECT_TEAM_REPOSITORIES_KEY, PROJECT_TEAMS_KEY, WORKSPACE_TEAMS_KEY } from "@plane/constants";
+import {
+  GITHUB_PROJECT_TEAM_REPOSITORIES_KEY,
+  PROJECT_ROUTING_RULES_KEY,
+  PROJECT_TEAMS_KEY,
+  WORKSPACE_TEAMS_KEY,
+} from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type { TProjectTeam, TWorkspaceTeam } from "@plane/types";
 // components
@@ -26,6 +31,7 @@ import { ProjectTeamService } from "@/services/project-team.service";
 import { WorkspaceTeamService } from "@/services/workspace-team.service";
 // local imports
 import { AddTeamSelect } from "./add-team-select";
+import { RoutingRulesSection } from "./routing/routing-rules-section";
 import { ProjectTeamListItem, projectTeamErrorMessage } from "./team-list-item";
 
 const projectTeamService = new ProjectTeamService();
@@ -80,13 +86,17 @@ export function ProjectTeamsPanel(props: Props) {
       )
       .catch(() => undefined);
 
-  // A team joining or leaving changes the list, the project's members and the GitHub team defaults
-  // (they list attached teams only). Those are cleared rather than only revalidated: their panel
-  // isn't mounted here, and would otherwise show the old rows until its own re-fetch lands.
+  // A team's attachment and leader decide each routing rule's leader and whether it is active.
+  const refreshRoutingRules = () => globalMutate(PROJECT_ROUTING_RULES_KEY(workspaceSlug, projectId));
+
+  // A team joining or leaving changes the list, the project's members, the routing rules and the GitHub
+  // team defaults (they list attached teams only). Those are cleared rather than only revalidated: their
+  // panel isn't mounted here, and would otherwise show the old rows until its own re-fetch lands.
   const refreshAfterTeamChange = () =>
     Promise.all([
       mutate(),
       refreshProjectMembers(),
+      refreshRoutingRules(),
       globalMutate(GITHUB_PROJECT_TEAM_REPOSITORIES_KEY(workspaceSlug, projectId), undefined),
     ]);
 
@@ -126,11 +136,14 @@ export function ProjectTeamsPanel(props: Props) {
   };
 
   const handleUpdated = (updated: TProjectTeam) =>
-    mutate((current) => current?.map((projectTeam) => (projectTeam.id === updated.id ? updated : projectTeam)), {
-      revalidate: false,
-    });
+    Promise.all([
+      mutate((current) => current?.map((projectTeam) => (projectTeam.id === updated.id ? updated : projectTeam)), {
+        revalidate: false,
+      }),
+      refreshRoutingRules(),
+    ]);
 
-  const handleRefresh = () => Promise.all([mutate(), refreshProjectMembers()]);
+  const handleRefresh = () => Promise.all([mutate(), refreshProjectMembers(), refreshRoutingRules()]);
 
   const handleRemoved = async () => {
     await refreshAfterTeamChange();
@@ -211,6 +224,15 @@ export function ProjectTeamsPanel(props: Props) {
           ))}
         </div>
       )}
+
+      <div className="mt-6">
+        <RoutingRulesSection
+          workspaceSlug={workspaceSlug}
+          projectId={projectId}
+          isAdmin={isAdmin}
+          projectTeams={projectTeams}
+        />
+      </div>
     </div>
   );
 }
