@@ -126,7 +126,7 @@ def apply_routing_rules(changes):
             if leader_id not in before[issue.id] and leader_id not in added.get(issue, ()):
                 added[issue].append(leader_id)
             continue
-        notes.append((issue, f"routing rule matched ({_trigger(rule)} → team {rule.team.name}), {reason}"))
+        notes.append((issue, f"matched ({_trigger(rule)} → team {rule.team.name}), {reason}"))
     if not added and not notes:
         return
 

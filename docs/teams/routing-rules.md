@@ -54,8 +54,8 @@ leader in Mobile, and the rule `label "Flutter" → team Flutter`.
 4. Removing Flutter later keeps Ahmed assigned. Adding Flutter back does
    nothing, because he is already assigned.
 5. If Flutter had no leader in Mobile, nobody would be added, and the work
-   item would get the entry
-   `routing rule matched (label "Flutter" → team Flutter), team has no leader`.
+   item would get an entry by **Routing rule** that reads
+   "matched (label "Flutter" → team Flutter), team has no leader".
 
 ## API
 
@@ -191,7 +191,7 @@ without a notification:
 {
   "field": "routing_rule",
   "verb": "updated",
-  "comment": "routing rule matched (label \"Flutter\" → team Flutter), team has no leader",
+  "comment": "matched (label \"Flutter\" → team Flutter), team has no leader",
   "old_value": null,
   "new_value": null,
   "actor": "<bot id>",
@@ -199,7 +199,7 @@ without a notification:
 }
 ```
 
-The comment is `routing rule matched (<trigger> → team <team name>), <reason>`:
+The comment is `matched (<trigger> → team <team name>), <reason>`:
 
 - `<trigger>` is `label "<name>"` or `epic "<work item name>"`.
 - `<reason>` is one of:

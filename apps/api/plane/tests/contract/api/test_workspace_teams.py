@@ -2285,11 +2285,10 @@ class TestRoutingRuleFiring:
         assert _assignee_ids(issue) == []
         bot = get_routing_bot()
         assert _routing_notes(issue) == [
-            (bot.id, 'routing rule matched (label "Flutter" → team Flutter), team has no leader'),
+            (bot.id, 'matched (label "Flutter" → team Flutter), team has no leader'),
             (
                 bot.id,
-                'routing rule matched (label "Flutter" → team QA), '
-                "leader can't be assigned (not an active project member)",
+                'matched (label "Flutter" → team QA), leader can\'t be assigned (not an active project member)',
             ),
         ]
         assert IssueActivity.objects.filter(issue=issue, field="routing_rule", verb="updated").count() == 2
@@ -2301,7 +2300,7 @@ class TestRoutingRuleFiring:
         ProjectTeam.objects.filter(team=routing.team).delete()  # bypasses detach, rule stays enabled
         resp = routing.call("post", _issues_url(project), {"name": "Item", "parent_id": str(routing.epic.id)})
         assert [comment for _, comment in _routing_notes(Issue.objects.get(pk=resp.data["id"]))] == [
-            'routing rule matched (epic "Mobile app" → team Flutter), team is not attached to the project'
+            'matched (epic "Mobile app" → team Flutter), team is not attached to the project'
         ]
 
     @pytest.mark.django_db
