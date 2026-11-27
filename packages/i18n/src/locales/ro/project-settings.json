@@ -85,6 +85,74 @@
         "leader_failed": "Liderul nu a putut fi schimbat. Încercați din nou.",
         "leader_not_member": "Această persoană nu mai este membră a echipei {team}.",
         "forbidden": "Doar administratorii proiectului pot modifica echipele proiectului."
+      },
+      "routing": {
+        "label": "Direcționare",
+        "description": "Trimiteți activitățile cu o etichetă sau un epic direct liderului unei echipe.",
+        "add_rule": "Adaugă regulă",
+        "attach_team_first": "Asociați mai întâi o echipă.",
+        "trigger": {
+          "label": "Etichetă",
+          "epic": "Epic"
+        },
+        "rule_label": "Etichetă {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} direcționează către {team}",
+        "routes_to": "direcționează către",
+        "leader_name": "Lider: {name}",
+        "no_leader": "Fără lider",
+        "no_leader_hint": "Activitățile potrivite nu vor fi atribuite până când această echipă nu va avea un lider.",
+        "state": {
+          "on": "Activată",
+          "off": "Dezactivată"
+        },
+        "toggle_aria_label": "Activează sau dezactivează regula: {rule}",
+        "delete_aria_label": "Șterge regula: {rule}",
+        "inactive": {
+          "label_deleted": "Eticheta a fost ștearsă. Ștergeți această regulă.",
+          "epic_deleted": "Epicul a fost șters sau arhivat.",
+          "team_detached": "Această echipă nu mai este asociată proiectului. Asociați-o, apoi activați regula."
+        },
+        "form": {
+          "trigger_type": "Când activitatea are",
+          "select_label": "Selectează o etichetă",
+          "search_labels": "Caută etichete",
+          "no_labels": "Acest proiect nu are încă etichete.",
+          "select_epic": "Selectează un epic",
+          "search_epics": "Caută activități",
+          "no_epics": "Nicio activitate potrivită.",
+          "team": "Trimite către echipă",
+          "select_team": "Selectează o echipă",
+          "no_leader_warning": "Echipa {team} nu are lider în acest proiect. Activitățile potrivite nu vor fi atribuite până când nu alegeți unul mai sus.",
+          "submit": "Adaugă regulă",
+          "submitting": "Se adaugă…",
+          "duplicate": "Această regulă există deja."
+        },
+        "delete_modal": {
+          "title": "Ștergeți această regulă?",
+          "content_label": "Activitățile noi cu eticheta {label} nu vor mai ajunge la echipa {team}. Activitățile deja atribuite își păstrează responsabilii.",
+          "content_epic": "Activitățile noi din epicul {epic} nu vor mai ajunge la echipa {team}. Activitățile deja atribuite își păstrează responsabilii.",
+          "confirm": "Șterge regula",
+          "confirming": "Se șterge…"
+        },
+        "toasts": {
+          "created": "Regula a fost adăugată.",
+          "deleted": "Regula a fost ștearsă.",
+          "already_deleted": "Această regulă a fost deja ștearsă.",
+          "enabled": "Regula a fost activată.",
+          "disabled": "Regula a fost dezactivată."
+        },
+        "errors": {
+          "load_failed": "Regulile de direcționare nu au putut fi încărcate.",
+          "create_failed": "Regula nu a putut fi adăugată. Încercați din nou.",
+          "update_failed": "Regula nu a putut fi modificată. Încercați din nou.",
+          "delete_failed": "Regula nu a putut fi ștearsă. Încercați din nou.",
+          "not_found": "Această regulă nu mai există.",
+          "forbidden": "Doar administratorii proiectului pot modifica regulile de direcționare.",
+          "team_not_attached": "Mai întâi asociați echipa cu acest proiect.",
+          "label_deleted": "Eticheta a fost ștearsă.",
+          "epic_deleted": "Epicul a fost șters sau arhivat."
+        }
       }
     },
     "states": {

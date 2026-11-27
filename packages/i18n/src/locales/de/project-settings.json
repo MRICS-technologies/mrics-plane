@@ -85,6 +85,74 @@
         "leader_failed": "Die Leitung konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
         "leader_not_member": "Diese Person ist kein Mitglied von {team} mehr.",
         "forbidden": "Nur Projektadministratoren können die Teams des Projekts ändern."
+      },
+      "routing": {
+        "label": "Weiterleitung",
+        "description": "Arbeitselemente mit einem Label oder Epic direkt an die Leitung eines Teams senden.",
+        "add_rule": "Regel hinzufügen",
+        "attach_team_first": "Ordnen Sie zuerst ein Team zu.",
+        "trigger": {
+          "label": "Label",
+          "epic": "Epic"
+        },
+        "rule_label": "Label {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} leitet an {team} weiter",
+        "routes_to": "leitet weiter an",
+        "leader_name": "Leitung: {name}",
+        "no_leader": "Keine Leitung",
+        "no_leader_hint": "Passende Arbeitselemente werden erst zugewiesen, wenn dieses Team eine Leitung hat.",
+        "state": {
+          "on": "Ein",
+          "off": "Aus"
+        },
+        "toggle_aria_label": "Regel ein- oder ausschalten: {rule}",
+        "delete_aria_label": "Regel löschen: {rule}",
+        "inactive": {
+          "label_deleted": "Das Label wurde gelöscht. Löschen Sie diese Regel.",
+          "epic_deleted": "Das Epic wurde gelöscht oder archiviert.",
+          "team_detached": "Dieses Team ist dem Projekt nicht mehr zugeordnet. Ordnen Sie es zu und schalten Sie dann die Regel ein."
+        },
+        "form": {
+          "trigger_type": "Arbeitselemente mit",
+          "select_label": "Label auswählen",
+          "search_labels": "Labels suchen",
+          "no_labels": "Dieses Projekt hat noch keine Labels.",
+          "select_epic": "Epic auswählen",
+          "search_epics": "Arbeitselemente suchen",
+          "no_epics": "Keine passenden Arbeitselemente.",
+          "team": "An Team senden",
+          "select_team": "Team auswählen",
+          "no_leader_warning": "{team} hat in diesem Projekt keine Leitung. Passende Arbeitselemente werden erst zugewiesen, wenn Sie oben eine Leitung auswählen.",
+          "submit": "Regel hinzufügen",
+          "submitting": "Wird hinzugefügt…",
+          "duplicate": "Diese Regel existiert bereits."
+        },
+        "delete_modal": {
+          "title": "Diese Regel löschen?",
+          "content_label": "Neue Arbeitselemente mit dem Label {label} gehen nicht mehr an {team}. Bereits zugewiesene Arbeitselemente behalten ihre Zuweisungen.",
+          "content_epic": "Neue Arbeitselemente unter dem Epic {epic} gehen nicht mehr an {team}. Bereits zugewiesene Arbeitselemente behalten ihre Zuweisungen.",
+          "confirm": "Regel löschen",
+          "confirming": "Wird gelöscht…"
+        },
+        "toasts": {
+          "created": "Regel hinzugefügt.",
+          "deleted": "Regel gelöscht.",
+          "already_deleted": "Diese Regel wurde bereits gelöscht.",
+          "enabled": "Regel eingeschaltet.",
+          "disabled": "Regel ausgeschaltet."
+        },
+        "errors": {
+          "load_failed": "Die Weiterleitungsregeln konnten nicht geladen werden.",
+          "create_failed": "Die Regel konnte nicht hinzugefügt werden. Bitte versuchen Sie es erneut.",
+          "update_failed": "Die Regel konnte nicht geändert werden. Bitte versuchen Sie es erneut.",
+          "delete_failed": "Die Regel konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+          "not_found": "Diese Regel existiert nicht mehr.",
+          "forbidden": "Nur Projektadministratoren können Weiterleitungsregeln ändern.",
+          "team_not_attached": "Ordnen Sie das Team zuerst diesem Projekt zu.",
+          "label_deleted": "Das Label wurde gelöscht.",
+          "epic_deleted": "Das Epic wurde gelöscht oder archiviert."
+        }
       }
     },
     "states": {

@@ -85,6 +85,74 @@
         "leader_failed": "Le responsable n’a pas pu être modifié. Veuillez réessayer.",
         "leader_not_member": "Cette personne ne fait plus partie de l’équipe {team}.",
         "forbidden": "Seuls les administrateurs du projet peuvent modifier ses équipes."
+      },
+      "routing": {
+        "label": "Routage",
+        "description": "Envoyez les éléments de travail ayant une étiquette ou un epic directement au responsable d’une équipe.",
+        "add_rule": "Ajouter une règle",
+        "attach_team_first": "Associez d’abord une équipe.",
+        "trigger": {
+          "label": "Étiquette",
+          "epic": "Epic"
+        },
+        "rule_label": "Étiquette {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} redirige vers {team}",
+        "routes_to": "redirige vers",
+        "leader_name": "Responsable : {name}",
+        "no_leader": "Aucun responsable",
+        "no_leader_hint": "Les éléments de travail correspondants ne seront pas assignés tant que cette équipe n’aura pas de responsable.",
+        "state": {
+          "on": "Activée",
+          "off": "Désactivée"
+        },
+        "toggle_aria_label": "Activer ou désactiver la règle : {rule}",
+        "delete_aria_label": "Supprimer la règle : {rule}",
+        "inactive": {
+          "label_deleted": "L’étiquette a été supprimée. Supprimez cette règle.",
+          "epic_deleted": "L’epic a été supprimé ou archivé.",
+          "team_detached": "Cette équipe n’est plus associée au projet. Associez-la, puis activez la règle."
+        },
+        "form": {
+          "trigger_type": "Quand l’élément de travail a",
+          "select_label": "Sélectionner une étiquette",
+          "search_labels": "Rechercher des étiquettes",
+          "no_labels": "Ce projet n’a pas encore d’étiquette.",
+          "select_epic": "Sélectionner un epic",
+          "search_epics": "Rechercher des éléments de travail",
+          "no_epics": "Aucun élément de travail correspondant.",
+          "team": "Envoyer à l’équipe",
+          "select_team": "Sélectionner une équipe",
+          "no_leader_warning": "{team} n’a pas de responsable dans ce projet. Les éléments de travail correspondants ne seront pas assignés tant que vous n’en aurez pas choisi un ci-dessus.",
+          "submit": "Ajouter la règle",
+          "submitting": "Ajout en cours…",
+          "duplicate": "Cette règle existe déjà."
+        },
+        "delete_modal": {
+          "title": "Supprimer cette règle ?",
+          "content_label": "Les nouveaux éléments de travail avec l’étiquette {label} ne seront plus envoyés à {team}. Les éléments de travail déjà assignés conservent leurs assignations.",
+          "content_epic": "Les nouveaux éléments de travail sous l’epic {epic} ne seront plus envoyés à {team}. Les éléments de travail déjà assignés conservent leurs assignations.",
+          "confirm": "Supprimer la règle",
+          "confirming": "Suppression en cours…"
+        },
+        "toasts": {
+          "created": "Règle ajoutée.",
+          "deleted": "Règle supprimée.",
+          "already_deleted": "Cette règle a déjà été supprimée.",
+          "enabled": "Règle activée.",
+          "disabled": "Règle désactivée."
+        },
+        "errors": {
+          "load_failed": "Les règles de routage n’ont pas pu être chargées.",
+          "create_failed": "La règle n’a pas pu être ajoutée. Veuillez réessayer.",
+          "update_failed": "La règle n’a pas pu être modifiée. Veuillez réessayer.",
+          "delete_failed": "La règle n’a pas pu être supprimée. Veuillez réessayer.",
+          "not_found": "Cette règle n’existe plus.",
+          "forbidden": "Seuls les administrateurs du projet peuvent modifier les règles de routage.",
+          "team_not_attached": "Associez d’abord l’équipe à ce projet.",
+          "label_deleted": "L’étiquette a été supprimée.",
+          "epic_deleted": "L’epic a été supprimé ou archivé."
+        }
       }
     },
     "states": {

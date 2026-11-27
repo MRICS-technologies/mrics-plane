@@ -85,6 +85,74 @@
         "leader_failed": "Lider değiştirilemedi. Lütfen tekrar deneyin.",
         "leader_not_member": "Bu kişi artık {team} takımının üyesi değil.",
         "forbidden": "Projenin takımlarını yalnızca proje yöneticileri değiştirebilir."
+      },
+      "routing": {
+        "label": "Yönlendirme",
+        "description": "Etiketi veya epiği olan iş öğelerini doğrudan bir takımın liderine gönderin.",
+        "add_rule": "Kural ekle",
+        "attach_team_first": "Önce bir takım bağlayın.",
+        "trigger": {
+          "label": "Etiket",
+          "epic": "Epik"
+        },
+        "rule_label": "Etiket {name}",
+        "rule_epic": "Epik {identifier} {name}",
+        "rule_summary": "{trigger}, {team} takımına yönlendirir",
+        "routes_to": "şu takıma yönlendirir:",
+        "leader_name": "Lider: {name}",
+        "no_leader": "Lider yok",
+        "no_leader_hint": "Bu takımın bir lideri olana kadar eşleşen iş öğeleri atanmaz.",
+        "state": {
+          "on": "Açık",
+          "off": "Kapalı"
+        },
+        "toggle_aria_label": "Kuralı aç veya kapat: {rule}",
+        "delete_aria_label": "Kuralı sil: {rule}",
+        "inactive": {
+          "label_deleted": "Etiket silindi. Bu kuralı silin.",
+          "epic_deleted": "Epik silindi veya arşivlendi.",
+          "team_detached": "Bu takım artık projeye bağlı değil. Takımı bağlayın, ardından kuralı açın."
+        },
+        "form": {
+          "trigger_type": "İş öğesinin sahip olduğu",
+          "select_label": "Bir etiket seçin",
+          "search_labels": "Etiket ara",
+          "no_labels": "Bu projede henüz etiket yok.",
+          "select_epic": "Bir epik seçin",
+          "search_epics": "İş öğesi ara",
+          "no_epics": "Eşleşen iş öğesi yok.",
+          "team": "Gönderilecek takım",
+          "select_team": "Bir takım seçin",
+          "no_leader_warning": "{team} takımının bu projede lideri yok. Yukarıdan bir lider seçene kadar eşleşen iş öğeleri atanmaz.",
+          "submit": "Kural ekle",
+          "submitting": "Ekleniyor…",
+          "duplicate": "Bu kural zaten var."
+        },
+        "delete_modal": {
+          "title": "Bu kural silinsin mi?",
+          "content_label": "{label} etiketine sahip yeni iş öğeleri artık {team} takımına gitmeyecek. Zaten atanmış iş öğeleri mevcut atananlarını korur.",
+          "content_epic": "{epic} epiğinin altındaki yeni iş öğeleri artık {team} takımına gitmeyecek. Zaten atanmış iş öğeleri mevcut atananlarını korur.",
+          "confirm": "Kuralı sil",
+          "confirming": "Siliniyor…"
+        },
+        "toasts": {
+          "created": "Kural eklendi.",
+          "deleted": "Kural silindi.",
+          "already_deleted": "Bu kural zaten silinmiş.",
+          "enabled": "Kural açıldı.",
+          "disabled": "Kural kapatıldı."
+        },
+        "errors": {
+          "load_failed": "Yönlendirme kuralları yüklenemedi.",
+          "create_failed": "Kural eklenemedi. Lütfen tekrar deneyin.",
+          "update_failed": "Kural değiştirilemedi. Lütfen tekrar deneyin.",
+          "delete_failed": "Kural silinemedi. Lütfen tekrar deneyin.",
+          "not_found": "Bu kural artık mevcut değil.",
+          "forbidden": "Yönlendirme kurallarını yalnızca proje yöneticileri değiştirebilir.",
+          "team_not_attached": "Önce takımı bu projeye bağlayın.",
+          "label_deleted": "Etiket silindi.",
+          "epic_deleted": "Epik silindi veya arşivlendi."
+        }
       }
     },
     "states": {

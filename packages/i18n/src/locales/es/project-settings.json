@@ -85,6 +85,74 @@
         "leader_failed": "No se pudo cambiar el líder. Inténtelo de nuevo.",
         "leader_not_member": "Esta persona ya no es miembro de {team}.",
         "forbidden": "Solo los administradores del proyecto pueden modificar los equipos del proyecto."
+      },
+      "routing": {
+        "label": "Enrutamiento",
+        "description": "Envíe los elementos de trabajo con una etiqueta o un epic directamente al líder de un equipo.",
+        "add_rule": "Agregar regla",
+        "attach_team_first": "Vincule primero un equipo.",
+        "trigger": {
+          "label": "Etiqueta",
+          "epic": "Epic"
+        },
+        "rule_label": "Etiqueta {name}",
+        "rule_epic": "Epic {identifier} {name}",
+        "rule_summary": "{trigger} enruta a {team}",
+        "routes_to": "enruta a",
+        "leader_name": "Líder: {name}",
+        "no_leader": "Sin líder",
+        "no_leader_hint": "Los elementos de trabajo coincidentes no se asignarán hasta que este equipo tenga un líder.",
+        "state": {
+          "on": "Activada",
+          "off": "Desactivada"
+        },
+        "toggle_aria_label": "Activar o desactivar la regla: {rule}",
+        "delete_aria_label": "Eliminar la regla: {rule}",
+        "inactive": {
+          "label_deleted": "La etiqueta se eliminó. Elimine esta regla.",
+          "epic_deleted": "El epic se eliminó o se archivó.",
+          "team_detached": "Este equipo ya no está vinculado al proyecto. Vincúlelo y luego active la regla."
+        },
+        "form": {
+          "trigger_type": "Cuando el elemento de trabajo tiene",
+          "select_label": "Seleccione una etiqueta",
+          "search_labels": "Buscar etiquetas",
+          "no_labels": "Este proyecto aún no tiene etiquetas.",
+          "select_epic": "Seleccione un epic",
+          "search_epics": "Buscar elementos de trabajo",
+          "no_epics": "No hay elementos de trabajo coincidentes.",
+          "team": "Enviar al equipo",
+          "select_team": "Seleccione un equipo",
+          "no_leader_warning": "{team} no tiene líder en este proyecto. Los elementos de trabajo coincidentes no se asignarán hasta que elija uno arriba.",
+          "submit": "Agregar regla",
+          "submitting": "Agregando…",
+          "duplicate": "Esta regla ya existe."
+        },
+        "delete_modal": {
+          "title": "¿Eliminar esta regla?",
+          "content_label": "Los nuevos elementos de trabajo con la etiqueta {label} ya no se enviarán a {team}. Los elementos de trabajo ya asignados conservan sus asignaciones.",
+          "content_epic": "Los nuevos elementos de trabajo bajo el epic {epic} ya no se enviarán a {team}. Los elementos de trabajo ya asignados conservan sus asignaciones.",
+          "confirm": "Eliminar regla",
+          "confirming": "Eliminando…"
+        },
+        "toasts": {
+          "created": "Regla agregada.",
+          "deleted": "Regla eliminada.",
+          "already_deleted": "Esta regla ya se había eliminado.",
+          "enabled": "Regla activada.",
+          "disabled": "Regla desactivada."
+        },
+        "errors": {
+          "load_failed": "No se pudieron cargar las reglas de enrutamiento.",
+          "create_failed": "No se pudo agregar la regla. Inténtelo de nuevo.",
+          "update_failed": "No se pudo cambiar la regla. Inténtelo de nuevo.",
+          "delete_failed": "No se pudo eliminar la regla. Inténtelo de nuevo.",
+          "not_found": "Esta regla ya no existe.",
+          "forbidden": "Solo los administradores del proyecto pueden modificar las reglas de enrutamiento.",
+          "team_not_attached": "Vincule primero el equipo a este proyecto.",
+          "label_deleted": "La etiqueta se eliminó.",
+          "epic_deleted": "El epic se eliminó o se archivó."
+        }
       }
     },
     "states": {

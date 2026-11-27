@@ -85,6 +85,74 @@
         "leader_failed": "Vedúceho sa nepodarilo zmeniť. Skúste to znova.",
         "leader_not_member": "Táto osoba už nie je členom tímu {team}.",
         "forbidden": "Tímy projektu môžu meniť iba správcovia projektu."
+      },
+      "routing": {
+        "label": "Smerovanie",
+        "description": "Posielajte pracovné položky so štítkom alebo epikom priamo vedúcemu tímu.",
+        "add_rule": "Pridať pravidlo",
+        "attach_team_first": "Najprv priraďte tím.",
+        "trigger": {
+          "label": "Štítok",
+          "epic": "Epik"
+        },
+        "rule_label": "Štítok {name}",
+        "rule_epic": "Epik {identifier} {name}",
+        "rule_summary": "{trigger} smeruje do tímu {team}",
+        "routes_to": "smeruje do tímu",
+        "leader_name": "Vedúci: {name}",
+        "no_leader": "Bez vedúceho",
+        "no_leader_hint": "Zodpovedajúce pracovné položky sa nebudú priraďovať, kým tento tím nebude mať vedúceho.",
+        "state": {
+          "on": "Zapnuté",
+          "off": "Vypnuté"
+        },
+        "toggle_aria_label": "Zapnúť alebo vypnúť pravidlo: {rule}",
+        "delete_aria_label": "Zmazať pravidlo: {rule}",
+        "inactive": {
+          "label_deleted": "Štítok bol zmazaný. Zmažte toto pravidlo.",
+          "epic_deleted": "Epik bol zmazaný alebo archivovaný.",
+          "team_detached": "Tento tím už nie je priradený k projektu. Priraďte ho a potom pravidlo zapnite."
+        },
+        "form": {
+          "trigger_type": "Keď má pracovná položka",
+          "select_label": "Vyberte štítok",
+          "search_labels": "Hľadať štítky",
+          "no_labels": "Tento projekt zatiaľ nemá žiadne štítky.",
+          "select_epic": "Vyberte epik",
+          "search_epics": "Hľadať pracovné položky",
+          "no_epics": "Žiadne zodpovedajúce pracovné položky.",
+          "team": "Poslať tímu",
+          "select_team": "Vyberte tím",
+          "no_leader_warning": "Tím {team} nemá v tomto projekte vedúceho. Zodpovedajúce pracovné položky sa nebudú priraďovať, kým vyššie nejakého nevyberiete.",
+          "submit": "Pridať pravidlo",
+          "submitting": "Pridávanie…",
+          "duplicate": "Toto pravidlo už existuje."
+        },
+        "delete_modal": {
+          "title": "Zmazať toto pravidlo?",
+          "content_label": "Nové pracovné položky so štítkom {label} už nebudú smerované do tímu {team}. Už priradené pracovné položky si ponechajú súčasné priradenia.",
+          "content_epic": "Nové pracovné položky v epiku {epic} už nebudú smerované do tímu {team}. Už priradené pracovné položky si ponechajú súčasné priradenia.",
+          "confirm": "Zmazať pravidlo",
+          "confirming": "Mazanie…"
+        },
+        "toasts": {
+          "created": "Pravidlo pridané.",
+          "deleted": "Pravidlo zmazané.",
+          "already_deleted": "Toto pravidlo už bolo zmazané.",
+          "enabled": "Pravidlo zapnuté.",
+          "disabled": "Pravidlo vypnuté."
+        },
+        "errors": {
+          "load_failed": "Pravidlá smerovania sa nepodarilo načítať.",
+          "create_failed": "Pravidlo sa nepodarilo pridať. Skúste to znova.",
+          "update_failed": "Pravidlo sa nepodarilo zmeniť. Skúste to znova.",
+          "delete_failed": "Pravidlo sa nepodarilo zmazať. Skúste to znova.",
+          "not_found": "Toto pravidlo už neexistuje.",
+          "forbidden": "Pravidlá smerovania môžu meniť iba správcovia projektu.",
+          "team_not_attached": "Najprv priraďte tím k tomuto projektu.",
+          "label_deleted": "Štítok bol zmazaný.",
+          "epic_deleted": "Epik bol zmazaný alebo archivovaný."
+        }
       }
     },
     "states": {

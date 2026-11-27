@@ -85,6 +85,74 @@
         "leader_failed": "Pemimpin tidak dapat diubah. Silakan coba lagi.",
         "leader_not_member": "Orang ini bukan lagi anggota {team}.",
         "forbidden": "Hanya admin proyek yang dapat mengubah tim proyek."
+      },
+      "routing": {
+        "label": "Perutean",
+        "description": "Kirim item kerja yang memiliki label atau epik langsung ke pemimpin tim.",
+        "add_rule": "Tambah aturan",
+        "attach_team_first": "Tautkan tim terlebih dahulu.",
+        "trigger": {
+          "label": "Label",
+          "epic": "Epik"
+        },
+        "rule_label": "Label {name}",
+        "rule_epic": "Epik {identifier} {name}",
+        "rule_summary": "{trigger} diarahkan ke {team}",
+        "routes_to": "diarahkan ke",
+        "leader_name": "Pemimpin: {name}",
+        "no_leader": "Tanpa pemimpin",
+        "no_leader_hint": "Item kerja yang cocok tidak akan ditugaskan sampai tim ini memiliki pemimpin.",
+        "state": {
+          "on": "Aktif",
+          "off": "Nonaktif"
+        },
+        "toggle_aria_label": "Aktifkan atau nonaktifkan aturan: {rule}",
+        "delete_aria_label": "Hapus aturan: {rule}",
+        "inactive": {
+          "label_deleted": "Label telah dihapus. Hapus aturan ini.",
+          "epic_deleted": "Epik telah dihapus atau diarsipkan.",
+          "team_detached": "Tim ini tidak lagi ditautkan ke proyek. Tautkan tim, lalu aktifkan aturan."
+        },
+        "form": {
+          "trigger_type": "Saat item kerja memiliki",
+          "select_label": "Pilih label",
+          "search_labels": "Cari label",
+          "no_labels": "Proyek ini belum memiliki label.",
+          "select_epic": "Pilih epik",
+          "search_epics": "Cari item kerja",
+          "no_epics": "Tidak ada item kerja yang cocok.",
+          "team": "Kirim ke tim",
+          "select_team": "Pilih tim",
+          "no_leader_warning": "{team} tidak memiliki pemimpin di proyek ini. Item kerja yang cocok tidak akan ditugaskan sampai Anda memilih pemimpin di atas.",
+          "submit": "Tambah aturan",
+          "submitting": "Menambahkan…",
+          "duplicate": "Aturan ini sudah ada."
+        },
+        "delete_modal": {
+          "title": "Hapus aturan ini?",
+          "content_label": "Item kerja baru dengan label {label} tidak akan lagi diarahkan ke {team}. Item kerja yang sudah ditugaskan tetap mempertahankan penugasannya.",
+          "content_epic": "Item kerja baru di bawah epik {epic} tidak akan lagi diarahkan ke {team}. Item kerja yang sudah ditugaskan tetap mempertahankan penugasannya.",
+          "confirm": "Hapus aturan",
+          "confirming": "Menghapus…"
+        },
+        "toasts": {
+          "created": "Aturan ditambahkan.",
+          "deleted": "Aturan dihapus.",
+          "already_deleted": "Aturan ini sudah dihapus.",
+          "enabled": "Aturan diaktifkan.",
+          "disabled": "Aturan dinonaktifkan."
+        },
+        "errors": {
+          "load_failed": "Aturan perutean tidak dapat dimuat.",
+          "create_failed": "Aturan tidak dapat ditambahkan. Silakan coba lagi.",
+          "update_failed": "Aturan tidak dapat diubah. Silakan coba lagi.",
+          "delete_failed": "Aturan tidak dapat dihapus. Silakan coba lagi.",
+          "not_found": "Aturan ini sudah tidak ada.",
+          "forbidden": "Hanya admin proyek yang dapat mengubah aturan perutean.",
+          "team_not_attached": "Tautkan tim ke proyek ini terlebih dahulu.",
+          "label_deleted": "Label telah dihapus.",
+          "epic_deleted": "Epik telah dihapus atau diarsipkan."
+        }
       }
     },
     "states": {
