@@ -6,6 +6,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { observer } from "mobx-react";
+import { mutate as globalMutate } from "swr";
 import { Banner } from "@makeplane/propel/components/banner";
 import { Button } from "@makeplane/propel/components/button";
 import { RadioGroupField, RadioGroupFieldOption } from "@makeplane/propel/components/radio-group-field";
@@ -13,6 +14,7 @@ import { FieldLabel } from "@makeplane/propel/elements/field";
 // plane imports
 import { Select } from "@plane/blocks/select";
 import { setToast } from "@plane/blocks/toast";
+import { PROJECT_TEAMS_KEY } from "@plane/constants";
 import { useTranslation } from "@plane/i18n";
 import type {
   IIssueLabel,
@@ -61,6 +63,8 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
   const [teamId, setTeamId] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isDuplicate, setIsDuplicate] = useState(false);
+  // Labels the server no longer has: the label store keeps a deleted label until a reload.
+  const [goneLabelIds, setGoneLabelIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Two submits in one frame both see the old state; the ref stops the second POST.
   const isSubmittingRef = useRef(false);
@@ -80,11 +84,26 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
     return () => window.clearTimeout(timer);
   }, []);
 
-  const labels = getProjectLabels(projectId);
+  const storeLabels = getProjectLabels(projectId);
+  const labels = storeLabels?.filter((label) => !goneLabelIds.includes(label.id));
   // The store keeps the labels once loaded, so this asks once (unless a project page loaded them already).
   useEffect(() => {
-    if (!labels) void fetchProjectLabels(workspaceSlug, projectId).catch(() => undefined);
-  }, [labels, fetchProjectLabels, workspaceSlug, projectId]);
+    if (!storeLabels) void fetchProjectLabels(workspaceSlug, projectId).catch(() => undefined);
+  }, [storeLabels, fetchProjectLabels, workspaceSlug, projectId]);
+
+  // A 400 on a picker usually means its choice went stale (a team detached, a label deleted): reload that list,
+  // so the choice drops out of the picker and out of the selection.
+  const refreshStalePicker = (errors: Record<string, string>) => {
+    if (errors.team_id) void globalMutate(PROJECT_TEAMS_KEY(workspaceSlug, projectId));
+    if (errors.label_id)
+      void fetchProjectLabels(workspaceSlug, projectId)
+        .then((fresh) =>
+          setGoneLabelIds(
+            (storeLabels ?? []).filter((label) => !fresh.some(({ id }) => id === label.id)).map(({ id }) => id)
+          )
+        )
+        .catch(() => undefined);
+  };
 
   const selectedLabel = labels?.find((label) => label.id === labelId) ?? null;
   const selectedTeam = projectTeams.find((projectTeam) => projectTeam.team.id === teamId) ?? null;
@@ -122,6 +141,7 @@ export const AddRoutingRuleForm = observer(function AddRoutingRuleForm(props: Pr
       } else {
         const errors = routingRuleFieldErrors(error, t);
         setFieldErrors(errors);
+        refreshStalePicker(errors);
         // A 400 on a field the form shows sits next to that field; anything else gets a toast.
         if (!["trigger_type", "label_id", "epic_id", "team_id"].some((field) => field in errors))
           setToast({
